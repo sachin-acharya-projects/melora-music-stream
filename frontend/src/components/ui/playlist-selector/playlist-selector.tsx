@@ -89,12 +89,12 @@ export default function PlaylistSelector({
                                     onChange(p.name)
                                     setIsOpen(false)
                                 }}
-                                className='flex w-full cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-left text-xs hover:bg-black/5 dark:text-white dark:hover:bg-white/5'
+                                className='flex w-full cursor-pointer items-center justify-between rounded-lg px-4 py-3 text-left text-xs hover:bg-black/5 dark:text-white dark:hover:bg-white/5'
                             >
                                 <span className='truncate capitalize'>{p.name}</span>
-                                <span className='ml-2 shrink-0 text-[9px] font-bold text-gray-400 uppercase'>
+                                {/* <span className='ml-2 shrink-0 text-[9px] font-bold text-gray-400 uppercase'>
                                     Existing
-                                </span>
+                                </span> */}
                             </button>
                         ))}
                     </motion.div>

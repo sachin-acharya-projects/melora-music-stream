@@ -293,7 +293,7 @@ export default function Playlists() {
                 <div className='flex flex-wrap items-center justify-between gap-6'>
                     <div className='flex flex-wrap items-center gap-6'>
                         <div className='relative z-50 flex flex-col gap-2'>
-                            <label className='text-xs font-bold tracking-wider text-gray-500 uppercase'>
+                            <label className='text-xs tracking-wider text-gray-500'>
                                 Viewing Playlist
                             </label>
                             <div className='relative w-64'>
@@ -350,9 +350,7 @@ export default function Playlists() {
                         </div>
 
                         <div className='flex flex-col gap-2'>
-                            <label className='text-xs font-bold tracking-wider text-gray-500 uppercase'>
-                                Sort By
-                            </label>
+                            <label className='text-xs tracking-wider text-gray-500'>Sort By</label>
                             <button
                                 onClick={handleSortByToggle}
                                 className='dark:bg-card flex h-12 cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 font-medium shadow-sm transition-all hover:border-red-200 dark:border-white/10 dark:text-white'
@@ -372,9 +370,7 @@ export default function Playlists() {
                         </div>
 
                         <div className='flex flex-col gap-2'>
-                            <label className='text-xs font-bold tracking-wider text-gray-500 uppercase'>
-                                Order
-                            </label>
+                            <label className='text-xs tracking-wider text-gray-500'>Order</label>
                             <button
                                 onClick={handleSortOrderToggle}
                                 className='dark:bg-card flex h-12 cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 font-medium shadow-sm transition-all hover:border-red-200 dark:border-white/10 dark:text-white'
@@ -419,7 +415,7 @@ export default function Playlists() {
                     </div>
 
                     <div className='flex flex-col items-end gap-2'>
-                        <label className='text-xs font-bold tracking-wider text-gray-500 uppercase'>
+                        <label className='text-xs tracking-wider text-gray-500'>
                             Layout
                         </label>
                         <ViewToggle view={viewMode} onChange={setViewMode} />
