@@ -106,7 +106,7 @@ export default function Playlists() {
     const removeSongsMutation = useMutation({
         mutationFn: async ({ playlistId, songIds }: { playlistId: string; songIds: string[] }) => {
             for (const id of songIds) {
-                await http.post(`/playlists/${playlistId}/remove`, { id })
+                await http.delete(`/playlists/${playlistId}/songs/${id}`)
             }
         },
         onSuccess: () => {
@@ -131,6 +131,7 @@ export default function Playlists() {
         e.preventDefault()
         if (!importUrl || !importName) return
 
+        // Check if importName matches an existing playlist to send ID instead
         const existing = playlists.find((p) => p.name.toLowerCase() === importName.toLowerCase())
         if (existing) {
             importMutation.mutate({ url: importUrl, id: existing.id })
@@ -246,7 +247,7 @@ export default function Playlists() {
                 {/* Import Section */}
                 <form
                     onSubmit={handleImport}
-                    className='dark:bg-card flex flex-wrap items-end gap-4 rounded-xl border border-white/10 bg-white p-6 shadow-sm'
+                    className='dark:bg-card flex flex-wrap items-end gap-4 rounded-xl border bg-white p-6 shadow-sm dark:border-white/10'
                 >
                     <div className='flex min-w-75 flex-1 flex-col gap-2'>
                         <label className='text-sm font-medium text-gray-700 dark:text-gray-300'>
@@ -325,7 +326,7 @@ export default function Playlists() {
                         {importMutation.isPending ? (
                             <Loader2 className='h-4 w-4 animate-spin' />
                         ) : (
-                            <Import className='h-5 w-5' />
+                            <Import className='h-4 w-4' />
                         )}
                         Import
                     </button>
@@ -335,7 +336,7 @@ export default function Playlists() {
                 <div className='flex flex-wrap items-center justify-between gap-6'>
                     <div className='flex flex-wrap items-center gap-6'>
                         <div className='relative z-50 flex flex-col gap-2'>
-                            <label className='text-primary/70 text-xs tracking-wider'>
+                            <label className='text-xs font-bold tracking-wider text-gray-500 uppercase'>
                                 Viewing Playlist
                             </label>
                             <div className='relative w-64'>
@@ -392,10 +393,12 @@ export default function Playlists() {
                         </div>
 
                         <div className='flex flex-col gap-2'>
-                            <label className='text-primary/70 text-xs tracking-wider'>Order</label>
+                            <label className='text-xs font-bold tracking-wider text-gray-500 uppercase'>
+                                Order
+                            </label>
                             <button
                                 onClick={handleSortToggle}
-                                className='dark:bg-card flex cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 py-3 font-medium shadow-sm transition-all hover:border-red-200 dark:border-white/10 dark:text-white'
+                                className='dark:bg-card flex h-11 cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 font-medium shadow-sm transition-all hover:border-red-200 dark:border-white/10 dark:text-white'
                             >
                                 {urlSort === "asc" ? (
                                     <>
@@ -413,12 +416,12 @@ export default function Playlists() {
 
                         {selectedView !== "all" && (
                             <div className='flex flex-col gap-2'>
-                                <label className='text-primary/70 text-xs tracking-wider'>
+                                <label className='text-xs font-bold tracking-wider text-gray-500 uppercase'>
                                     Reordering
                                 </label>
                                 <button
                                     onClick={() => setIsPaginated(!isPaginated)}
-                                    className={`flex cursor-pointer items-center gap-2 rounded-xl border px-4 py-3 font-medium shadow-sm transition-all ${
+                                    className={`flex h-11 cursor-pointer items-center gap-2 rounded-xl border px-4 font-medium shadow-sm transition-all ${
                                         !isPaginated
                                             ? "border-red-500 bg-red-500 text-white"
                                             : "dark:bg-card bg-white hover:border-red-200 dark:border-white/10 dark:text-white"
@@ -437,7 +440,9 @@ export default function Playlists() {
                     </div>
 
                     <div className='flex flex-col items-end gap-2'>
-                        <label className='text-primary/70 text-xs tracking-wider'>Layout</label>
+                        <label className='text-xs font-bold tracking-wider text-gray-500 uppercase'>
+                            Layout
+                        </label>
                         <ViewToggle view={viewMode} onChange={setViewMode} />
                     </div>
                 </div>
@@ -448,11 +453,11 @@ export default function Playlists() {
                     <Loader2 className='h-12 w-12 animate-spin text-red-600' />
                 </div>
             ) : sortedSongs.length === 0 ? (
-                <div className='dark:bg-card rounded-xl border border-dashed border-gray-300 bg-white py-20 text-center text-gray-500 dark:border-white/10'>
+                <div className='py-5 text-center text-gray-500 text-2xl'>
                     No songs found.
                 </div>
             ) : (
-                <div className='flex flex-col gap-6'>
+                <div className='flex flex-col gap-8'>
                     <div className='flex items-center justify-between'>
                         <h2 className='text-xl font-semibold capitalize dark:text-white'>
                             {selectedView === "all"
@@ -505,7 +510,7 @@ export default function Playlists() {
                                         onClick={(e) => toggleSelect(song.id, e)}
                                         className={`group relative cursor-pointer overflow-hidden rounded-xl border transition-all ${
                                             isSelected
-                                                ? "border-red-500 bg-red-50 ring-2 ring-red-500/50"
+                                                ? "border-red-500 bg-red-50/10 ring-2 ring-red-500/50"
                                                 : "dark:bg-card border-gray-200 bg-white hover:border-red-300 dark:border-white/10"
                                         }`}
                                     >
@@ -518,7 +523,7 @@ export default function Playlists() {
                                             <div className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
                                                 <button
                                                     onClick={() => handlePlay(globalIndex)}
-                                                    className='flex h-12 w-12 cursor-pointer items-center justify-center rounded-full bg-red-600 text-white shadow-lg transition-transform hover:scale-110'
+                                                    className='cursor-pointer rounded-full bg-red-600 p-3 text-white shadow-lg transition-transform hover:scale-110'
                                                 >
                                                     <Play className='h-6 w-6 translate-x-0.5 fill-current' />
                                                 </button>
@@ -547,7 +552,7 @@ export default function Playlists() {
                                         onClick={(e) => toggleSelect(song.id, e)}
                                         className={`group flex cursor-pointer items-center gap-4 rounded-xl border p-2 transition-all ${
                                             isSelected
-                                                ? "border-red-500 bg-red-50"
+                                                ? "border-red-500 bg-red-50/5"
                                                 : "dark:bg-card border-gray-100 bg-white hover:border-red-200 dark:border-white/10"
                                         }`}
                                     >

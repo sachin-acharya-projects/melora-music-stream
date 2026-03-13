@@ -37,13 +37,13 @@ export default function EditPlaylists() {
             toast.success("Playlist deleted")
         },
         onError: () => {
-            toast.error("Delete not supported by API")
+            toast.error("Failed to delete playlist")
         },
     })
 
     const renameMutation = useMutation({
         mutationFn: async ({ id, name }: { id: string; name: string }) => {
-            return http.put(`/playlists/${id}`, { name })
+            return http.patch(`/playlists/${id}`, { name })
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["playlists"] })
@@ -51,7 +51,7 @@ export default function EditPlaylists() {
             toast.success("Playlist renamed")
         },
         onError: () => {
-            toast.error("Rename not supported by API")
+            toast.error("Failed to rename playlist")
             setEditingId(null)
         },
     })
@@ -122,7 +122,13 @@ export default function EditPlaylists() {
                     >
                         <div className='flex items-center gap-4'>
                             {editingId === playlist.id ? (
-                                <div className='flex items-center gap-2'>
+                                <form
+                                    className='flex items-center gap-2'
+                                    onSubmit={(e) => {
+                                        e.preventDefault()
+                                        renameMutation.mutate({ id: playlist.id, name: newName })
+                                    }}
+                                >
                                     <input
                                         type='text'
                                         value={newName}
@@ -131,24 +137,20 @@ export default function EditPlaylists() {
                                         autoFocus
                                     />
                                     <button
-                                        onClick={() =>
-                                            renameMutation.mutate({
-                                                id: playlist.id,
-                                                name: newName,
-                                            })
-                                        }
+                                        type='submit'
                                         className='cursor-pointer text-emerald-500'
                                         disabled={renameMutation.isPending}
                                     >
                                         <Check className='h-4 w-4' />
                                     </button>
                                     <button
+                                        type='button'
                                         onClick={() => setEditingId(null)}
                                         className='cursor-pointer text-red-500'
                                     >
                                         <X className='h-4 w-4' />
                                     </button>
-                                </div>
+                                </form>
                             ) : (
                                 <span className='font-medium capitalize dark:text-white'>
                                     {playlist.name}
