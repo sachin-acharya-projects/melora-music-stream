@@ -7,7 +7,7 @@ import { useTitle } from "@/hooks/useTitle"
 import { formatDuration } from "@/lib/utils"
 import { apiService } from "@/services/api.service"
 import { Reorder } from "framer-motion"
-import { Download, GripVertical, Play, Plus, Trash2 } from "lucide-react"
+import { Download, GripVertical, Loader2, Play, Plus, Trash2 } from "lucide-react"
 import { useState } from "react"
 import { toast } from "react-toastify"
 
@@ -17,7 +17,7 @@ export default function Queue() {
     const [playlistInput, setPlaylistInput] = useState("")
     const setPlaylist = usePlayerStore((s) => s.setPlaylist)
 
-    const { playlists, addSong, createPlaylist } = usePlaylists()
+    const { playlists, addSong, createPlaylist, isAdding, isCreating } = usePlaylists()
 
     // Dialog state
     const [isClearDialogOpen, setIsClearDialogOpen] = useState(false)
@@ -46,11 +46,11 @@ export default function Queue() {
                 playlistId = newPlaylist.id
             }
 
-            queue.forEach((song) => {
-                addSong({ playlistId: playlistId!, song })
-            })
+            for (const song of queue) {
+                await addSong({ playlistId: playlistId!, song })
+            }
 
-            toast.success(`Adding ${queue.length} songs to ${playlistInput}...`)
+            toast.success(`Added ${queue.length} songs to ${playlistInput}`)
             setPlaylistInput("")
         } catch {
             toast.error("Failed to add songs to playlist")
@@ -77,6 +77,8 @@ export default function Queue() {
         )
     }
 
+    const isPlaylistActionLoading = isAdding || isCreating
+
     return (
         <div className='mx-auto w-full max-w-4xl px-4 py-10'>
             <div className='mb-8 flex flex-wrap items-center justify-between gap-4'>
@@ -100,11 +102,15 @@ export default function Queue() {
                         />
                         <button
                             onClick={handleAddAllToPlaylist}
-                            disabled={!playlistInput}
-                            className='flex cursor-pointer items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50'
+                            disabled={!playlistInput || isPlaylistActionLoading}
+                            className='flex min-w-25 cursor-pointer items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50'
                         >
-                            <Plus className='h-4 w-4' />
-                            Add All
+                            {isPlaylistActionLoading ? (
+                                <Loader2 className='h-4 w-4 animate-spin' />
+                            ) : (
+                                <Plus className='h-4 w-4' />
+                            )}
+                            <span>Add All</span>
                         </button>
                     </div>
 

@@ -72,12 +72,16 @@ export function usePlaylists(options: PlaylistSortOptions = {}) {
         isLoading: playlistsQuery.isLoading,
         isError: playlistsQuery.isError,
         createPlaylist: createPlaylistMutation.mutateAsync,
-        addSong: addSongToPlaylistMutation.mutate,
+        isCreating: createPlaylistMutation.isPending,
+        addSong: addSongToPlaylistMutation.mutateAsync, // Exporting Async for easier loop handling
+        isAdding: addSongToPlaylistMutation.isPending,
         importPlaylist: importPlaylistMutation.mutate,
         isImporting: importPlaylistMutation.isPending,
         renamePlaylist: renamePlaylistMutation.mutate,
         isRenaming: renamePlaylistMutation.isPending,
         deletePlaylist: deletePlaylistMutation.mutate,
+        isDeleting: deletePlaylistMutation.isPending,
         removeSongs: removeSongsMutation.mutate,
+        isRemoving: removeSongsMutation.isPending,
     }
 }

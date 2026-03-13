@@ -1,18 +1,17 @@
 import SearchForm from "@/components/search-form/search-form"
 import SongSkeleton from "@/components/song-skeleton/song-skeleton"
-import { useQueueStore } from "@/hooks/useQueue"
-import { formatDuration } from "@/lib/utils"
-import { AnimatePresence, motion } from "framer-motion"
-import { Play, Plus, Settings2 } from "lucide-react"
-
 import PlaylistSelector from "@/components/ui/playlist-selector/playlist-selector"
 import ViewToggle from "@/components/ui/view-toggle/view-toggle"
 import { usePlayerStore } from "@/hooks/usePlayer"
 import { usePlaylists } from "@/hooks/usePlaylists"
+import { useQueueStore } from "@/hooks/useQueue"
 import { useSearch } from "@/hooks/useSearch"
 import { useThemeStore } from "@/hooks/useTheme"
 import { useTitle } from "@/hooks/useTitle"
+import { formatDuration } from "@/lib/utils"
 import { apiService } from "@/services/api.service"
+import { AnimatePresence, motion } from "framer-motion"
+import { Loader2, Play, Plus, Settings2 } from "lucide-react"
 import { useState } from "react"
 import { Link } from "react-router-dom"
 import { toast } from "react-toastify"
@@ -27,7 +26,7 @@ export default function Home() {
     const addQueue = useQueueStore((s) => s.add)
     const setPlaylist = usePlayerStore((s) => s.setPlaylist)
 
-    const { playlists, addSong, createPlaylist } = usePlaylists()
+    const { playlists, addSong, createPlaylist, isAdding, isCreating } = usePlaylists()
     const { data: videos = [], isLoading: isSearchLoading, isError } = useSearch(searchQuery)
 
     const toggleSelect = (video_id: string, e: React.MouseEvent) => {
@@ -84,11 +83,12 @@ export default function Home() {
             }
 
             for (const song of songsToAdd) {
-                addSong({ playlistId, song })
+                await addSong({ playlistId: playlistId!, song })
             }
 
-            toast.success(`Processing ${songsToAdd.length} songs...`)
+            toast.success(`Added ${songsToAdd.length} songs to ${playlistInput}`)
             clearSelection()
+            setPlaylistInput("")
         } catch {
             toast.error("Failed to add songs to playlist")
         }
@@ -105,6 +105,8 @@ export default function Home() {
             clearSelection()
         }
     }
+
+    const isPlaylistActionLoading = isAdding || isCreating
 
     return (
         <div className='flex flex-col items-center gap-12'>
@@ -313,11 +315,15 @@ export default function Home() {
                                 />
                                 <button
                                     onClick={handleAddToPlaylist}
-                                    disabled={!playlistInput}
-                                    className='flex cursor-pointer items-center gap-1 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-50'
+                                    disabled={!playlistInput || isPlaylistActionLoading}
+                                    className='flex min-w-20 cursor-pointer items-center justify-center gap-1 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-50'
                                 >
-                                    <Plus className='h-4 w-4' />
-                                    Add
+                                    {isPlaylistActionLoading ? (
+                                        <Loader2 className='h-4 w-4 animate-spin' />
+                                    ) : (
+                                        <Plus className='h-4 w-4' />
+                                    )}
+                                    <span>Add</span>
                                 </button>
                             </div>
 

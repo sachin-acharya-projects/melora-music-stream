@@ -278,7 +278,7 @@ export default function Playlists() {
                         {isImporting ? (
                             <Loader2 className='h-4 w-4 animate-spin' />
                         ) : (
-                            <Import className='h-4 w-4' />
+                            <Import className='h-5 w-5' />
                         )}
                         Import
                     </button>
