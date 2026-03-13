@@ -1,45 +1,43 @@
 import ConfirmationDialog from "@/components/ui/confirmation-dialog/confirmation-dialog"
+import PlaylistSelector from "@/components/ui/playlist-selector/playlist-selector"
 import { usePlayerStore } from "@/hooks/usePlayer"
 import { useQueueStore } from "@/hooks/useQueue"
 import { useTitle } from "@/hooks/useTitle"
 import { formatDuration } from "@/lib/utils"
-import { type Song } from "@/types"
+import { type Playlist, type Song } from "@/types"
 import { http } from "@/utils/api/http"
-import { useMutation, useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Reorder } from "framer-motion"
-import { Download, GripVertical, Play, Plus, Trash2 } from "lucide-react"
+import { Download, GripVertical, Loader2, Play, Plus, Trash2 } from "lucide-react"
 import { useState } from "react"
 import { toast } from "react-toastify"
 
 export default function Queue() {
     useTitle("Download Queue")
+    const queryClient = useQueryClient()
     const { queue, remove, clear, reorder } = useQueueStore()
-    const [selectedPlaylist, setSelectedPlaylist] = useState("")
+    const [playlistInput, setPlaylistInput] = useState("")
     const setPlaylist = usePlayerStore((s) => s.setPlaylist)
 
     // Dialog state
     const [isClearDialogOpen, setIsClearDialogOpen] = useState(false)
 
-    const { data: playlists = {} } = useQuery({
+    const { data: playlists = [] } = useQuery({
         queryKey: ["playlists"],
         queryFn: async () => {
-            const res = await http.get<Record<string, Song[]>>("/playlists")
-            const names = Object.keys(res.data)
-            if (names.length > 0 && !selectedPlaylist) {
-                setSelectedPlaylist(names[0])
-            }
+            const res = await http.get<Playlist[]>("/playlists/")
             return res.data
         },
     })
 
-    const playlistNames = Object.keys(playlists)
-
     const addToPlaylistMutation = useMutation({
-        mutationFn: async ({ playlist, song }: { playlist: string; song: Song }) => {
-            return http.post(`/playlists/${playlist}/add`, song)
+        mutationFn: async ({ playlistName, song }: { playlistName: string; song: Song }) => {
+            const res = await http.post("/playlists/", { name: playlistName })
+            const playlistId = res.data.id
+            return http.post(`/playlists/${playlistId}/add`, song)
         },
-        onSuccess: (_, variables) => {
-            toast.success(`Added ${variables.song.title} to ${variables.playlist}`)
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["playlists"] })
         },
         onError: () => {
             toast.error("Failed to add to playlist")
@@ -57,15 +55,15 @@ export default function Queue() {
     }
 
     const handleAddAllToPlaylist = () => {
-        if (!selectedPlaylist || queue.length === 0) return
+        if (!playlistInput || queue.length === 0) return
         queue.forEach((song) => {
-            addToPlaylistMutation.mutate({ playlist: selectedPlaylist, song })
+            addToPlaylistMutation.mutate({ playlistName: playlistInput, song })
         })
-        toast.info(`Adding ${queue.length} songs to ${selectedPlaylist}...`)
+        toast.info(`Processing ${queue.length} songs...`)
     }
 
     const handleDownload = (id: string) => {
-        window.open(`${import.meta.env.VITE_BASE_URL}/download/${id}`, "_blank")
+        window.open(`${http.defaults.baseURL}/download/${id}`, "_blank")
     }
 
     if (queue.length === 0) {
@@ -98,28 +96,26 @@ export default function Queue() {
                         Play All
                     </button>
 
-                    {playlistNames.length > 0 && (
-                        <div className='flex items-center gap-2 border-x px-3 dark:border-white/10'>
-                            <select
-                                value={selectedPlaylist}
-                                onChange={(e) => setSelectedPlaylist(e.target.value)}
-                                className='cursor-pointer rounded-lg border bg-white px-2 py-2 text-sm dark:border-white/10 dark:bg-black dark:text-white'
-                            >
-                                {playlistNames.map((name) => (
-                                    <option key={name} value={name}>
-                                        {name}
-                                    </option>
-                                ))}
-                            </select>
-                            <button
-                                onClick={handleAddAllToPlaylist}
-                                className='flex cursor-pointer items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-emerald-700'
-                            >
+                    <div className='flex items-center gap-2 border-x px-3 dark:border-white/10'>
+                        <PlaylistSelector
+                            playlists={playlists}
+                            value={playlistInput}
+                            onChange={setPlaylistInput}
+                            className='w-48'
+                        />
+                        <button
+                            onClick={handleAddAllToPlaylist}
+                            disabled={!playlistInput || addToPlaylistMutation.isPending}
+                            className='flex cursor-pointer items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50'
+                        >
+                            {addToPlaylistMutation.isPending ? (
+                                <Loader2 className='h-4 w-4 animate-spin' />
+                            ) : (
                                 <Plus className='h-4 w-4' />
-                                Add All
-                            </button>
-                        </div>
-                    )}
+                            )}
+                            Add All
+                        </button>
+                    </div>
 
                     <button
                         onClick={() => setIsClearDialogOpen(true)}
@@ -140,7 +136,7 @@ export default function Queue() {
                     <Reorder.Item
                         key={song.id}
                         value={song}
-                        className='group dark:bg-card flex items-center gap-4 rounded-2xl border bg-white p-3 transition-shadow hover:shadow-md dark:border-white/10'
+                        className='group dark:bg-card flex items-center gap-4 rounded-2xl border bg-white p-3 transition-shadow select-none hover:shadow-md dark:border-white/10'
                     >
                         <div className='cursor-grab p-1 text-gray-400 active:cursor-grabbing'>
                             <GripVertical className='h-5 w-5' />
@@ -175,7 +171,7 @@ export default function Queue() {
                         <div className='flex items-center gap-2'>
                             <button
                                 onClick={() => handleDownload(song.id)}
-                                className='cursor-pointer rounded-lg bg-blue-600 p-2 text-white transition-colors hover:bg-blue-700'
+                                className='cursor-pointer rounded-lg bg-blue-600 p-2 text-white transition-colors hover:bg-red-700'
                                 title='Download Now'
                             >
                                 <Download className='h-4 w-4' />

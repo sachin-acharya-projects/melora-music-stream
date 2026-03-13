@@ -274,7 +274,7 @@ function ReorderItem({
     return (
         <Reorder.Item value={song} dragListener={false} dragControls={controls} className='w-full'>
             <div
-                className={`flex w-full items-center gap-2 rounded-2xl p-2 transition-all ${
+                className={`flex w-full items-center gap-2 rounded-2xl p-2 transition-all select-none ${
                     isActive
                         ? "bg-red-50 text-red-600 shadow-sm dark:bg-red-500/10"
                         : "hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/5"

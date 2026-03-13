@@ -4,7 +4,7 @@ import { usePlayerStore } from "@/hooks/usePlayer"
 import { useThemeStore } from "@/hooks/useTheme"
 import { useTitle } from "@/hooks/useTitle"
 import { formatDuration } from "@/lib/utils"
-import { type Song } from "@/types"
+import { type Playlist, type Song } from "@/types"
 import { http } from "@/utils/api/http"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { AnimatePresence, motion, Reorder, useDragControls } from "framer-motion"
@@ -50,31 +50,35 @@ export default function Playlists() {
 
     useEffect(() => {
         if (!searchParams.get("order")) {
-            setSearchParams((prev) => {
-                prev.set("order", sortOrder)
-                return prev
-            })
+            setSearchParams(
+                (prev) => {
+                    prev.set("order", sortOrder)
+                    return prev
+                },
+                { replace: true },
+            )
         }
     }, [searchParams, setSearchParams, sortOrder])
 
     // Dialog states
     const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false)
-    const [removalData, setRemovalData] = useState<{ playlist: string; songIds: string[] } | null>(
-        null,
-    )
-    const [targetPlaylist, setTargetPlaylist] = useState("")
+    const [removalData, setRemovalData] = useState<{
+        playlistId: string
+        songIds: string[]
+    } | null>(null)
+    const [targetPlaylistId, setTargetPlaylistId] = useState("")
 
     const setPlaylist = usePlayerStore((s) => s.setPlaylist)
 
-    const { data: playlists = {}, isLoading } = useQuery({
+    const { data: playlists = [], isLoading } = useQuery({
         queryKey: ["playlists"],
         queryFn: async () => {
-            const res = await http.get<Record<string, Song[]>>("/playlists")
+            const res = await http.get<Playlist[]>("/playlists/")
             return res.data
         },
     })
 
-    const playlistNames = Object.keys(playlists)
+    const playlistNames = useMemo(() => playlists.map((p) => p.name), [playlists])
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -87,8 +91,8 @@ export default function Playlists() {
     }, [])
 
     const importMutation = useMutation({
-        mutationFn: async (vars: { url: string; name: string }) => {
-            return http.post("/import", vars)
+        mutationFn: async (vars: { url: string; name?: string; id?: string }) => {
+            return http.post("/playlists/import", vars)
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["playlists"] })
@@ -100,9 +104,9 @@ export default function Playlists() {
     })
 
     const removeSongsMutation = useMutation({
-        mutationFn: async ({ playlist, songIds }: { playlist: string; songIds: string[] }) => {
+        mutationFn: async ({ playlistId, songIds }: { playlistId: string; songIds: string[] }) => {
             for (const id of songIds) {
-                await http.post(`/playlists/${playlist}/remove`, { id })
+                await http.post(`/playlists/${playlistId}/remove`, { id })
             }
         },
         onSuccess: () => {
@@ -114,26 +118,34 @@ export default function Playlists() {
     })
 
     const addToPlaylistMutation = useMutation({
-        mutationFn: async ({ playlist, song }: { playlist: string; song: Song }) => {
-            return http.post(`/playlists/${playlist}/add`, song)
+        mutationFn: async ({ playlistId, song }: { playlistId: string; song: Song }) => {
+            return http.post(`/playlists/${playlistId}/add`, song)
         },
         onSuccess: (_, variables) => {
-            toast.success(`Added ${variables.song.title} to ${variables.playlist}`)
+            const playlist = playlists.find((p) => p.id === variables.playlistId)
+            toast.success(`Added ${variables.song.title} to ${playlist?.name || "playlist"}`)
         },
     })
 
     const handleImport = (e: React.FormEvent) => {
         e.preventDefault()
         if (!importUrl || !importName) return
-        importMutation.mutate({ url: importUrl, name: importName })
+
+        const existing = playlists.find((p) => p.name.toLowerCase() === importName.toLowerCase())
+        if (existing) {
+            importMutation.mutate({ url: importUrl, id: existing.id })
+        } else {
+            importMutation.mutate({ url: importUrl, name: importName })
+        }
     }
 
     const sortedSongs = useMemo(() => {
         let songs: Song[] = []
         if (selectedView === "all") {
-            songs = Object.values(playlists).flat()
+            songs = playlists.flatMap((p) => p.songs)
         } else {
-            songs = [...(playlists[selectedView] || [])]
+            const playlist = playlists.find((p) => p.id === selectedView)
+            songs = playlist ? [...playlist.songs] : []
         }
 
         if (urlSort === "desc") {
@@ -148,7 +160,6 @@ export default function Playlists() {
         : sortedSongs
 
     const handlePlay = (index: number) => {
-        // Play using the full sorted list so queue is complete
         setPlaylist(sortedSongs, index)
     }
 
@@ -188,17 +199,17 @@ export default function Playlists() {
     }
 
     const handleBulkAddToPlaylist = () => {
-        if (!targetPlaylist) return
+        if (!targetPlaylistId) return
         const songsToAdd = sortedSongs.filter((s) => selectedSongIds.includes(s.id))
         songsToAdd.forEach((song) => {
-            addToPlaylistMutation.mutate({ playlist: targetPlaylist, song })
+            addToPlaylistMutation.mutate({ playlistId: targetPlaylistId, song })
         })
         setSelectedSongs([])
     }
 
     const handleBulkRemove = () => {
         setRemovalData({
-            playlist: selectedView === "all" ? "default" : selectedView,
+            playlistId: selectedView === "all" ? playlists[0]?.id : selectedView,
             songIds: selectedSongIds,
         })
         setIsRemoveDialogOpen(true)
@@ -206,23 +217,23 @@ export default function Playlists() {
 
     const handleReorder = (newSongs: Song[]) => {
         if (selectedView !== "all" && urlSort === "asc") {
-            queryClient.setQueryData(["playlists"], (prev: Record<string, Song[]>) => {
-                const updated = { ...prev }
-                if (isPaginated) {
-                    const fullList = [...(prev[selectedView] || [])]
-                    const start = (currentPage - 1) * ITEMS_PER_PAGE
-                    fullList.splice(start, ITEMS_PER_PAGE, ...newSongs)
-                    updated[selectedView] = fullList
-                } else {
-                    updated[selectedView] = newSongs
-                }
-                return updated
+            queryClient.setQueryData(["playlists"], (prev: Playlist[]) => {
+                return prev.map((p) => {
+                    if (p.id === selectedView) {
+                        const updatedSongs = [...p.songs]
+                        const start = isPaginated ? (currentPage - 1) * ITEMS_PER_PAGE : 0
+                        updatedSongs.splice(start, newSongs.length, ...newSongs)
+                        return { ...p, songs: updatedSongs }
+                    }
+                    return p
+                })
             })
         }
     }
 
-    const filteredSuggestions = playlistNames.filter((name) =>
-        name.toLowerCase().includes(importName.toLowerCase()),
+    const filteredSuggestions = useMemo(
+        () => playlistNames.filter((name) => name.toLowerCase().includes(importName.toLowerCase())),
+        [playlistNames, importName],
     )
 
     const isReorderEnabled = selectedView !== "all" && viewMode === "list" && urlSort === "asc"
@@ -235,7 +246,7 @@ export default function Playlists() {
                 {/* Import Section */}
                 <form
                     onSubmit={handleImport}
-                    className='dark:bg-card flex flex-wrap items-end gap-4 rounded-xl border bg-white p-6 shadow-sm dark:border-white/10'
+                    className='dark:bg-card flex flex-wrap items-end gap-4 rounded-xl border border-white/10 bg-white p-6 shadow-sm'
                 >
                     <div className='flex min-w-75 flex-1 flex-col gap-2'>
                         <label className='text-sm font-medium text-gray-700 dark:text-gray-300'>
@@ -320,7 +331,7 @@ export default function Playlists() {
                     </button>
                 </form>
 
-                {/* Toolbar: Dropdown & Toggle & Sorting */}
+                {/* Toolbar */}
                 <div className='flex flex-wrap items-center justify-between gap-6'>
                     <div className='flex flex-wrap items-center gap-6'>
                         <div className='relative z-50 flex flex-col gap-2'>
@@ -333,7 +344,10 @@ export default function Playlists() {
                                     className='dark:bg-card flex w-full cursor-pointer items-center justify-between rounded-xl border bg-white px-4 py-3 text-left font-medium shadow-sm transition-all hover:border-red-200 dark:border-white/10 dark:text-white'
                                 >
                                     <span className='capitalize'>
-                                        {selectedView === "all" ? "All Playlists" : selectedView}
+                                        {selectedView === "all"
+                                            ? "All Playlists"
+                                            : playlists.find((p) => p.id === selectedView)?.name ||
+                                              "Select..."}
                                     </span>
                                     <ChevronDown
                                         className={`h-4 w-4 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`}
@@ -358,17 +372,17 @@ export default function Playlists() {
                                             >
                                                 All Playlists
                                             </button>
-                                            {playlistNames.map((name) => (
+                                            {playlists.map((p) => (
                                                 <button
-                                                    key={name}
+                                                    key={p.id}
                                                     onClick={() => {
-                                                        setSelectedView(name)
+                                                        setSelectedView(p.id)
                                                         handlePageChange(1)
                                                         setIsDropdownOpen(false)
                                                     }}
-                                                    className={`w-full cursor-pointer rounded-lg px-4 py-2 text-left text-sm capitalize transition-colors hover:bg-black/5 dark:hover:bg-white/5 ${selectedView === name ? "bg-red-50 text-red-600 dark:bg-red-500/10" : "dark:text-white"}`}
+                                                    className={`w-full cursor-pointer rounded-lg px-4 py-2 text-left text-sm capitalize transition-colors hover:bg-black/5 dark:hover:bg-white/5 ${selectedView === p.id ? "bg-red-50 text-red-600 dark:bg-red-500/10" : "dark:text-white"}`}
                                                 >
-                                                    {name}
+                                                    {p.name}
                                                 </button>
                                             ))}
                                         </motion.div>
@@ -445,7 +459,9 @@ export default function Playlists() {
                 <div className='flex flex-col gap-8'>
                     <div className='flex items-center justify-between border-b pb-2 dark:border-white/10'>
                         <h2 className='text-xl font-semibold capitalize dark:text-white'>
-                            {selectedView === "all" ? "All Songs" : selectedView}
+                            {selectedView === "all"
+                                ? "All Songs"
+                                : playlists.find((p) => p.id === selectedView)?.name || "Playlist"}
                         </h2>
                         <span className='text-sm text-gray-500'>{sortedSongs.length} songs</span>
                     </div>
@@ -457,20 +473,21 @@ export default function Playlists() {
                             onReorder={handleReorder}
                             className='flex flex-col gap-2'
                         >
-                            {paginatedSongs.map((song, index) => {
-                                const globalIndex = isPaginated
-                                    ? (currentPage - 1) * ITEMS_PER_PAGE + index
-                                    : index
-                                return (
-                                    <ReorderItem
-                                        key={song.id}
-                                        song={song}
-                                        selectedSongIds={selectedSongIds}
-                                        toggleSelect={toggleSelect}
-                                        handlePlay={() => handlePlay(globalIndex)}
-                                    />
-                                )
-                            })}
+                            {paginatedSongs.map((song, index) => (
+                                <ReorderItem
+                                    key={song.id}
+                                    song={song}
+                                    selectedSongIds={selectedSongIds}
+                                    toggleSelect={toggleSelect}
+                                    handlePlay={() =>
+                                        handlePlay(
+                                            isPaginated
+                                                ? (currentPage - 1) * ITEMS_PER_PAGE + index
+                                                : index,
+                                        )
+                                    }
+                                />
+                            ))}
                         </Reorder.Group>
                     ) : (
                         <div
@@ -505,7 +522,7 @@ export default function Playlists() {
                                             <div className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
                                                 <button
                                                     onClick={() => handlePlay(globalIndex)}
-                                                    className='cursor-pointer rounded-full bg-red-600 p-3 text-white shadow-lg transition-transform hover:scale-110'
+                                                    className='flex h-12 w-12 cursor-pointer items-center justify-center rounded-full bg-red-600 text-white shadow-lg transition-transform hover:scale-110'
                                                 >
                                                     <Play className='h-6 w-6 translate-x-0.5 fill-current' />
                                                 </button>
@@ -623,23 +640,23 @@ export default function Playlists() {
                             >
                                 <Play className='h-4 w-4 fill-current' /> Play
                             </button>
-                            {playlistNames.length > 0 && (
+                            {playlists.length > 0 && (
                                 <div className='flex items-center gap-2 border-x px-3 dark:border-white/10'>
                                     <select
-                                        value={targetPlaylist}
-                                        onChange={(e) => setTargetPlaylist(e.target.value)}
+                                        value={targetPlaylistId}
+                                        onChange={(e) => setTargetPlaylistId(e.target.value)}
                                         className='cursor-pointer rounded-lg border bg-white px-2 py-2 text-sm dark:border-white/10 dark:bg-black dark:text-white'
                                     >
                                         <option value=''>Move to...</option>
-                                        {playlistNames.map((n) => (
-                                            <option key={n} value={n}>
-                                                {n}
+                                        {playlists.map((p) => (
+                                            <option key={p.id} value={p.id}>
+                                                {p.name}
                                             </option>
                                         ))}
                                     </select>
                                     <button
                                         onClick={handleBulkAddToPlaylist}
-                                        disabled={!targetPlaylist}
+                                        disabled={!targetPlaylistId}
                                         className='flex cursor-pointer items-center gap-1 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-bold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50'
                                     >
                                         <Plus className='h-4 w-4' /> Add
@@ -671,7 +688,7 @@ export default function Playlists() {
                 onConfirm={() => {
                     if (removalData) {
                         removeSongsMutation.mutate({
-                            playlist: removalData.playlist,
+                            playlistId: removalData.playlistId,
                             songIds: removalData.songIds,
                         })
                     }
@@ -701,7 +718,7 @@ function ReorderItem({
         <Reorder.Item value={song} dragListener={false} dragControls={controls} className='w-full'>
             <div
                 onClick={(e) => toggleSelect(song.id, e)}
-                className={`group flex cursor-pointer items-center gap-4 rounded-xl border p-2 transition-all ${
+                className={`group flex cursor-pointer items-center gap-4 rounded-xl border p-2 transition-all select-none ${
                     isSelected
                         ? "border-red-500 bg-red-50/5"
                         : "dark:bg-card border-gray-100 bg-white hover:border-red-200 dark:border-white/10"
@@ -730,7 +747,9 @@ function ReorderItem({
                 </div>
                 <div className='min-w-0 flex-1'>
                     <h3 className='truncate text-sm font-semibold dark:text-white'>{song.title}</h3>
-                    <p className='truncate text-xs text-gray-500'>{song.uploader}</p>
+                    <p className='truncate text-xs text-gray-500 dark:text-gray-400'>
+                        {song.uploader}
+                    </p>
                 </div>
                 <div className='flex items-center gap-4 pr-2'>
                     <span className='text-xs font-medium text-gray-400'>

@@ -1,14 +1,15 @@
 import SearchForm from "@/components/search-form/search-form"
 import SongSkeleton from "@/components/song-skeleton/song-skeleton"
+import PlaylistSelector from "@/components/ui/playlist-selector/playlist-selector"
 import ViewToggle from "@/components/ui/view-toggle/view-toggle"
 import { usePlayerStore } from "@/hooks/usePlayer"
 import { useQueueStore } from "@/hooks/useQueue"
 import { useThemeStore } from "@/hooks/useTheme"
 import { useTitle } from "@/hooks/useTitle"
 import { formatDuration } from "@/lib/utils"
-import { type Song } from "@/types"
+import { type Playlist, type Song } from "@/types"
 import { http } from "@/utils/api/http"
-import { useMutation, useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { AnimatePresence, motion } from "framer-motion"
 import { Loader2, Play, Plus, Settings2 } from "lucide-react"
 import { useState } from "react"
@@ -17,27 +18,22 @@ import { toast } from "react-toastify"
 
 export default function Home() {
     useTitle("Search and Download Music")
+    const queryClient = useQueryClient()
     const [searchQuery, setSearchQuery] = useState("")
     const [selectedVideos, setSelectedVideos] = useState<string[]>([])
-    const [selectedPlaylist, setSelectedPlaylist] = useState("")
+    const [playlistInput, setPlaylistInput] = useState("")
 
     const { viewMode, setViewMode } = useThemeStore()
     const addQueue = useQueueStore((s) => s.add)
     const setPlaylist = usePlayerStore((s) => s.setPlaylist)
 
-    const { data: playlists = {} } = useQuery({
+    const { data: playlists = [] } = useQuery({
         queryKey: ["playlists"],
         queryFn: async () => {
-            const res = await http.get<Record<string, Song[]>>("/playlists")
-            const names = Object.keys(res.data)
-            if (names.length > 0 && !selectedPlaylist) {
-                setSelectedPlaylist(names[0])
-            }
+            const res = await http.get<Playlist[]>("/playlists/")
             return res.data
         },
     })
-
-    const playlistNames = Object.keys(playlists)
 
     const {
         data: videos = [],
@@ -47,7 +43,7 @@ export default function Home() {
         queryKey: ["search", searchQuery],
         queryFn: async () => {
             if (!searchQuery) return []
-            const res = await http.get<Song[]>("/search", {
+            const res = await http.get<Song[]>("/search/", {
                 params: { q: searchQuery },
             })
             return res.data
@@ -56,11 +52,14 @@ export default function Home() {
     })
 
     const addToPlaylistMutation = useMutation({
-        mutationFn: async ({ playlist, song }: { playlist: string; song: Song }) => {
-            return http.post(`/playlists/${playlist}/add`, song)
+        mutationFn: async ({ playlistName, song }: { playlistName: string; song: Song }) => {
+            // First ensure playlist exists/get ID
+            const res = await http.post("/playlists/", { name: playlistName })
+            const playlistId = res.data.id
+            return http.post(`/playlists/${playlistId}/add`, song)
         },
-        onSuccess: (_, variables) => {
-            toast.success(`Added ${variables.song.title} to ${variables.playlist}`)
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["playlists"] })
         },
         onError: () => {
             toast.error("Failed to add to playlist")
@@ -99,17 +98,18 @@ export default function Home() {
 
     const handleDownloadNow = () => {
         selectedVideos.forEach((id) => {
-            window.open(`${import.meta.env.VITE_BASE_URL}/download/${id}`, "_blank")
+            window.open(`${http.defaults.baseURL}/download/${id}`, "_blank")
         })
         clearSelection()
     }
 
     const handleAddToPlaylist = async () => {
-        if (!selectedPlaylist) return
+        if (!playlistInput) return
         const songsToAdd = videos.filter((v) => selectedVideos.includes(v.id))
         for (const song of songsToAdd) {
-            addToPlaylistMutation.mutate({ playlist: selectedPlaylist, song })
+            addToPlaylistMutation.mutate({ playlistName: playlistInput, song })
         }
+        toast.success(`Processing ${songsToAdd.length} songs...`)
         clearSelection()
     }
 
@@ -165,7 +165,7 @@ export default function Home() {
                             <ViewToggle view={viewMode} onChange={setViewMode} />
                         </div>
 
-                        {/* Video Display - No layoutId on container to avoid glitches */}
+                        {/* Video Display */}
                         <div
                             className={
                                 viewMode === "grid"
@@ -323,34 +323,26 @@ export default function Home() {
                                 <Play className='h-4 w-4 fill-current' /> Play
                             </button>
 
-                            {playlistNames.length > 0 && (
-                                <div className='flex items-center gap-2 border-x px-3 dark:border-white/10'>
-                                    <select
-                                        value={selectedPlaylist}
-                                        onChange={(e) => setSelectedPlaylist(e.target.value)}
-                                        className='cursor-pointer rounded-lg border bg-white px-2 py-2 text-sm dark:border-white/10 dark:bg-black dark:text-white'
-                                    >
-                                        <option value=''>Move to...</option>
-                                        {playlistNames.map((name) => (
-                                            <option key={name} value={name}>
-                                                {name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <button
-                                        onClick={handleAddToPlaylist}
-                                        disabled={addToPlaylistMutation.isPending}
-                                        className='flex cursor-pointer items-center gap-1 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-50'
-                                    >
-                                        {addToPlaylistMutation.isPending ? (
-                                            <Loader2 className='h-4 w-4 animate-spin' />
-                                        ) : (
-                                            <Plus className='h-4 w-4' />
-                                        )}
-                                        Add
-                                    </button>
-                                </div>
-                            )}
+                            <div className='flex items-center gap-2 border-x px-3 dark:border-white/10'>
+                                <PlaylistSelector
+                                    playlists={playlists}
+                                    value={playlistInput}
+                                    onChange={setPlaylistInput}
+                                    className='w-48'
+                                />
+                                <button
+                                    onClick={handleAddToPlaylist}
+                                    disabled={!playlistInput || addToPlaylistMutation.isPending}
+                                    className='flex cursor-pointer items-center gap-1 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-50'
+                                >
+                                    {addToPlaylistMutation.isPending ? (
+                                        <Loader2 className='h-4 w-4 animate-spin' />
+                                    ) : (
+                                        <Plus className='h-4 w-4' />
+                                    )}
+                                    Add
+                                </button>
+                            </div>
 
                             <button
                                 onClick={handleAddToQueue}

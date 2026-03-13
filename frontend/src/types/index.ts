@@ -5,3 +5,9 @@ export interface Song {
     thumbnail: string
     duration: number
 }
+
+export interface Playlist {
+    id: string
+    name: string
+    songs: Song[]
+}
