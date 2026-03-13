@@ -325,7 +325,7 @@ export default function Playlists() {
                         {importMutation.isPending ? (
                             <Loader2 className='h-4 w-4 animate-spin' />
                         ) : (
-                            <Import className='h-4 w-4' />
+                            <Import className='h-5 w-5' />
                         )}
                         Import
                     </button>
@@ -335,7 +335,7 @@ export default function Playlists() {
                 <div className='flex flex-wrap items-center justify-between gap-6'>
                     <div className='flex flex-wrap items-center gap-6'>
                         <div className='relative z-50 flex flex-col gap-2'>
-                            <label className='text-xs font-bold tracking-wider text-gray-500 uppercase'>
+                            <label className='text-primary/70 text-xs tracking-wider'>
                                 Viewing Playlist
                             </label>
                             <div className='relative w-64'>
@@ -392,12 +392,10 @@ export default function Playlists() {
                         </div>
 
                         <div className='flex flex-col gap-2'>
-                            <label className='text-xs font-bold tracking-wider text-gray-500 uppercase'>
-                                Order
-                            </label>
+                            <label className='text-primary/70 text-xs tracking-wider'>Order</label>
                             <button
                                 onClick={handleSortToggle}
-                                className='dark:bg-card flex h-11 cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 font-medium shadow-sm transition-all hover:border-red-200 dark:border-white/10 dark:text-white'
+                                className='dark:bg-card flex cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 py-3 font-medium shadow-sm transition-all hover:border-red-200 dark:border-white/10 dark:text-white'
                             >
                                 {urlSort === "asc" ? (
                                     <>
@@ -415,12 +413,12 @@ export default function Playlists() {
 
                         {selectedView !== "all" && (
                             <div className='flex flex-col gap-2'>
-                                <label className='text-xs font-bold tracking-wider text-gray-500 uppercase'>
+                                <label className='text-primary/70 text-xs tracking-wider'>
                                     Reordering
                                 </label>
                                 <button
                                     onClick={() => setIsPaginated(!isPaginated)}
-                                    className={`flex h-11 cursor-pointer items-center gap-2 rounded-xl border px-4 font-medium shadow-sm transition-all ${
+                                    className={`flex cursor-pointer items-center gap-2 rounded-xl border px-4 py-3 font-medium shadow-sm transition-all ${
                                         !isPaginated
                                             ? "border-red-500 bg-red-500 text-white"
                                             : "dark:bg-card bg-white hover:border-red-200 dark:border-white/10 dark:text-white"
@@ -439,9 +437,7 @@ export default function Playlists() {
                     </div>
 
                     <div className='flex flex-col items-end gap-2'>
-                        <label className='text-xs font-bold tracking-wider text-gray-500 uppercase'>
-                            Layout
-                        </label>
+                        <label className='text-primary/70 text-xs tracking-wider'>Layout</label>
                         <ViewToggle view={viewMode} onChange={setViewMode} />
                     </div>
                 </div>
@@ -456,8 +452,8 @@ export default function Playlists() {
                     No songs found.
                 </div>
             ) : (
-                <div className='flex flex-col gap-8'>
-                    <div className='flex items-center justify-between border-b pb-2 dark:border-white/10'>
+                <div className='flex flex-col gap-6'>
+                    <div className='flex items-center justify-between'>
                         <h2 className='text-xl font-semibold capitalize dark:text-white'>
                             {selectedView === "all"
                                 ? "All Songs"
@@ -509,7 +505,7 @@ export default function Playlists() {
                                         onClick={(e) => toggleSelect(song.id, e)}
                                         className={`group relative cursor-pointer overflow-hidden rounded-xl border transition-all ${
                                             isSelected
-                                                ? "border-red-500 bg-red-50/10 ring-2 ring-red-500/50"
+                                                ? "border-red-500 bg-red-50 ring-2 ring-red-500/50"
                                                 : "dark:bg-card border-gray-200 bg-white hover:border-red-300 dark:border-white/10"
                                         }`}
                                     >
@@ -551,7 +547,7 @@ export default function Playlists() {
                                         onClick={(e) => toggleSelect(song.id, e)}
                                         className={`group flex cursor-pointer items-center gap-4 rounded-xl border p-2 transition-all ${
                                             isSelected
-                                                ? "border-red-500 bg-red-50/5"
+                                                ? "border-red-500 bg-red-50"
                                                 : "dark:bg-card border-gray-100 bg-white hover:border-red-200 dark:border-white/10"
                                         }`}
                                     >

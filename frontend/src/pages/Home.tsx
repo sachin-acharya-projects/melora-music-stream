@@ -137,9 +137,9 @@ export default function Home() {
 
                 <Link
                     to='/playlists/edit'
-                    className='flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-500 transition-colors hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400'
+                    className='-mt-2 flex w-full cursor-pointer items-center gap-2 text-sm font-medium text-gray-500 transition-colors hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400'
                 >
-                    <Settings2 className='h-4 w-4' />
+                    <Settings2 className='h-5 w-5' />
                     Edit Playlists
                 </Link>
             </div>
@@ -269,13 +269,13 @@ export default function Home() {
                 )}
 
                 {!isSearchLoading && videos.length === 0 && searchQuery && !isError && (
-                    <div className='mt-20 text-center text-gray-500 dark:text-gray-400'>
+                    <div className='-mt-4 text-center text-gray-500 dark:text-gray-400'>
                         No results found for "{searchQuery}"
                     </div>
                 )}
 
                 {!isSearchLoading && !searchQuery && (
-                    <div className='mt-20 text-center text-gray-500 dark:text-gray-400'>
+                    <div className='-mt-4 text-center text-gray-500 dark:text-gray-400'>
                         Search for videos to start downloading
                     </div>
                 )}
@@ -295,7 +295,7 @@ export default function Home() {
                 )}
 
                 {isError && (
-                    <div className='mt-20 text-center text-red-500'>
+                    <div className='-mt-4 text-center text-red-500'>
                         Search failed. Please try again.
                     </div>
                 )}

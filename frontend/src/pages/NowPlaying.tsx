@@ -114,8 +114,8 @@ export default function NowPlaying() {
                     </div>
 
                     <div className='flex flex-col gap-2'>
-                        <h1 className='text-3xl font-bold dark:text-white'>{currentSong.title}</h1>
-                        <p className='text-xl text-gray-500 dark:text-gray-400'>
+                        <h1 className='text-2xl font-bold dark:text-white'>{currentSong.title}</h1>
+                        <p className='text-lg text-gray-500 dark:text-gray-400'>
                             {currentSong.uploader}
                         </p>
                     </div>
@@ -276,7 +276,7 @@ function ReorderItem({
             <div
                 className={`flex w-full items-center gap-2 rounded-2xl p-2 transition-all select-none ${
                     isActive
-                        ? "bg-red-50 text-red-600 shadow-sm dark:bg-red-500/10"
+                        ? "bg-red-50 text-red-600 shadow-sm dark:bg-red-100/20"
                         : "hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/5"
                 }`}
             >

@@ -210,7 +210,7 @@ export default function AudioPlayer() {
                                 onChange={handleSeek}
                                 className='h-1 w-full cursor-pointer appearance-none rounded-full bg-gray-200 accent-red-600 dark:bg-white/10'
                             />
-                            <div className='flex justify-between text-[10px] font-medium text-gray-500'>
+                            <div className='flex justify-between text-[10px] font-medium text-gray-500 mt-2'>
                                 <span>
                                     {Math.floor(progress / 60)}:
                                     {Math.floor(progress % 60)
