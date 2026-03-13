@@ -61,8 +61,11 @@ export default function Playlists() {
         importPlaylist,
         isImporting,
         removeSongs,
+        isRemoving,
         addSong,
+        isAdding,
         createPlaylist,
+        isCreating,
     } = usePlaylists({
         sort_by: urlSortBy,
         order: urlSortOrder,
@@ -236,6 +239,8 @@ export default function Playlists() {
         urlSortBy === "created_at" &&
         urlSortOrder === "asc"
 
+    const isBulkActionLoading = isAdding || isCreating || isRemoving
+
     return (
         <div className='mx-auto w-full max-w-375 px-4 pt-10 pb-40'>
             <div className='mb-12 flex flex-col gap-8'>
@@ -244,7 +249,7 @@ export default function Playlists() {
                 {/* Import Section */}
                 <form
                     onSubmit={handleImport}
-                    className='flex flex-wrap items-end gap-4 rounded-xl border border-white/10 p-6 shadow-sm'
+                    className='dark:bg-card flex flex-wrap items-end gap-4 rounded-xl border border-white/10 bg-white p-6 shadow-sm'
                 >
                     <div className='flex min-w-75 flex-1 flex-col gap-2'>
                         <label className='text-sm font-medium text-gray-700 dark:text-gray-300'>
@@ -254,7 +259,7 @@ export default function Playlists() {
                             type='text'
                             value={importUrl}
                             onChange={(e) => setImportUrl(e.target.value)}
-                            className='w-full rounded-lg border bg-gray-50 p-3 dark:border-white/5 dark:bg-black dark:text-white'
+                            className='h-12 w-full rounded-lg border bg-gray-50 px-3 text-sm dark:border-white/5 dark:bg-black dark:text-white'
                             placeholder='https://www.youtube.com/playlist?list=...'
                             required
                         />
@@ -294,7 +299,7 @@ export default function Playlists() {
                             <div className='relative w-64'>
                                 <button
                                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                                    className='dark:bg-card flex w-full cursor-pointer items-center justify-between rounded-xl border bg-white px-4 py-3 text-left font-medium shadow-sm transition-all hover:border-red-200 dark:border-white/10 dark:text-white'
+                                    className='dark:bg-card flex h-12 w-full cursor-pointer items-center justify-between rounded-xl border bg-white px-4 text-left font-medium shadow-sm transition-all hover:border-red-200 dark:border-white/10 dark:text-white'
                                 >
                                     <span className='capitalize'>
                                         {selectedView === "all"
@@ -350,7 +355,7 @@ export default function Playlists() {
                             </label>
                             <button
                                 onClick={handleSortByToggle}
-                                className='dark:bg-card flex h-11 cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 font-medium shadow-sm transition-all hover:border-red-200 dark:border-white/10 dark:text-white'
+                                className='dark:bg-card flex h-12 cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 font-medium shadow-sm transition-all hover:border-red-200 dark:border-white/10 dark:text-white'
                             >
                                 {urlSortBy === "name" ? (
                                     <>
@@ -372,7 +377,7 @@ export default function Playlists() {
                             </label>
                             <button
                                 onClick={handleSortOrderToggle}
-                                className='dark:bg-card flex h-11 cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 font-medium shadow-sm transition-all hover:border-red-200 dark:border-white/10 dark:text-white'
+                                className='dark:bg-card flex h-12 cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 font-medium shadow-sm transition-all hover:border-red-200 dark:border-white/10 dark:text-white'
                             >
                                 {urlSortOrder === "asc" ? (
                                     <>
@@ -395,7 +400,7 @@ export default function Playlists() {
                                 </label>
                                 <button
                                     onClick={() => setIsPaginated(!isPaginated)}
-                                    className={`flex h-11 cursor-pointer items-center gap-2 rounded-xl border px-4 font-medium shadow-sm transition-all ${
+                                    className={`flex h-12 cursor-pointer items-center gap-2 rounded-xl border px-4 font-medium shadow-sm transition-all ${
                                         !isPaginated
                                             ? "border-red-500 bg-red-500 text-white"
                                             : "dark:bg-card bg-white hover:border-red-200 dark:border-white/10 dark:text-white"
@@ -427,9 +432,7 @@ export default function Playlists() {
                     <Loader2 className='h-12 w-12 animate-spin text-red-600' />
                 </div>
             ) : sortedSongs.length === 0 ? (
-                <div className='py-5 text-center text-gray-500'>
-                    No songs found.
-                </div>
+                <div className='py-5 text-center text-2xl text-gray-500'>No songs found.</div>
             ) : (
                 <div className='flex flex-col gap-8'>
                     <div className='flex items-center justify-between'>
@@ -515,7 +518,7 @@ export default function Playlists() {
                                             <h3 className='line-clamp-2 text-sm font-semibold dark:text-white'>
                                                 {song.title}
                                             </h3>
-                                            <p className='mt-1 text-xs text-gray-500'>
+                                            <p className='mt-1 text-xs text-gray-500 dark:text-gray-400'>
                                                 {song.uploader}
                                             </p>
                                         </div>
@@ -526,7 +529,7 @@ export default function Playlists() {
                                         onClick={(e) => toggleSelect(song.id, e)}
                                         className={`group flex cursor-pointer items-center gap-4 rounded-xl border p-2 transition-all select-none ${
                                             isSelected
-                                                ? "border-red-500 bg-red-50/5"
+                                                ? "border-red-500 bg-red-500/10"
                                                 : "dark:bg-card border-gray-100 bg-white hover:border-red-200 dark:border-white/10"
                                         }`}
                                     >
@@ -549,7 +552,7 @@ export default function Playlists() {
                                             <h3 className='truncate text-sm font-semibold dark:text-white'>
                                                 {song.title}
                                             </h3>
-                                            <p className='truncate text-xs text-gray-500'>
+                                            <p className='truncate text-xs text-gray-500 dark:text-gray-400'>
                                                 {song.uploader}
                                             </p>
                                         </div>
@@ -611,7 +614,7 @@ export default function Playlists() {
                         <div className='flex items-center gap-3'>
                             <button
                                 onClick={handlePlaySelected}
-                                className='flex cursor-pointer items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white transition-transform hover:bg-red-700 active:scale-95'
+                                className='flex h-12 cursor-pointer items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white transition-transform hover:bg-red-700 active:scale-95'
                             >
                                 <Play className='h-4 w-4 fill-current' /> Play
                             </button>
@@ -625,23 +628,34 @@ export default function Playlists() {
                                     />
                                     <button
                                         onClick={handleBulkAddToPlaylist}
-                                        disabled={!targetPlaylistId}
-                                        className='flex cursor-pointer items-center gap-1 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-bold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50'
+                                        disabled={!targetPlaylistId || isBulkActionLoading}
+                                        className='flex h-11 min-w-20 cursor-pointer items-center justify-center gap-1 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-bold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50'
                                     >
-                                        <Plus className='h-4 w-4' /> Add
+                                        {isBulkActionLoading ? (
+                                            <Loader2 className='h-4 w-4 animate-spin' />
+                                        ) : (
+                                            <Plus className='h-4 w-4' />
+                                        )}
+                                        <span>Add</span>
                                     </button>
                                 </div>
                             )}
                             <button
                                 onClick={handleBulkRemove}
-                                className='flex cursor-pointer items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-sm font-bold text-gray-700 hover:bg-red-50 hover:text-red-600 dark:bg-white/5 dark:text-gray-300 dark:hover:bg-red-500/10'
+                                disabled={isBulkActionLoading}
+                                className='flex h-12 cursor-pointer items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-sm font-bold text-gray-700 hover:bg-red-50 hover:text-red-600 dark:bg-white/5 dark:text-gray-300 dark:hover:bg-red-500/10'
                             >
-                                <Trash2 className='h-4 w-4' /> Delete
+                                {isRemoving ? (
+                                    <Loader2 className='h-4 w-4 animate-spin' />
+                                ) : (
+                                    <Trash2 className='h-4 w-4' />
+                                )}
+                                Delete
                             </button>
                         </div>
                         <button
                             onClick={() => setSelectedSongs([])}
-                            className='cursor-pointer text-sm font-medium text-gray-500 hover:text-gray-700 dark:hover:text-white'
+                            className='cursor-pointer text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white'
                         >
                             Clear
                         </button>

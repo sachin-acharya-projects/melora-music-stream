@@ -1,7 +1,7 @@
 import { type Playlist } from "@/types"
-import { motion, AnimatePresence } from "framer-motion"
+import { AnimatePresence, motion } from "framer-motion"
 import { ChevronDown } from "lucide-react"
-import { useState, useRef, useEffect, useMemo } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 
 interface PlaylistSelectorProps {
     playlists: Playlist[]
@@ -57,7 +57,7 @@ export default function PlaylistSelector({
                         setIsOpen(true)
                     }}
                     onFocus={() => setIsOpen(true)}
-                    className='w-full rounded-lg border bg-white px-3 py-2 pr-10 text-sm dark:border-white/10 dark:bg-black dark:text-white'
+                    className='h-12 w-full rounded-lg border bg-white px-3 pr-10 text-sm dark:border-white/10 dark:bg-black dark:text-white'
                     placeholder={placeholder}
                 />
                 <button
