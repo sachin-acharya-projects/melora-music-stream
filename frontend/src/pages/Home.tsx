@@ -1,24 +1,24 @@
 import SearchForm from "@/components/search-form/search-form"
 import SongSkeleton from "@/components/song-skeleton/song-skeleton"
+import { useQueueStore } from "@/hooks/useQueue"
+import { formatDuration } from "@/lib/utils"
+import { AnimatePresence, motion } from "framer-motion"
+import { Play, Plus, Settings2 } from "lucide-react"
+
 import PlaylistSelector from "@/components/ui/playlist-selector/playlist-selector"
 import ViewToggle from "@/components/ui/view-toggle/view-toggle"
 import { usePlayerStore } from "@/hooks/usePlayer"
-import { useQueueStore } from "@/hooks/useQueue"
+import { usePlaylists } from "@/hooks/usePlaylists"
+import { useSearch } from "@/hooks/useSearch"
 import { useThemeStore } from "@/hooks/useTheme"
 import { useTitle } from "@/hooks/useTitle"
-import { formatDuration } from "@/lib/utils"
-import { type Playlist, type Song } from "@/types"
-import { http } from "@/utils/api/http"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { AnimatePresence, motion } from "framer-motion"
-import { Loader2, Play, Plus, Settings2 } from "lucide-react"
+import { apiService } from "@/services/api.service"
 import { useState } from "react"
 import { Link } from "react-router-dom"
 import { toast } from "react-toastify"
 
 export default function Home() {
     useTitle("Search and Download Music")
-    const queryClient = useQueryClient()
     const [searchQuery, setSearchQuery] = useState("")
     const [selectedVideos, setSelectedVideos] = useState<string[]>([])
     const [playlistInput, setPlaylistInput] = useState("")
@@ -27,44 +27,8 @@ export default function Home() {
     const addQueue = useQueueStore((s) => s.add)
     const setPlaylist = usePlayerStore((s) => s.setPlaylist)
 
-    const { data: playlists = [] } = useQuery({
-        queryKey: ["playlists"],
-        queryFn: async () => {
-            const res = await http.get<Playlist[]>("/playlists/")
-            return res.data
-        },
-    })
-
-    const {
-        data: videos = [],
-        isLoading: isSearchLoading,
-        isError,
-    } = useQuery({
-        queryKey: ["search", searchQuery],
-        queryFn: async () => {
-            if (!searchQuery) return []
-            const res = await http.get<Song[]>("/search/", {
-                params: { q: searchQuery },
-            })
-            return res.data
-        },
-        enabled: !!searchQuery,
-    })
-
-    const addToPlaylistMutation = useMutation({
-        mutationFn: async ({ playlistName, song }: { playlistName: string; song: Song }) => {
-            // First ensure playlist exists/get ID
-            const res = await http.post("/playlists/", { name: playlistName })
-            const playlistId = res.data.id
-            return http.post(`/playlists/${playlistId}/add`, song)
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["playlists"] })
-        },
-        onError: () => {
-            toast.error("Failed to add to playlist")
-        },
-    })
+    const { playlists, addSong, createPlaylist } = usePlaylists()
+    const { data: videos = [], isLoading: isSearchLoading, isError } = useSearch(searchQuery)
 
     const toggleSelect = (video_id: string, e: React.MouseEvent) => {
         if ((e.target as HTMLElement).closest("button")) return
@@ -98,19 +62,36 @@ export default function Home() {
 
     const handleDownloadNow = () => {
         selectedVideos.forEach((id) => {
-            window.open(`${http.defaults.baseURL}/download/${id}`, "_blank")
+            window.open(apiService.getDownloadUrl(id), "_blank")
         })
         clearSelection()
     }
 
     const handleAddToPlaylist = async () => {
         if (!playlistInput) return
+
         const songsToAdd = videos.filter((v) => selectedVideos.includes(v.id))
-        for (const song of songsToAdd) {
-            addToPlaylistMutation.mutate({ playlistName: playlistInput, song })
+
+        try {
+            const existing = playlists.find(
+                (p) => p.name.toLowerCase() === playlistInput.toLowerCase(),
+            )
+            let playlistId = existing?.id
+
+            if (!playlistId) {
+                const newPlaylist = await createPlaylist(playlistInput)
+                playlistId = newPlaylist.id
+            }
+
+            for (const song of songsToAdd) {
+                addSong({ playlistId, song })
+            }
+
+            toast.success(`Processing ${songsToAdd.length} songs...`)
+            clearSelection()
+        } catch {
+            toast.error("Failed to add songs to playlist")
         }
-        toast.success(`Processing ${songsToAdd.length} songs...`)
-        clearSelection()
     }
 
     const handlePlay = (index: number) => {
@@ -332,14 +313,10 @@ export default function Home() {
                                 />
                                 <button
                                     onClick={handleAddToPlaylist}
-                                    disabled={!playlistInput || addToPlaylistMutation.isPending}
+                                    disabled={!playlistInput}
                                     className='flex cursor-pointer items-center gap-1 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-50'
                                 >
-                                    {addToPlaylistMutation.isPending ? (
-                                        <Loader2 className='h-4 w-4 animate-spin' />
-                                    ) : (
-                                        <Plus className='h-4 w-4' />
-                                    )}
+                                    <Plus className='h-4 w-4' />
                                     Add
                                 </button>
                             </div>

@@ -1,6 +1,5 @@
 import { usePlayerStore } from "@/hooks/usePlayer"
-import { http } from "@/utils/api/http"
-import { useQuery } from "@tanstack/react-query"
+import { useStreaming } from "@/hooks/useStreaming"
 import { AnimatePresence, motion } from "framer-motion"
 import { Loader2, Pause, Play, Repeat, Repeat1, SkipBack, SkipForward, X } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
@@ -31,16 +30,7 @@ export default function AudioPlayer() {
 
     const isNowPlayingPage = location.pathname === "/now-playing"
 
-    const { data: streamData, isLoading: isFetchingUrl } = useQuery({
-        queryKey: ["stream", currentSong?.id],
-        queryFn: async () => {
-            if (!currentSong) return null
-            const res = await http.get<{ url: string }>(`/stream/${currentSong.id}`)
-            return res.data
-        },
-        enabled: !!currentSong,
-        staleTime: 1000 * 60 * 5,
-    })
+    const { data: streamData, isLoading: isFetchingUrl } = useStreaming(currentSong?.id)
 
     const streamUrl = streamData?.url || null
 

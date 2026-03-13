@@ -1,15 +1,12 @@
 import ConfirmationDialog from "@/components/ui/confirmation-dialog/confirmation-dialog"
+import { usePlaylists } from "@/hooks/usePlaylists"
 import { useTitle } from "@/hooks/useTitle"
 import { type Playlist } from "@/types"
-import { http } from "@/utils/api/http"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Check, Edit2, Loader2, Plus, Trash2, X } from "lucide-react"
 import { useState } from "react"
-import { toast } from "react-toastify"
 
 export default function EditPlaylists() {
     useTitle("Manage Playlists")
-    const queryClient = useQueryClient()
     const [editingId, setEditingId] = useState<string | null>(null)
     const [newName, setNewName] = useState("")
     const [createName, setCreateName] = useState("")
@@ -20,52 +17,23 @@ export default function EditPlaylists() {
         null,
     )
 
-    const { data: playlists = [], isLoading } = useQuery({
-        queryKey: ["playlists"],
-        queryFn: async () => {
-            const res = await http.get<Playlist[]>("/playlists/")
-            return res.data
-        },
-    })
+    const { playlists, isLoading, createPlaylist, renamePlaylist, deletePlaylist, isRenaming } =
+        usePlaylists()
 
-    const deleteMutation = useMutation({
-        mutationFn: async (id: string) => {
-            return http.delete(`/playlists/${id}`)
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["playlists"] })
-            toast.success("Playlist deleted")
-        },
-        onError: () => {
-            toast.error("Failed to delete playlist")
-        },
-    })
-
-    const renameMutation = useMutation({
-        mutationFn: async ({ id, name }: { id: string; name: string }) => {
-            return http.patch(`/playlists/${id}`, { name })
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["playlists"] })
-            setEditingId(null)
-            toast.success("Playlist renamed")
-        },
-        onError: () => {
-            toast.error("Failed to rename playlist")
-            setEditingId(null)
-        },
-    })
-
-    const createMutation = useMutation({
-        mutationFn: async (name: string) => {
-            return http.post("/playlists/", { name })
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["playlists"] })
+    const handleCreate = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (createName) {
+            await createPlaylist(createName)
             setCreateName("")
-            toast.success("Playlist created")
-        },
-    })
+        }
+    }
+
+    const handleRename = (e: React.FormEvent) => {
+        e.preventDefault()
+        if (editingId && newName) {
+            renamePlaylist({ id: editingId, name: newName })
+        }
+    }
 
     const handleDeleteClick = (playlist: Playlist) => {
         setPlaylistToDelete({ id: playlist.id, name: playlist.name })
@@ -85,13 +53,7 @@ export default function EditPlaylists() {
 
             <div className='mb-8 rounded-2xl border bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/5'>
                 <h2 className='mb-4 font-semibold dark:text-white'>Create New Playlist</h2>
-                <form
-                    onSubmit={(e) => {
-                        e.preventDefault()
-                        if (createName) createMutation.mutate(createName)
-                    }}
-                    className='flex gap-2'
-                >
+                <form onSubmit={handleCreate} className='flex gap-2'>
                     <input
                         type='text'
                         value={createName}
@@ -101,14 +63,10 @@ export default function EditPlaylists() {
                     />
                     <button
                         type='submit'
-                        disabled={!createName || createMutation.isPending}
+                        disabled={!createName}
                         className='flex cursor-pointer items-center gap-2 rounded-lg bg-red-600 px-4 py-2 font-bold text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50'
                     >
-                        {createMutation.isPending ? (
-                            <Loader2 className='h-4 w-4 animate-spin' />
-                        ) : (
-                            <Plus className='h-4 w-4' />
-                        )}
+                        <Plus className='h-4 w-4' />
                         Create
                     </button>
                 </form>
@@ -122,13 +80,7 @@ export default function EditPlaylists() {
                     >
                         <div className='flex items-center gap-4'>
                             {editingId === playlist.id ? (
-                                <form
-                                    className='flex items-center gap-2'
-                                    onSubmit={(e) => {
-                                        e.preventDefault()
-                                        renameMutation.mutate({ id: playlist.id, name: newName })
-                                    }}
-                                >
+                                <form className='flex items-center gap-2' onSubmit={handleRename}>
                                     <input
                                         type='text'
                                         value={newName}
@@ -139,7 +91,7 @@ export default function EditPlaylists() {
                                     <button
                                         type='submit'
                                         className='cursor-pointer text-emerald-500'
-                                        disabled={renameMutation.isPending}
+                                        disabled={isRenaming}
                                     >
                                         <Check className='h-4 w-4' />
                                     </button>
@@ -173,7 +125,7 @@ export default function EditPlaylists() {
                             </button>
                             <button
                                 onClick={() => handleDeleteClick(playlist)}
-                                className='cursor-pointer rounded-lg p-2 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10'
+                                className='cursor-pointer rounded-lg p-2 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10'
                             >
                                 <Trash2 className='h-4 w-4' />
                             </button>
@@ -187,7 +139,7 @@ export default function EditPlaylists() {
                 title='Delete Playlist'
                 message={`Are you sure you want to delete "${playlistToDelete?.name}"? This action cannot be undone.`}
                 confirmText='Delete'
-                onConfirm={() => playlistToDelete && deleteMutation.mutate(playlistToDelete.id)}
+                onConfirm={() => playlistToDelete && deletePlaylist(playlistToDelete.id)}
                 onCancel={() => setIsDeleteDialogOpen(false)}
                 type='danger'
             />

@@ -1,48 +1,26 @@
 import ConfirmationDialog from "@/components/ui/confirmation-dialog/confirmation-dialog"
 import PlaylistSelector from "@/components/ui/playlist-selector/playlist-selector"
 import { usePlayerStore } from "@/hooks/usePlayer"
+import { usePlaylists } from "@/hooks/usePlaylists"
 import { useQueueStore } from "@/hooks/useQueue"
 import { useTitle } from "@/hooks/useTitle"
 import { formatDuration } from "@/lib/utils"
-import { type Playlist, type Song } from "@/types"
-import { http } from "@/utils/api/http"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { apiService } from "@/services/api.service"
 import { Reorder } from "framer-motion"
-import { Download, GripVertical, Loader2, Play, Plus, Trash2 } from "lucide-react"
+import { Download, GripVertical, Play, Plus, Trash2 } from "lucide-react"
 import { useState } from "react"
 import { toast } from "react-toastify"
 
 export default function Queue() {
     useTitle("Download Queue")
-    const queryClient = useQueryClient()
     const { queue, remove, clear, reorder } = useQueueStore()
     const [playlistInput, setPlaylistInput] = useState("")
     const setPlaylist = usePlayerStore((s) => s.setPlaylist)
 
+    const { playlists, addSong, createPlaylist } = usePlaylists()
+
     // Dialog state
     const [isClearDialogOpen, setIsClearDialogOpen] = useState(false)
-
-    const { data: playlists = [] } = useQuery({
-        queryKey: ["playlists"],
-        queryFn: async () => {
-            const res = await http.get<Playlist[]>("/playlists/")
-            return res.data
-        },
-    })
-
-    const addToPlaylistMutation = useMutation({
-        mutationFn: async ({ playlistName, song }: { playlistName: string; song: Song }) => {
-            const res = await http.post("/playlists/", { name: playlistName })
-            const playlistId = res.data.id
-            return http.post(`/playlists/${playlistId}/add`, song)
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["playlists"] })
-        },
-        onError: () => {
-            toast.error("Failed to add to playlist")
-        },
-    })
 
     const handlePlay = (index: number) => {
         setPlaylist(queue, index)
@@ -54,16 +32,33 @@ export default function Queue() {
         }
     }
 
-    const handleAddAllToPlaylist = () => {
+    const handleAddAllToPlaylist = async () => {
         if (!playlistInput || queue.length === 0) return
-        queue.forEach((song) => {
-            addToPlaylistMutation.mutate({ playlistName: playlistInput, song })
-        })
-        toast.info(`Processing ${queue.length} songs...`)
+
+        try {
+            const existing = playlists.find(
+                (p) => p.name.toLowerCase() === playlistInput.toLowerCase(),
+            )
+            let playlistId = existing?.id
+
+            if (!playlistId) {
+                const newPlaylist = await createPlaylist(playlistInput)
+                playlistId = newPlaylist.id
+            }
+
+            queue.forEach((song) => {
+                addSong({ playlistId: playlistId!, song })
+            })
+
+            toast.success(`Adding ${queue.length} songs to ${playlistInput}...`)
+            setPlaylistInput("")
+        } catch {
+            toast.error("Failed to add songs to playlist")
+        }
     }
 
     const handleDownload = (id: string) => {
-        window.open(`${http.defaults.baseURL}/download/${id}`, "_blank")
+        window.open(apiService.getDownloadUrl(id), "_blank")
     }
 
     if (queue.length === 0) {
@@ -105,14 +100,10 @@ export default function Queue() {
                         />
                         <button
                             onClick={handleAddAllToPlaylist}
-                            disabled={!playlistInput || addToPlaylistMutation.isPending}
+                            disabled={!playlistInput}
                             className='flex cursor-pointer items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50'
                         >
-                            {addToPlaylistMutation.isPending ? (
-                                <Loader2 className='h-4 w-4 animate-spin' />
-                            ) : (
-                                <Plus className='h-4 w-4' />
-                            )}
+                            <Plus className='h-4 w-4' />
                             Add All
                         </button>
                     </div>

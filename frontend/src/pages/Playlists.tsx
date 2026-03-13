@@ -1,16 +1,18 @@
 import ConfirmationDialog from "@/components/ui/confirmation-dialog/confirmation-dialog"
+import PlaylistSelector from "@/components/ui/playlist-selector/playlist-selector"
 import ViewToggle from "@/components/ui/view-toggle/view-toggle"
 import { usePlayerStore } from "@/hooks/usePlayer"
+import { usePlaylists } from "@/hooks/usePlaylists"
 import { useThemeStore } from "@/hooks/useTheme"
 import { useTitle } from "@/hooks/useTitle"
 import { formatDuration } from "@/lib/utils"
 import { type Playlist, type Song } from "@/types"
-import { http } from "@/utils/api/http"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQueryClient } from "@tanstack/react-query"
 import { AnimatePresence, motion, Reorder, useDragControls } from "framer-motion"
 import {
     ArrowDown,
     ArrowUp,
+    Calendar,
     ChevronDown,
     ChevronLeft,
     ChevronRight,
@@ -21,6 +23,7 @@ import {
     Play,
     Plus,
     Trash2,
+    Type,
 } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useSearchParams } from "react-router-dom"
@@ -36,29 +39,47 @@ export default function Playlists() {
     const [importUrl, setImportUrl] = useState("")
     const [importName, setImportName] = useState("")
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-    const [isImportDropdownOpen, setIsImportDropdownOpen] = useState(false)
     const [selectedView, setSelectedView] = useState<string>("all")
     const [selectedSongIds, setSelectedSongs] = useState<string[]>([])
     const [isPaginated, setIsPaginated] = useState(true)
+    const [targetPlaylistId, setTargetPlaylistId] = useState("")
 
     const importRef = useRef<HTMLDivElement>(null)
     const { viewMode, setViewMode, sortOrder, setSortOrder } = useThemeStore()
 
+    // Sort By state
+    const [sortBy, setSortBy] = useState<"name" | "created_at">("created_at")
+
     // Pagination and Sort from URL
     const currentPage = parseInt(searchParams.get("page") || "1")
-    const urlSort = (searchParams.get("order") as "asc" | "desc") || sortOrder
+    const urlSortOrder = (searchParams.get("order") as "asc" | "desc") || sortOrder
+    const urlSortBy = (searchParams.get("sort_by") as "name" | "created_at") || sortBy
+
+    const {
+        playlists,
+        isLoading,
+        importPlaylist,
+        isImporting,
+        removeSongs,
+        addSong,
+        createPlaylist,
+    } = usePlaylists({
+        sort_by: urlSortBy,
+        order: urlSortOrder,
+    })
 
     useEffect(() => {
-        if (!searchParams.get("order")) {
+        if (!searchParams.get("order") || !searchParams.get("sort_by")) {
             setSearchParams(
                 (prev) => {
-                    prev.set("order", sortOrder)
+                    prev.set("order", urlSortOrder)
+                    prev.set("sort_by", urlSortBy)
                     return prev
                 },
                 { replace: true },
             )
         }
-    }, [searchParams, setSearchParams, sortOrder])
+    }, [searchParams, setSearchParams, urlSortBy, urlSortOrder])
 
     // Dialog states
     const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false)
@@ -66,77 +87,28 @@ export default function Playlists() {
         playlistId: string
         songIds: string[]
     } | null>(null)
-    const [targetPlaylistId, setTargetPlaylistId] = useState("")
 
     const setPlaylist = usePlayerStore((s) => s.setPlaylist)
-
-    const { data: playlists = [], isLoading } = useQuery({
-        queryKey: ["playlists"],
-        queryFn: async () => {
-            const res = await http.get<Playlist[]>("/playlists/")
-            return res.data
-        },
-    })
-
-    const playlistNames = useMemo(() => playlists.map((p) => p.name), [playlists])
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (importRef.current && !importRef.current.contains(event.target as Node)) {
-                setIsImportDropdownOpen(false)
+                // Selector handles itself
             }
         }
         document.addEventListener("mousedown", handleClickOutside)
         return () => document.removeEventListener("mousedown", handleClickOutside)
     }, [])
 
-    const importMutation = useMutation({
-        mutationFn: async (vars: { url: string; name?: string; id?: string }) => {
-            return http.post("/playlists/import", vars)
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["playlists"] })
-            setImportUrl("")
-            setImportName("")
-            toast.success("Playlist imported successfully")
-        },
-        onError: () => toast.error("Failed to import playlist"),
-    })
-
-    const removeSongsMutation = useMutation({
-        mutationFn: async ({ playlistId, songIds }: { playlistId: string; songIds: string[] }) => {
-            for (const id of songIds) {
-                await http.delete(`/playlists/${playlistId}/songs/${id}`)
-            }
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["playlists"] })
-            setSelectedSongs([])
-            toast.success("Songs removed from playlist")
-        },
-        onError: () => toast.error("Failed to remove some songs"),
-    })
-
-    const addToPlaylistMutation = useMutation({
-        mutationFn: async ({ playlistId, song }: { playlistId: string; song: Song }) => {
-            return http.post(`/playlists/${playlistId}/add`, song)
-        },
-        onSuccess: (_, variables) => {
-            const playlist = playlists.find((p) => p.id === variables.playlistId)
-            toast.success(`Added ${variables.song.title} to ${playlist?.name || "playlist"}`)
-        },
-    })
-
     const handleImport = (e: React.FormEvent) => {
         e.preventDefault()
         if (!importUrl || !importName) return
 
-        // Check if importName matches an existing playlist to send ID instead
         const existing = playlists.find((p) => p.name.toLowerCase() === importName.toLowerCase())
         if (existing) {
-            importMutation.mutate({ url: importUrl, id: existing.id })
+            importPlaylist({ url: importUrl, id: existing.id })
         } else {
-            importMutation.mutate({ url: importUrl, name: importName })
+            importPlaylist({ url: importUrl, name: importName })
         }
     }
 
@@ -148,12 +120,8 @@ export default function Playlists() {
             const playlist = playlists.find((p) => p.id === selectedView)
             songs = playlist ? [...playlist.songs] : []
         }
-
-        if (urlSort === "desc") {
-            return songs.reverse()
-        }
         return songs
-    }, [playlists, selectedView, urlSort])
+    }, [playlists, selectedView])
 
     const totalPages = Math.ceil(sortedSongs.length / ITEMS_PER_PAGE)
     const paginatedSongs = isPaginated
@@ -171,11 +139,20 @@ export default function Playlists() {
         })
     }
 
-    const handleSortToggle = () => {
-        const next = urlSort === "asc" ? "desc" : "asc"
+    const handleSortOrderToggle = () => {
+        const next = urlSortOrder === "asc" ? "desc" : "asc"
         setSortOrder(next)
         setSearchParams((prev) => {
             prev.set("order", next)
+            return prev
+        })
+    }
+
+    const handleSortByToggle = () => {
+        const next = urlSortBy === "name" ? "created_at" : "name"
+        setSortBy(next)
+        setSearchParams((prev) => {
+            prev.set("sort_by", next)
             return prev
         })
     }
@@ -199,13 +176,30 @@ export default function Playlists() {
         }
     }
 
-    const handleBulkAddToPlaylist = () => {
+    const handleBulkAddToPlaylist = async () => {
         if (!targetPlaylistId) return
         const songsToAdd = sortedSongs.filter((s) => selectedSongIds.includes(s.id))
-        songsToAdd.forEach((song) => {
-            addToPlaylistMutation.mutate({ playlistId: targetPlaylistId, song })
-        })
-        setSelectedSongs([])
+
+        try {
+            const existing = playlists.find(
+                (p) =>
+                    p.name.toLowerCase() === targetPlaylistId.toLowerCase() ||
+                    p.id === targetPlaylistId,
+            )
+            let playlistId = existing?.id
+
+            if (!playlistId) {
+                const newPlaylist = await createPlaylist(targetPlaylistId)
+                playlistId = newPlaylist.id
+            }
+
+            songsToAdd.forEach((song) => {
+                addSong({ playlistId: playlistId!, song })
+            })
+            setSelectedSongs([])
+        } catch {
+            toast.error("Failed to add songs")
+        }
     }
 
     const handleBulkRemove = () => {
@@ -217,27 +211,30 @@ export default function Playlists() {
     }
 
     const handleReorder = (newSongs: Song[]) => {
-        if (selectedView !== "all" && urlSort === "asc") {
-            queryClient.setQueryData(["playlists"], (prev: Playlist[]) => {
-                return prev.map((p) => {
-                    if (p.id === selectedView) {
-                        const updatedSongs = [...p.songs]
-                        const start = isPaginated ? (currentPage - 1) * ITEMS_PER_PAGE : 0
-                        updatedSongs.splice(start, newSongs.length, ...newSongs)
-                        return { ...p, songs: updatedSongs }
-                    }
-                    return p
-                })
-            })
+        if (selectedView !== "all" && urlSortBy === "created_at" && urlSortOrder === "asc") {
+            queryClient.setQueryData<Playlist[]>(
+                ["playlists", { sort_by: urlSortBy, order: urlSortOrder }],
+                (prev) => {
+                    if (!prev) return prev
+                    return prev.map((p) => {
+                        if (p.id === selectedView) {
+                            const updatedSongs = [...p.songs]
+                            const start = isPaginated ? (currentPage - 1) * ITEMS_PER_PAGE : 0
+                            updatedSongs.splice(start, newSongs.length, ...newSongs)
+                            return { ...p, songs: updatedSongs }
+                        }
+                        return p
+                    })
+                },
+            )
         }
     }
 
-    const filteredSuggestions = useMemo(
-        () => playlistNames.filter((name) => name.toLowerCase().includes(importName.toLowerCase())),
-        [playlistNames, importName],
-    )
-
-    const isReorderEnabled = selectedView !== "all" && viewMode === "list" && urlSort === "asc"
+    const isReorderEnabled =
+        selectedView !== "all" &&
+        viewMode === "list" &&
+        urlSortBy === "created_at" &&
+        urlSortOrder === "asc"
 
     return (
         <div className='mx-auto w-full max-w-375 px-4 pt-10 pb-40'>
@@ -247,7 +244,7 @@ export default function Playlists() {
                 {/* Import Section */}
                 <form
                     onSubmit={handleImport}
-                    className='dark:bg-card flex flex-wrap items-end gap-4 rounded-xl border bg-white p-6 shadow-sm dark:border-white/10'
+                    className='flex flex-wrap items-end gap-4 rounded-xl border border-white/10 p-6 shadow-sm'
                 >
                     <div className='flex min-w-75 flex-1 flex-col gap-2'>
                         <label className='text-sm font-medium text-gray-700 dark:text-gray-300'>
@@ -266,64 +263,19 @@ export default function Playlists() {
                         <label className='text-sm font-medium text-gray-700 dark:text-gray-300'>
                             Playlist Name
                         </label>
-                        <div className='relative'>
-                            <input
-                                type='text'
-                                value={importName}
-                                onChange={(e) => {
-                                    setImportName(e.target.value)
-                                    setIsImportDropdownOpen(true)
-                                }}
-                                onFocus={() => setIsImportDropdownOpen(true)}
-                                className='w-full rounded-lg border bg-gray-50 p-3 pr-10 dark:border-white/5 dark:bg-black dark:text-white'
-                                placeholder='New or existing name'
-                                required
-                            />
-                            <button
-                                type='button'
-                                onClick={() => setIsImportDropdownOpen(!isImportDropdownOpen)}
-                                className='absolute top-1/2 right-2 -translate-y-1/2 cursor-pointer p-1 text-gray-400 hover:text-gray-600 dark:hover:text-white'
-                            >
-                                <ChevronDown
-                                    className={`h-4 w-4 transition-transform ${isImportDropdownOpen ? "rotate-180" : ""}`}
-                                />
-                            </button>
-                        </div>
-
-                        <AnimatePresence>
-                            {isImportDropdownOpen && filteredSuggestions.length > 0 && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: -10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -10 }}
-                                    className='absolute top-full left-0 z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-xl border bg-white p-1 shadow-xl dark:border-white/10 dark:bg-black'
-                                >
-                                    {filteredSuggestions.map((name) => (
-                                        <button
-                                            key={name}
-                                            type='button'
-                                            onClick={() => {
-                                                setImportName(name)
-                                                setIsImportDropdownOpen(false)
-                                            }}
-                                            className='flex w-full cursor-pointer items-center justify-between rounded-lg px-4 py-2 text-left text-sm hover:bg-black/5 dark:text-white dark:hover:bg-white/5'
-                                        >
-                                            <span className='capitalize'>{name}</span>
-                                            <span className='text-[10px] font-bold text-gray-400 uppercase'>
-                                                Existing
-                                            </span>
-                                        </button>
-                                    ))}
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
+                        <PlaylistSelector
+                            playlists={playlists}
+                            value={importName}
+                            onChange={setImportName}
+                            placeholder='New or existing name'
+                        />
                     </div>
                     <button
                         type='submit'
-                        disabled={importMutation.isPending}
+                        disabled={isImporting}
                         className='flex h-12 cursor-pointer items-center gap-2 rounded-lg bg-red-600 px-6 font-medium text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50'
                     >
-                        {importMutation.isPending ? (
+                        {isImporting ? (
                             <Loader2 className='h-4 w-4 animate-spin' />
                         ) : (
                             <Import className='h-4 w-4' />
@@ -394,13 +346,35 @@ export default function Playlists() {
 
                         <div className='flex flex-col gap-2'>
                             <label className='text-xs font-bold tracking-wider text-gray-500 uppercase'>
+                                Sort By
+                            </label>
+                            <button
+                                onClick={handleSortByToggle}
+                                className='dark:bg-card flex h-11 cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 font-medium shadow-sm transition-all hover:border-red-200 dark:border-white/10 dark:text-white'
+                            >
+                                {urlSortBy === "name" ? (
+                                    <>
+                                        <Type className='h-4 w-4 text-red-500' />
+                                        <span>Name</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Calendar className='h-4 w-4 text-red-500' />
+                                        <span>Date</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
+
+                        <div className='flex flex-col gap-2'>
+                            <label className='text-xs font-bold tracking-wider text-gray-500 uppercase'>
                                 Order
                             </label>
                             <button
-                                onClick={handleSortToggle}
+                                onClick={handleSortOrderToggle}
                                 className='dark:bg-card flex h-11 cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 font-medium shadow-sm transition-all hover:border-red-200 dark:border-white/10 dark:text-white'
                             >
-                                {urlSort === "asc" ? (
+                                {urlSortOrder === "asc" ? (
                                     <>
                                         <ArrowUp className='h-4 w-4 text-red-500' />
                                         <span>Ascending</span>
@@ -453,7 +427,7 @@ export default function Playlists() {
                     <Loader2 className='h-12 w-12 animate-spin text-red-600' />
                 </div>
             ) : sortedSongs.length === 0 ? (
-                <div className='py-5 text-center text-gray-500 text-2xl'>
+                <div className='py-5 text-center text-gray-500'>
                     No songs found.
                 </div>
             ) : (
@@ -523,7 +497,7 @@ export default function Playlists() {
                                             <div className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
                                                 <button
                                                     onClick={() => handlePlay(globalIndex)}
-                                                    className='cursor-pointer rounded-full bg-red-600 p-3 text-white shadow-lg transition-transform hover:scale-110'
+                                                    className='flex h-12 w-12 cursor-pointer items-center justify-center rounded-full bg-red-600 text-white shadow-lg transition-transform hover:scale-110'
                                                 >
                                                     <Play className='h-6 w-6 translate-x-0.5 fill-current' />
                                                 </button>
@@ -550,7 +524,7 @@ export default function Playlists() {
                                     <div
                                         key={song.id}
                                         onClick={(e) => toggleSelect(song.id, e)}
-                                        className={`group flex cursor-pointer items-center gap-4 rounded-xl border p-2 transition-all ${
+                                        className={`group flex cursor-pointer items-center gap-4 rounded-xl border p-2 transition-all select-none ${
                                             isSelected
                                                 ? "border-red-500 bg-red-50/5"
                                                 : "dark:bg-card border-gray-100 bg-white hover:border-red-200 dark:border-white/10"
@@ -643,18 +617,12 @@ export default function Playlists() {
                             </button>
                             {playlists.length > 0 && (
                                 <div className='flex items-center gap-2 border-x px-3 dark:border-white/10'>
-                                    <select
+                                    <PlaylistSelector
+                                        playlists={playlists}
                                         value={targetPlaylistId}
-                                        onChange={(e) => setTargetPlaylistId(e.target.value)}
-                                        className='cursor-pointer rounded-lg border bg-white px-2 py-2 text-sm dark:border-white/10 dark:bg-black dark:text-white'
-                                    >
-                                        <option value=''>Move to...</option>
-                                        {playlists.map((p) => (
-                                            <option key={p.id} value={p.id}>
-                                                {p.name}
-                                            </option>
-                                        ))}
-                                    </select>
+                                        onChange={setTargetPlaylistId}
+                                        className='w-48'
+                                    />
                                     <button
                                         onClick={handleBulkAddToPlaylist}
                                         disabled={!targetPlaylistId}
@@ -688,7 +656,7 @@ export default function Playlists() {
                 confirmText='Remove'
                 onConfirm={() => {
                     if (removalData) {
-                        removeSongsMutation.mutate({
+                        removeSongs({
                             playlistId: removalData.playlistId,
                             songIds: removalData.songIds,
                         })
