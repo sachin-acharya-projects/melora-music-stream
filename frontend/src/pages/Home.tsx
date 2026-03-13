@@ -11,7 +11,7 @@ import { useTitle } from "@/hooks/useTitle"
 import { formatDuration } from "@/lib/utils"
 import { apiService } from "@/services/api.service"
 import { AnimatePresence, motion } from "framer-motion"
-import { Loader2, Play, Plus, Settings2 } from "lucide-react"
+import { CheckSquare, Loader2, Play, Plus, Settings2 } from "lucide-react"
 import { useState } from "react"
 import { Link } from "react-router-dom"
 import { toast } from "react-toastify"
@@ -21,6 +21,7 @@ export default function Home() {
     const [searchQuery, setSearchQuery] = useState("")
     const [selectedVideos, setSelectedVideos] = useState<string[]>([])
     const [playlistInput, setPlaylistInput] = useState("")
+    const [lastSelectedId, setLastSelectedId] = useState<string | null>(null)
 
     const { viewMode, setViewMode } = useThemeStore()
     const addQueue = useQueueStore((s) => s.add)
@@ -32,18 +33,48 @@ export default function Home() {
     const toggleSelect = (video_id: string, e: React.MouseEvent) => {
         if ((e.target as HTMLElement).closest("button")) return
 
-        setSelectedVideos((prev) =>
-            prev.includes(video_id) ? prev.filter((v) => v !== video_id) : [...prev, video_id],
-        )
-    }
+        if (e.shiftKey && lastSelectedId) {
+            const currentIndex = videos.findIndex((v) => v.id === video_id)
+            const lastIndex = videos.findIndex((v) => v.id === lastSelectedId)
 
-    const allSelected = videos.length > 0 && selectedVideos.length === videos.length
+            if (currentIndex !== -1 && lastIndex !== -1) {
+                const start = Math.min(currentIndex, lastIndex)
+                const end = Math.max(currentIndex, lastIndex)
+                const rangeIds = videos.slice(start, end + 1).map((v) => v.id)
+
+                setSelectedVideos((prev) => {
+                    const newSelection = new Set([...prev, ...rangeIds])
+                    return Array.from(newSelection)
+                })
+                setLastSelectedId(video_id)
+                return
+            }
+        }
+
+        setSelectedVideos((prev) => {
+            const isSelected = prev.includes(video_id)
+            if (isSelected) {
+                setLastSelectedId(null)
+                return prev.filter((v) => v !== video_id)
+            } else {
+                setLastSelectedId(video_id)
+                return [...prev, video_id]
+            }
+        })
+    }
 
     const toggleSelectAll = () => {
-        setSelectedVideos(allSelected ? [] : videos.map((v) => v.id))
+        if (selectedVideos.length === videos.length) {
+            setSelectedVideos([])
+        } else {
+            setSelectedVideos(videos.map((v) => v.id))
+        }
     }
 
-    const clearSelection = () => setSelectedVideos([])
+    const clearSelection = () => {
+        setSelectedVideos([])
+        setLastSelectedId(null)
+    }
 
     const onSearch = (q: string) => {
         setSearchQuery(q)
@@ -138,7 +169,9 @@ export default function Home() {
                                     onClick={toggleSelectAll}
                                     className='cursor-pointer rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-red-700 active:scale-95'
                                 >
-                                    {allSelected ? "Deselect All" : "Select All"}
+                                    {selectedVideos.length === videos.length
+                                        ? "Deselect All"
+                                        : "Select All"}
                                 </button>
                                 <p className='text-sm text-gray-600 dark:text-gray-400'>
                                     {selectedVideos.length} selected
@@ -205,7 +238,7 @@ export default function Home() {
                                     <div
                                         key={video.id}
                                         onClick={(e) => toggleSelect(video.id, e)}
-                                        className={`group flex cursor-pointer items-center gap-4 rounded-xl border p-2 transition-all ${
+                                        className={`group flex cursor-pointer items-center gap-4 rounded-xl border p-2 transition-all select-none ${
                                             selected
                                                 ? "border-red-500 bg-red-50/5"
                                                 : "dark:bg-card border-gray-100 bg-white hover:border-red-200 dark:border-white/10"
@@ -300,8 +333,21 @@ export default function Home() {
 
                         <div className='flex items-center gap-3'>
                             <button
+                                onClick={toggleSelectAll}
+                                className='flex cursor-pointer items-center gap-2 rounded-lg bg-red-600/10 px-4 py-2 text-sm font-bold text-red-600 transition-all hover:bg-red-600 hover:text-white'
+                                title='Toggle All'
+                            >
+                                <CheckSquare className='h-4 w-4' />
+                                <span>
+                                    {selectedVideos.length === videos.length
+                                        ? "Deselect All"
+                                        : "Select All"}
+                                </span>
+                            </button>
+
+                            <button
                                 onClick={handlePlaySelected}
-                                className='flex cursor-pointer items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white transition-transform hover:bg-red-700 active:scale-95'
+                                className='flex cursor-pointer items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white transition-transform active:scale-95'
                             >
                                 <Play className='h-4 w-4 fill-current' /> Play
                             </button>
@@ -310,7 +356,7 @@ export default function Home() {
                                 <PlaylistSelector
                                     playlists={playlists}
                                     value={playlistInput}
-                                    onChange={setPlaylistInput}
+                                    onChange={(playlistInput) => setPlaylistInput(playlistInput)}
                                     className='w-48'
                                 />
                                 <button

@@ -13,6 +13,7 @@ import {
     ArrowDown,
     ArrowUp,
     Calendar,
+    CheckSquare,
     ChevronDown,
     ChevronLeft,
     ChevronRight,
@@ -41,6 +42,7 @@ export default function Playlists() {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [selectedView, setSelectedView] = useState<string>("all")
     const [selectedSongIds, setSelectedSongs] = useState<string[]>([])
+    const [lastSelectedId, setLastSelectedId] = useState<string | null>(null)
     const [isPaginated, setIsPaginated] = useState(true)
     const [targetPlaylistId, setTargetPlaylistId] = useState("")
 
@@ -166,9 +168,44 @@ export default function Playlists() {
             (e.target as HTMLElement).closest(".drag-handle")
         )
             return
-        setSelectedSongs((prev) =>
-            prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
-        )
+
+        if (e.shiftKey && lastSelectedId) {
+            const currentIndex = sortedSongs.findIndex((s) => s.id === id)
+            const lastIndex = sortedSongs.findIndex((s) => s.id === lastSelectedId)
+
+            if (currentIndex !== -1 && lastIndex !== -1) {
+                const start = Math.min(currentIndex, lastIndex)
+                const end = Math.max(currentIndex, lastIndex)
+                const rangeIds = sortedSongs.slice(start, end + 1).map((s) => s.id)
+
+                setSelectedSongs((prev) => {
+                    const newSelection = new Set([...prev, ...rangeIds])
+                    return Array.from(newSelection)
+                })
+                setLastSelectedId(id)
+                return
+            }
+        }
+
+        setSelectedSongs((prev) => {
+            const isSelected = prev.includes(id)
+            if (isSelected) {
+                setLastSelectedId(null)
+                return prev.filter((i) => i !== id)
+            } else {
+                setLastSelectedId(id)
+                return [...prev, id]
+            }
+        })
+    }
+
+    const handleSelectAll = () => {
+        const allIds = sortedSongs.map((s) => s.id)
+        if (selectedSongIds.length === allIds.length) {
+            setSelectedSongs([])
+        } else {
+            setSelectedSongs(allIds)
+        }
     }
 
     const handlePlaySelected = () => {
@@ -196,9 +233,9 @@ export default function Playlists() {
                 playlistId = newPlaylist.id
             }
 
-            songsToAdd.forEach((song) => {
-                addSong({ playlistId: playlistId!, song })
-            })
+            for (const song of songsToAdd) {
+                await addSong({ playlistId: playlistId!, song })
+            }
             setSelectedSongs([])
         } catch {
             toast.error("Failed to add songs")
@@ -415,9 +452,7 @@ export default function Playlists() {
                     </div>
 
                     <div className='flex flex-col items-end gap-2'>
-                        <label className='text-xs tracking-wider text-gray-500'>
-                            Layout
-                        </label>
+                        <label className='text-xs tracking-wider text-gray-500'>Layout</label>
                         <ViewToggle view={viewMode} onChange={setViewMode} />
                     </div>
                 </div>
@@ -609,6 +644,19 @@ export default function Playlists() {
                         </p>
                         <div className='flex items-center gap-3'>
                             <button
+                                onClick={handleSelectAll}
+                                className='flex cursor-pointer items-center gap-2 rounded-lg bg-red-600/10 px-4 py-2 text-sm font-bold text-red-600 transition-all hover:bg-red-600 hover:text-white'
+                                title='Toggle All'
+                            >
+                                <CheckSquare className='h-4 w-4' />
+                                <span>
+                                    {selectedSongIds.length === sortedSongs.length
+                                        ? "Deselect All"
+                                        : "Select All"}
+                                </span>
+                            </button>
+
+                            <button
                                 onClick={handlePlaySelected}
                                 className='flex h-12 cursor-pointer items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white transition-transform hover:bg-red-700 active:scale-95'
                             >
@@ -625,7 +673,7 @@ export default function Playlists() {
                                     <button
                                         onClick={handleBulkAddToPlaylist}
                                         disabled={!targetPlaylistId || isBulkActionLoading}
-                                        className='flex h-11 min-w-20 cursor-pointer items-center justify-center gap-1 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-bold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50'
+                                        className='flex min-w-20 cursor-pointer items-center justify-center gap-1 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-bold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50'
                                     >
                                         {isBulkActionLoading ? (
                                             <Loader2 className='h-4 w-4 animate-spin' />
