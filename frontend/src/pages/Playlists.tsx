@@ -428,7 +428,7 @@ export default function Playlists() {
 
                         {selectedView !== "all" && (
                             <div className='flex flex-col gap-2'>
-                                <label className='text-xs font-bold tracking-wider text-gray-500 uppercase'>
+                                <label className='text-xs tracking-wider text-gray-500'>
                                     Reordering
                                 </label>
                                 <button
