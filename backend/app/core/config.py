@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "Melora Backend"
     API_V1_STR: str = "/api/v1"
     PORT: int = 8000
+    DEBUG: bool = False
 
     # Storage
 

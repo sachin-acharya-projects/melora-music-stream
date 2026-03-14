@@ -12,8 +12,8 @@ router = APIRouter()
 
 @router.get("/")
 def get_playlists(
-    sort_by: str = Query("created_at", regex="^(name|created_at)$"),
-    order: str = Query("desc", regex="^(asc|desc)$"),
+    sort_by: str = Query("created_at", pattern="^(name|created_at)$"),
+    order: str = Query("desc", pattern="^(asc|desc)$"),
     db: Session = Depends(get_db),
 ):
     # Determine sorting column
@@ -28,9 +28,7 @@ def get_playlists(
             {
                 "id": p.id,
                 "name": p.name,
-                "created_at": (
-                    p.created_at.isoformat() if p.created_at is not None else None
-                ),
+                "created_at": (p.created_at.isoformat() if p.created_at is not None else None),
                 "songs": [
                     {
                         "id": s.id,
@@ -38,11 +36,7 @@ def get_playlists(
                         "uploader": s.uploader,
                         "thumbnail": s.thumbnail,
                         "duration": s.duration,
-                        "created_at": (
-                            s.created_at.isoformat()
-                            if s.created_at is not None
-                            else None
-                        ),
+                        "created_at": (s.created_at.isoformat() if s.created_at is not None else None),
                     }
                     for s in p.songs
                 ],
@@ -54,9 +48,7 @@ def get_playlists(
 @router.post("/")
 def create_playlist(data: PlaylistCreate, db: Session = Depends(get_db)):
     # Idempotent create: if exists by name, return it
-    db_playlist = (
-        db.query(PlaylistModel).filter(PlaylistModel.name == data.name).first()
-    )
+    db_playlist = db.query(PlaylistModel).filter(PlaylistModel.name == data.name).first()
     if db_playlist is not None:
         return {
             "message": "Playlist already exists",
@@ -76,12 +68,8 @@ def create_playlist(data: PlaylistCreate, db: Session = Depends(get_db)):
 
 
 @router.patch("/{playlist_id}")
-def update_playlist_name(
-    playlist_id: str, data: PlaylistCreate, db: Session = Depends(get_db)
-):
-    db_playlist = (
-        db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id).first()
-    )
+def update_playlist_name(playlist_id: str, data: PlaylistCreate, db: Session = Depends(get_db)):
+    db_playlist = db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id).first()
     if db_playlist is None:
         raise HTTPException(status_code=404, detail="Playlist not found")
 
@@ -101,9 +89,7 @@ def update_playlist_name(
 
 @router.delete("/{playlist_id}")
 def delete_playlist(playlist_id: str, db: Session = Depends(get_db)):
-    db_playlist = (
-        db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id).first()
-    )
+    db_playlist = db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id).first()
     if db_playlist is None:
         raise HTTPException(status_code=404, detail="Playlist not found")
 
@@ -113,19 +99,11 @@ def delete_playlist(playlist_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/{playlist_id_or_name}/add")
-def add_to_playlist(
-    playlist_id_or_name: str, song: Song, db: Session = Depends(get_db)
-):
+def add_to_playlist(playlist_id_or_name: str, song: Song, db: Session = Depends(get_db)):
     # Try by ID first, then by name
-    db_playlist = (
-        db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id_or_name).first()
-    )
+    db_playlist = db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id_or_name).first()
     if db_playlist is None:
-        db_playlist = (
-            db.query(PlaylistModel)
-            .filter(PlaylistModel.name == playlist_id_or_name)
-            .first()
-        )
+        db_playlist = db.query(PlaylistModel).filter(PlaylistModel.name == playlist_id_or_name).first()
 
     # If still not found, create by name (using playlist_id_or_name as name)
     if db_playlist is None:
@@ -159,12 +137,8 @@ def add_to_playlist(
 
 
 @router.delete("/{playlist_id}/songs/{song_id}")
-def remove_song_from_playlist(
-    playlist_id: str, song_id: str, db: Session = Depends(get_db)
-):
-    db_playlist = (
-        db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id).first()
-    )
+def remove_song_from_playlist(playlist_id: str, song_id: str, db: Session = Depends(get_db)):
+    db_playlist = db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id).first()
     if db_playlist is None:
         raise HTTPException(status_code=404, detail="Playlist not found")
 
@@ -183,17 +157,11 @@ def import_playlist(data: PlaylistImport, db: Session = Depends(get_db)):
         # 1. Identify playlist
         db_playlist = None
         if data.id:
-            db_playlist = (
-                db.query(PlaylistModel).filter(PlaylistModel.id == data.id).first()
-            )
+            db_playlist = db.query(PlaylistModel).filter(PlaylistModel.id == data.id).first()
             if db_playlist is None:
-                raise HTTPException(
-                    status_code=404, detail="Playlist with provided ID not found"
-                )
+                raise HTTPException(status_code=404, detail="Playlist with provided ID not found")
         elif data.name:
-            db_playlist = (
-                db.query(PlaylistModel).filter(PlaylistModel.name == data.name).first()
-            )
+            db_playlist = db.query(PlaylistModel).filter(PlaylistModel.name == data.name).first()
             if db_playlist is None:
                 db_playlist = PlaylistModel(name=data.name)
                 db.add(db_playlist)

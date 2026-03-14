@@ -9,7 +9,11 @@ from app.db.models import Base
 # Create DB tables
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title=settings.PROJECT_NAME, openapi_url=f"{settings.API_V1_STR}/openapi.json")
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    debug=settings.DEBUG,
+)
 
 # CORS Middleware
 if settings.BACKEND_CORS_ORIGINS:
