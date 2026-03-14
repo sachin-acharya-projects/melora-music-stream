@@ -1,4 +1,4 @@
-.PHONY: dev frontend backend build lint format preview install clean
+.PHONY: dev frontend backend build lint format preview install clean docker-build-fullstack docker-run-fullstack docker-build-backend docker-run-backend docker-clean
 
 # Load .env file for backend if it exists
 ifneq ("$(wildcard .env)","")
@@ -50,3 +50,20 @@ clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 	find . -type d -name ".ruff_cache" -exec rm -rf {} +
 	find . -type d -name "node_modules" -exec rm -rf {} +
+
+# Docker targets
+docker-build-fullstack:
+	docker build -t melora-fullstack:latest .
+
+docker-run-fullstack:
+	PORT=$(PORT) docker compose up melora-fullstack -d
+
+docker-build-backend:
+	docker build -t melora-backend:latest $(BACKEND_DIR)
+
+docker-run-backend:
+	BACKEND_PORT=$(PORT) docker compose up backend -d
+
+docker-clean:
+	docker compose down -v
+	docker system prune -f
