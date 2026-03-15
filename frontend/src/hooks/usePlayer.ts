@@ -1,6 +1,7 @@
 import { apiService } from "@/services/api.service"
 import { playlistService } from "@/services/playlist.service"
 import { type Song } from "@/types"
+import { getUUID } from "@/utils/uuid/uuid"
 import { create } from "zustand"
 import { createJSONStorage, persist } from "zustand/middleware"
 
@@ -43,7 +44,7 @@ interface PlayerStore {
 
 const createPlaylistItem = (song: Song): PlaylistItem => ({
     ...song,
-    queueId: crypto.randomUUID(),
+    queueId: getUUID(),
 })
 
 export const usePlayerStore = create<PlayerStore>()(
