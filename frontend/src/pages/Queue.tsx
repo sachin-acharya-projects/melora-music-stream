@@ -37,7 +37,7 @@ export default function Queue() {
 
         try {
             const existing = playlists.find(
-                (p) => p.name.toLowerCase() === playlistInput.toLowerCase(),
+                (p) => p.name?.toLowerCase() === playlistInput.toLowerCase(),
             )
             let playlistId = existing?.id
 

@@ -1,8 +1,10 @@
+import { usePlayerStore } from "@/hooks/usePlayer"
 import EditPlaylists from "@/pages/EditPlaylists"
 import Home from "@/pages/Home"
 import NowPlaying from "@/pages/NowPlaying"
 import Playlists from "@/pages/Playlists"
 import Queue from "@/pages/Queue"
+import { useEffect } from "react"
 import { BrowserRouter, Route, Routes } from "react-router-dom"
 import { ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
@@ -11,6 +13,12 @@ import Background from "../background/background"
 import Navbar from "../navbar/navbar"
 
 export default function App() {
+    const initialize = usePlayerStore((s) => s.initialize)
+
+    useEffect(() => {
+        initialize()
+    }, [initialize])
+
     return (
         <BrowserRouter>
             <section>

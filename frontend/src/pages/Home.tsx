@@ -1,6 +1,6 @@
 import SearchForm from "@/components/search-form/search-form"
 import SongSkeleton from "@/components/song-skeleton/song-skeleton"
-import PlaylistSelector from "@/components/ui/playlist-selector/playlist-selector"
+import BulkActionBar from "@/components/ui/bulk-action-bar/bulk-action-bar"
 import ViewToggle from "@/components/ui/view-toggle/view-toggle"
 import { usePlayerStore } from "@/hooks/usePlayer"
 import { usePlaylists } from "@/hooks/usePlaylists"
@@ -10,8 +10,7 @@ import { useThemeStore } from "@/hooks/useTheme"
 import { useTitle } from "@/hooks/useTitle"
 import { formatDuration } from "@/lib/utils"
 import { apiService } from "@/services/api.service"
-import { AnimatePresence, motion } from "framer-motion"
-import { CheckSquare, Loader2, Play, Plus, Settings2 } from "lucide-react"
+import { Download, ListMusic, Play, Settings2 } from "lucide-react"
 import { useState } from "react"
 import { Link } from "react-router-dom"
 import { toast } from "react-toastify"
@@ -24,8 +23,9 @@ export default function Home() {
     const [lastSelectedId, setLastSelectedId] = useState<string | null>(null)
 
     const { viewMode, setViewMode } = useThemeStore()
-    const addQueue = useQueueStore((s) => s.add)
+    const addDownloadQueue = useQueueStore((s) => s.add)
     const setPlaylist = usePlayerStore((s) => s.setPlaylist)
+    const addToNowPlaying = usePlayerStore((s) => s.addToQueue)
 
     const { playlists, addSong, createPlaylist, isAdding, isCreating } = usePlaylists()
     const { data: videos = [], isLoading: isSearchLoading, isError } = useSearch(searchQuery)
@@ -81,12 +81,12 @@ export default function Home() {
         clearSelection()
     }
 
-    const handleAddToQueue = () => {
+    const handleBulkAddToDownloadQueue = () => {
         const selectedSongs = videos.filter((v) => selectedVideos.includes(v.id))
         selectedSongs.forEach((song) => {
-            addQueue(song, "audio", false)
+            addDownloadQueue(song, "audio", false)
         })
-        toast.success(`Added ${selectedSongs.length} items to queue`)
+        toast.success(`Added ${selectedSongs.length} items to download queue`)
         clearSelection()
     }
 
@@ -104,7 +104,7 @@ export default function Home() {
 
         try {
             const existing = playlists.find(
-                (p) => p.name.toLowerCase() === playlistInput.toLowerCase(),
+                (p) => p.name?.toLowerCase() === playlistInput.toLowerCase(),
             )
             let playlistId = existing?.id
 
@@ -113,9 +113,11 @@ export default function Home() {
                 playlistId = newPlaylist.id
             }
 
-            for (const song of songsToAdd) {
-                await addSong({ playlistId: playlistId!, song })
-            }
+            await Promise.all(
+                songsToAdd.map(async (song) => {
+                    await addSong({ playlistId: playlistId!, song })
+                }),
+            )
 
             toast.success(`Added ${songsToAdd.length} songs to ${playlistInput}`)
             clearSelection()
@@ -208,12 +210,37 @@ export default function Home() {
                                                 alt={video.title}
                                                 className='h-full w-full object-cover'
                                             />
-                                            <div className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
+                                            <div className='absolute inset-0 flex items-center justify-center gap-3 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
                                                 <button
                                                     onClick={() => handlePlay(index)}
-                                                    className='flex h-12 w-12 cursor-pointer items-center justify-center rounded-full bg-red-600 text-white shadow-lg transition-transform hover:scale-110'
+                                                    className='flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-red-600 text-white shadow-lg transition-transform hover:scale-110'
+                                                    title='Play Now'
                                                 >
-                                                    <Play className='h-6 w-6 translate-x-0.5 fill-current' />
+                                                    <Play className='h-5 w-5 translate-x-0.5 fill-current' />
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        addToNowPlaying(video)
+                                                        toast.success("Added to queue")
+                                                    }}
+                                                    className='flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white/20 text-white shadow-lg backdrop-blur-md transition-transform hover:scale-110'
+                                                    title='Add to Queue'
+                                                >
+                                                    <ListMusic className='h-5 w-5' />
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        window.open(
+                                                            apiService.getDownloadUrl(video.id),
+                                                            "_blank",
+                                                        )
+                                                    }}
+                                                    className='flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white/20 text-white shadow-lg backdrop-blur-md transition-transform hover:scale-110'
+                                                    title='Download MP3'
+                                                >
+                                                    <Download className='h-5 w-5' />
                                                 </button>
                                             </div>
                                             {selected && (
@@ -227,10 +254,10 @@ export default function Home() {
                                         </div>
                                         <div className='flex flex-col gap-1 p-3'>
                                             <h2 className='line-clamp-2 text-sm font-semibold dark:text-white'>
-                                                {video.title}
+                                                {video.title || "Unknown Title"}
                                             </h2>
                                             <p className='text-xs text-gray-600 dark:text-gray-400'>
-                                                {video.uploader}
+                                                {video.uploader || "Unknown Artist"}
                                             </p>
                                         </div>
                                     </div>
@@ -261,18 +288,42 @@ export default function Home() {
                                         </div>
                                         <div className='min-w-0 flex-1'>
                                             <h3 className='truncate text-sm font-semibold dark:text-white'>
-                                                {video.title}
+                                                {video.title || "Unknown Title"}
                                             </h3>
                                             <p className='truncate text-xs text-gray-500 dark:text-gray-400'>
-                                                {video.uploader}
+                                                {video.uploader || "Unknown Artist"}
                                             </p>
                                         </div>
-                                        <div className='flex items-center gap-4 pr-2'>
-                                            <span className='text-xs font-medium text-gray-400'>
+                                        <div className='flex items-center gap-2 pr-2'>
+                                            <span className='mr-2 text-xs font-medium text-gray-400'>
                                                 {formatDuration(video.duration)}
                                             </span>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    addToNowPlaying(video)
+                                                    toast.success("Added to queue")
+                                                }}
+                                                className='flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-black/5 hover:text-red-500 dark:hover:bg-white/5'
+                                                title='Add to Queue'
+                                            >
+                                                <ListMusic className='h-4 w-4' />
+                                            </button>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    window.open(
+                                                        apiService.getDownloadUrl(video.id),
+                                                        "_blank",
+                                                    )
+                                                }}
+                                                className='flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-black/5 hover:text-red-500 dark:hover:bg-white/5'
+                                                title='Download'
+                                            >
+                                                <Download className='h-4 w-4' />
+                                            </button>
                                             {selected && (
-                                                <div className='flex h-5 w-5 items-center justify-center rounded bg-red-600 text-[10px] text-white'>
+                                                <div className='ml-2 flex h-5 w-5 items-center justify-center rounded bg-red-600 text-[10px] text-white'>
                                                     ✓
                                                 </div>
                                             )}
@@ -317,86 +368,21 @@ export default function Home() {
                 )}
             </div>
 
-            {/* Floating Bottom Bar */}
-            <AnimatePresence>
-                {selectedVideos.length > 0 && (
-                    <motion.div
-                        initial={{ y: 80, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: 80, opacity: 0 }}
-                        transition={{ duration: 0.25 }}
-                        className='fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-6 rounded-2xl border border-red-500/20 bg-white/90 px-6 py-3 shadow-2xl backdrop-blur-md dark:border-white/10 dark:bg-black/90'
-                    >
-                        <p className='text-sm font-bold whitespace-nowrap dark:text-white'>
-                            {selectedVideos.length} selected
-                        </p>
-
-                        <div className='flex items-center gap-3'>
-                            <button
-                                onClick={toggleSelectAll}
-                                className='flex cursor-pointer items-center gap-2 rounded-lg bg-red-600/10 px-4 py-2 text-sm font-bold text-red-600 transition-all hover:bg-red-600 hover:text-white'
-                                title='Toggle All'
-                            >
-                                <CheckSquare className='h-4 w-4' />
-                                <span>
-                                    {selectedVideos.length === videos.length
-                                        ? "Deselect All"
-                                        : "Select All"}
-                                </span>
-                            </button>
-
-                            <button
-                                onClick={handlePlaySelected}
-                                className='flex cursor-pointer items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white transition-transform active:scale-95'
-                            >
-                                <Play className='h-4 w-4 fill-current' /> Play
-                            </button>
-
-                            <div className='flex items-center gap-2 border-x px-3 dark:border-white/10'>
-                                <PlaylistSelector
-                                    playlists={playlists}
-                                    value={playlistInput}
-                                    onChange={(playlistInput) => setPlaylistInput(playlistInput)}
-                                    className='w-48'
-                                />
-                                <button
-                                    onClick={handleAddToPlaylist}
-                                    disabled={!playlistInput || isPlaylistActionLoading}
-                                    className='flex min-w-20 cursor-pointer items-center justify-center gap-1 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-50'
-                                >
-                                    {isPlaylistActionLoading ? (
-                                        <Loader2 className='h-4 w-4 animate-spin' />
-                                    ) : (
-                                        <Plus className='h-4 w-4' />
-                                    )}
-                                    <span>Add</span>
-                                </button>
-                            </div>
-
-                            <button
-                                onClick={handleAddToQueue}
-                                className='cursor-pointer rounded-lg bg-gray-200 px-4 py-2 text-sm font-bold whitespace-nowrap text-gray-700 hover:bg-gray-300 dark:bg-white/10 dark:text-white dark:hover:bg-white/20'
-                            >
-                                Queue
-                            </button>
-
-                            <button
-                                onClick={handleDownloadNow}
-                                className='cursor-pointer rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold whitespace-nowrap text-white hover:bg-blue-700'
-                            >
-                                Download
-                            </button>
-                        </div>
-
-                        <button
-                            onClick={clearSelection}
-                            className='cursor-pointer text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white'
-                        >
-                            Clear
-                        </button>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            <BulkActionBar
+                isVisible={selectedVideos.length > 0}
+                selectedCount={selectedVideos.length}
+                totalCount={videos.length}
+                onSelectAll={toggleSelectAll}
+                onPlay={handlePlaySelected}
+                playlists={playlists}
+                playlistValue={playlistInput}
+                onPlaylistValueChange={setPlaylistInput}
+                onAddToPlaylist={handleAddToPlaylist}
+                isPlaylistLoading={isPlaylistActionLoading}
+                onAddToQueue={handleBulkAddToDownloadQueue}
+                onDownload={handleDownloadNow}
+                onClear={clearSelection}
+            />
         </div>
     )
 }

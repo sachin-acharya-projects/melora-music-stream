@@ -1,7 +1,6 @@
-import { usePlayerStore } from "@/hooks/usePlayer"
+import { type PlaylistItem, usePlayerStore } from "@/hooks/usePlayer"
 import { useTitle } from "@/hooks/useTitle"
 import { formatDuration } from "@/lib/utils"
-import { type Song } from "@/types"
 import { motion, Reorder, useDragControls } from "framer-motion"
 import {
     GripVertical,
@@ -33,7 +32,6 @@ export default function NowPlaying() {
         setRepeatMode,
         progress,
         duration,
-        setPlaylist,
         reorderPlaylist,
         seekTo,
         volume,
@@ -94,6 +92,15 @@ export default function NowPlaying() {
                 item.clientHeight / 2
             container.scrollTo({ top: scrollPos, behavior: "smooth" })
         }
+    }
+
+    const handleSelect = (item: PlaylistItem, index: number) => {
+        usePlayerStore.setState({
+            currentIndex: index,
+            currentSong: item,
+            isPlaying: true,
+            progress: 0,
+        })
     }
 
     return (
@@ -234,14 +241,14 @@ export default function NowPlaying() {
                             onReorder={reorderPlaylist}
                             className='flex flex-col gap-2'
                         >
-                            {playlist.map((song, index) => (
+                            {playlist.map((item, index) => (
                                 <ReorderItem
-                                    key={song.id}
-                                    song={song}
+                                    key={item.queueId}
+                                    item={item}
                                     index={index}
                                     activeIndex={currentIndex}
                                     isPlaying={isPlaying}
-                                    onSelect={() => setPlaylist(playlist, index)}
+                                    onSelect={() => handleSelect(item, index)}
                                     activeRef={index === currentIndex ? activeItemRef : null}
                                 />
                             ))}
@@ -254,14 +261,14 @@ export default function NowPlaying() {
 }
 
 function ReorderItem({
-    song,
+    item,
     index,
     activeIndex,
     isPlaying,
     onSelect,
     activeRef,
 }: {
-    song: Song
+    item: PlaylistItem
     index: number
     activeIndex: number
     isPlaying: boolean
@@ -272,7 +279,7 @@ function ReorderItem({
     const isActive = index === activeIndex
 
     return (
-        <Reorder.Item value={song} dragListener={false} dragControls={controls} className='w-full'>
+        <Reorder.Item value={item} dragListener={false} dragControls={controls} className='w-full'>
             <div
                 className={`flex w-full items-center gap-2 rounded-2xl p-2 transition-all select-none ${
                     isActive
@@ -282,7 +289,7 @@ function ReorderItem({
             >
                 <div
                     onPointerDown={(e) => controls.start(e)}
-                    className='cursor-grab p-2 text-gray-400 hover:text-gray-600 active:cursor-grabbing dark:hover:text-gray-200'
+                    className='drag-handle p-2 text-gray-400 hover:text-gray-600 active:cursor-grabbing dark:hover:text-gray-200'
                 >
                     <GripVertical className='h-4 w-4' />
                 </div>
@@ -294,8 +301,8 @@ function ReorderItem({
                 >
                     <div className='relative h-14 w-14 shrink-0 overflow-hidden rounded-xl'>
                         <img
-                            src={song.thumbnail}
-                            alt={song.title}
+                            src={item.thumbnail}
+                            alt={item.title}
                             className='h-full w-full object-cover'
                         />
                         {isActive && isPlaying && (
@@ -309,13 +316,13 @@ function ReorderItem({
                         )}
                     </div>
                     <div className='min-w-0 flex-1 overflow-hidden'>
-                        <p className='truncate font-semibold dark:text-white'>{song.title}</p>
+                        <p className='truncate font-semibold dark:text-white'>{item.title}</p>
                         <p className='truncate text-xs opacity-70 dark:text-gray-400'>
-                            {song.uploader}
+                            {item.uploader}
                         </p>
                     </div>
                     <span className='pr-2 text-xs whitespace-nowrap opacity-60 dark:text-gray-500'>
-                        {formatDuration(song.duration)}
+                        {formatDuration(item.duration)}
                     </span>
                 </button>
             </div>

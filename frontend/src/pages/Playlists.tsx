@@ -1,29 +1,32 @@
+import BulkActionBar from "@/components/ui/bulk-action-bar/bulk-action-bar"
 import ConfirmationDialog from "@/components/ui/confirmation-dialog/confirmation-dialog"
 import PlaylistSelector from "@/components/ui/playlist-selector/playlist-selector"
+import ReorderItem from "@/components/ui/reorder-item/reorder-item"
 import ViewToggle from "@/components/ui/view-toggle/view-toggle"
 import { usePlayerStore } from "@/hooks/usePlayer"
 import { usePlaylists } from "@/hooks/usePlaylists"
+import { useQueueStore } from "@/hooks/useQueue"
 import { useThemeStore } from "@/hooks/useTheme"
 import { useTitle } from "@/hooks/useTitle"
 import { formatDuration } from "@/lib/utils"
+import { apiService } from "@/services/api.service"
 import { type Playlist, type Song } from "@/types"
 import { useQueryClient } from "@tanstack/react-query"
-import { AnimatePresence, motion, Reorder, useDragControls } from "framer-motion"
+import { AnimatePresence, motion, Reorder } from "framer-motion"
 import {
     ArrowDown,
     ArrowUp,
     Calendar,
-    CheckSquare,
     ChevronDown,
     ChevronLeft,
     ChevronRight,
-    GripVertical,
+    Download,
     Import,
     LayoutList,
+    ListMusic,
     Loader2,
     Play,
-    Plus,
-    Trash2,
+    Search,
     Type,
 } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
@@ -40,7 +43,7 @@ export default function Playlists() {
     const [importUrl, setImportUrl] = useState("")
     const [importName, setImportName] = useState("")
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-    const [selectedView, setSelectedView] = useState<string>("all")
+    const [playlistSearch, setPlaylistSearch] = useState("")
     const [selectedSongIds, setSelectedSongs] = useState<string[]>([])
     const [lastSelectedId, setLastSelectedId] = useState<string | null>(null)
     const [isPaginated, setIsPaginated] = useState(true)
@@ -48,14 +51,14 @@ export default function Playlists() {
 
     const importRef = useRef<HTMLDivElement>(null)
     const { viewMode, setViewMode, sortOrder, setSortOrder } = useThemeStore()
+    const addDownloadQueue = useQueueStore((s) => s.add)
+    const addToNowPlaying = usePlayerStore((s) => s.addToQueue)
 
-    // Sort By state
-    const [sortBy, setSortBy] = useState<"name" | "created_at">("created_at")
-
-    // Pagination and Sort from URL
+    // Derived state from URL
+    const selectedView = searchParams.get("view") || "all"
     const currentPage = parseInt(searchParams.get("page") || "1")
     const urlSortOrder = (searchParams.get("order") as "asc" | "desc") || sortOrder
-    const urlSortBy = (searchParams.get("sort_by") as "name" | "created_at") || sortBy
+    const urlSortBy = (searchParams.get("sort_by") as "name" | "created_at") || "created_at"
 
     const {
         playlists,
@@ -71,20 +74,54 @@ export default function Playlists() {
     } = usePlaylists({
         sort_by: urlSortBy,
         order: urlSortOrder,
+        q: playlistSearch,
     })
 
+    // Local state for songs to allow smooth reordering without cache lag
+    const [localSongs, setLocalSongs] = useState<Song[]>([])
+
     useEffect(() => {
-        if (!searchParams.get("order") || !searchParams.get("sort_by")) {
+        if (
+            !searchParams.get("order") ||
+            !searchParams.get("sort_by") ||
+            !searchParams.get("view")
+        ) {
             setSearchParams(
                 (prev) => {
-                    prev.set("order", urlSortOrder)
-                    prev.set("sort_by", urlSortBy)
+                    if (!prev.get("order")) prev.set("order", urlSortOrder)
+                    if (!prev.get("sort_by")) prev.set("sort_by", urlSortBy)
+                    if (!prev.get("view")) prev.set("view", selectedView)
                     return prev
                 },
                 { replace: true },
             )
         }
-    }, [searchParams, setSearchParams, urlSortBy, urlSortOrder])
+    }, [searchParams, setSearchParams, urlSortBy, urlSortOrder, selectedView])
+
+    // Sync local songs when external playlists data changes
+    const sortedSongsFromPlaylists = useMemo(() => {
+        let songs: Song[] = []
+        if (selectedView === "all") {
+            songs = playlists.flatMap((p) => p.songs)
+        } else {
+            const playlist = playlists.find((p) => p.id === selectedView)
+            songs = playlist ? [...playlist.songs] : []
+        }
+
+        if (playlistSearch) {
+            const query = playlistSearch.toLowerCase()
+            songs = songs.filter(
+                (s) =>
+                    (s.title?.toLowerCase() || "").includes(query) ||
+                    (s.uploader?.toLowerCase() || "").includes(query),
+            )
+        }
+        return songs
+    }, [playlists, selectedView, playlistSearch])
+
+    useEffect(() => {
+        setLocalSongs(sortedSongsFromPlaylists)
+    }, [sortedSongsFromPlaylists])
 
     // Dialog states
     const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false)
@@ -109,7 +146,7 @@ export default function Playlists() {
         e.preventDefault()
         if (!importUrl || !importName) return
 
-        const existing = playlists.find((p) => p.name.toLowerCase() === importName.toLowerCase())
+        const existing = playlists.find((p) => p.name?.toLowerCase() === importName.toLowerCase())
         if (existing) {
             importPlaylist({ url: importUrl, id: existing.id })
         } else {
@@ -117,24 +154,13 @@ export default function Playlists() {
         }
     }
 
-    const sortedSongs = useMemo(() => {
-        let songs: Song[] = []
-        if (selectedView === "all") {
-            songs = playlists.flatMap((p) => p.songs)
-        } else {
-            const playlist = playlists.find((p) => p.id === selectedView)
-            songs = playlist ? [...playlist.songs] : []
-        }
-        return songs
-    }, [playlists, selectedView])
-
-    const totalPages = Math.ceil(sortedSongs.length / ITEMS_PER_PAGE)
+    const totalPages = Math.ceil(localSongs.length / ITEMS_PER_PAGE)
     const paginatedSongs = isPaginated
-        ? sortedSongs.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
-        : sortedSongs
+        ? localSongs.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+        : localSongs
 
     const handlePlay = (index: number) => {
-        setPlaylist(sortedSongs, index)
+        setPlaylist(localSongs, index, selectedView === "all" ? null : selectedView)
     }
 
     const handlePageChange = (newPage: number) => {
@@ -142,6 +168,15 @@ export default function Playlists() {
             prev.set("page", newPage.toString())
             return prev
         })
+    }
+
+    const handleViewChange = (view: string) => {
+        setSearchParams((prev) => {
+            prev.set("view", view)
+            prev.set("page", "1")
+            return prev
+        })
+        setIsDropdownOpen(false)
     }
 
     const handleSortOrderToggle = () => {
@@ -155,7 +190,6 @@ export default function Playlists() {
 
     const handleSortByToggle = () => {
         const next = urlSortBy === "name" ? "created_at" : "name"
-        setSortBy(next)
         setSearchParams((prev) => {
             prev.set("sort_by", next)
             return prev
@@ -170,13 +204,13 @@ export default function Playlists() {
             return
 
         if (e.shiftKey && lastSelectedId) {
-            const currentIndex = sortedSongs.findIndex((s) => s.id === id)
-            const lastIndex = sortedSongs.findIndex((s) => s.id === lastSelectedId)
+            const currentIndex = localSongs.findIndex((s) => s.id === id)
+            const lastIndex = localSongs.findIndex((s) => s.id === lastSelectedId)
 
             if (currentIndex !== -1 && lastIndex !== -1) {
                 const start = Math.min(currentIndex, lastIndex)
                 const end = Math.max(currentIndex, lastIndex)
-                const rangeIds = sortedSongs.slice(start, end + 1).map((s) => s.id)
+                const rangeIds = localSongs.slice(start, end + 1).map((s) => s.id)
 
                 setSelectedSongs((prev) => {
                     const newSelection = new Set([...prev, ...rangeIds])
@@ -200,7 +234,7 @@ export default function Playlists() {
     }
 
     const handleSelectAll = () => {
-        const allIds = sortedSongs.map((s) => s.id)
+        const allIds = localSongs.map((s) => s.id)
         if (selectedSongIds.length === allIds.length) {
             setSelectedSongs([])
         } else {
@@ -208,22 +242,36 @@ export default function Playlists() {
         }
     }
 
+    const clearSelection = () => {
+        setSelectedSongs([])
+        setLastSelectedId(null)
+    }
+
     const handlePlaySelected = () => {
-        const selected = sortedSongs.filter((s) => selectedSongIds.includes(s.id))
+        const selected = localSongs.filter((s) => selectedSongIds.includes(s.id))
         if (selected.length > 0) {
-            setPlaylist(selected, 0)
-            setSelectedSongs([])
+            setPlaylist(selected, 0, selectedView === "all" ? null : selectedView)
+            clearSelection()
         }
+    }
+
+    const handleBulkAddToDownloadQueue = () => {
+        const selected = localSongs.filter((s) => selectedSongIds.includes(s.id))
+        selected.forEach((song) => {
+            addDownloadQueue(song, "audio", false)
+        })
+        toast.success(`Added ${selected.length} items to download queue`)
+        clearSelection()
     }
 
     const handleBulkAddToPlaylist = async () => {
         if (!targetPlaylistId) return
-        const songsToAdd = sortedSongs.filter((s) => selectedSongIds.includes(s.id))
+        const songsToAdd = localSongs.filter((s) => selectedSongIds.includes(s.id))
 
         try {
             const existing = playlists.find(
                 (p) =>
-                    p.name.toLowerCase() === targetPlaylistId.toLowerCase() ||
+                    p.name?.toLowerCase() === targetPlaylistId.toLowerCase() ||
                     p.id === targetPlaylistId,
             )
             let playlistId = existing?.id
@@ -233,27 +281,42 @@ export default function Playlists() {
                 playlistId = newPlaylist.id
             }
 
-            for (const song of songsToAdd) {
-                await addSong({ playlistId: playlistId!, song })
-            }
-            setSelectedSongs([])
+            await Promise.all(
+                songsToAdd.map((song) => {
+                    return addSong({ playlistId, song })
+                }),
+            )
+
+            toast.success(`Added ${songsToAdd.length} items to playlist`)
+
+            clearSelection()
+            setTargetPlaylistId("")
         } catch {
             toast.error("Failed to add songs")
         }
     }
 
+    const handleBulkDownload = () => {
+        selectedSongIds.forEach((id) => {
+            window.open(apiService.getDownloadUrl(id), "_blank")
+        })
+        clearSelection()
+    }
+
     const handleBulkRemove = () => {
         setRemovalData({
-            playlistId: selectedView === "all" ? playlists[0]?.id : selectedView,
+            playlistId: selectedView === "all" ? playlists[0]?.id || "" : selectedView,
             songIds: selectedSongIds,
         })
         setIsRemoveDialogOpen(true)
     }
 
     const handleReorder = (newSongs: Song[]) => {
-        if (selectedView !== "all" && urlSortBy === "created_at" && urlSortOrder === "asc") {
+        setLocalSongs(newSongs)
+
+        if (selectedView !== "all") {
             queryClient.setQueryData<Playlist[]>(
-                ["playlists", { sort_by: urlSortBy, order: urlSortOrder }],
+                ["playlists", { sort_by: urlSortBy, order: urlSortOrder, q: playlistSearch }],
                 (prev) => {
                     if (!prev) return prev
                     return prev.map((p) => {
@@ -270,11 +333,7 @@ export default function Playlists() {
         }
     }
 
-    const isReorderEnabled =
-        selectedView !== "all" &&
-        viewMode === "list" &&
-        urlSortBy === "created_at" &&
-        urlSortOrder === "asc"
+    const isReorderEnabled = selectedView !== "all" && viewMode === "list"
 
     const isBulkActionLoading = isAdding || isCreating || isRemoving
 
@@ -358,11 +417,7 @@ export default function Playlists() {
                                             className='dark:bg-card absolute top-full mt-2 w-full overflow-hidden rounded-xl border bg-white p-1 shadow-xl dark:border-white/10'
                                         >
                                             <button
-                                                onClick={() => {
-                                                    setSelectedView("all")
-                                                    handlePageChange(1)
-                                                    setIsDropdownOpen(false)
-                                                }}
+                                                onClick={() => handleViewChange("all")}
                                                 className={`w-full cursor-pointer rounded-lg px-4 py-2 text-left text-sm transition-colors hover:bg-black/5 dark:hover:bg-white/5 ${selectedView === "all" ? "bg-red-50 text-red-600 dark:bg-red-500/10" : "dark:text-white"}`}
                                             >
                                                 All Playlists
@@ -370,11 +425,7 @@ export default function Playlists() {
                                             {playlists.map((p) => (
                                                 <button
                                                     key={p.id}
-                                                    onClick={() => {
-                                                        setSelectedView(p.id)
-                                                        handlePageChange(1)
-                                                        setIsDropdownOpen(false)
-                                                    }}
+                                                    onClick={() => handleViewChange(p.id)}
                                                     className={`w-full cursor-pointer rounded-lg px-4 py-2 text-left text-sm capitalize transition-colors hover:bg-black/5 dark:hover:bg-white/5 ${selectedView === p.id ? "bg-red-50 text-red-600 dark:bg-red-500/10" : "dark:text-white"}`}
                                                 >
                                                     {p.name}
@@ -383,6 +434,22 @@ export default function Playlists() {
                                         </motion.div>
                                     )}
                                 </AnimatePresence>
+                            </div>
+                        </div>
+
+                        <div className='flex flex-col gap-2'>
+                            <label className='text-xs tracking-wider text-gray-500'>
+                                Search Playlist
+                            </label>
+                            <div className='relative'>
+                                <Search className='absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400' />
+                                <input
+                                    type='text'
+                                    value={playlistSearch}
+                                    onChange={(e) => setPlaylistSearch(e.target.value)}
+                                    placeholder='Search songs...'
+                                    className='dark:bg-card h-12 w-64 rounded-xl border bg-white pr-4 pl-10 text-sm shadow-sm transition-all focus:border-red-500 focus:outline-none dark:border-white/10 dark:text-white'
+                                />
                             </div>
                         </div>
 
@@ -426,29 +493,27 @@ export default function Playlists() {
                             </button>
                         </div>
 
-                        {selectedView !== "all" && (
-                            <div className='flex flex-col gap-2'>
-                                <label className='text-xs tracking-wider text-gray-500'>
-                                    Reordering
-                                </label>
-                                <button
-                                    onClick={() => setIsPaginated(!isPaginated)}
-                                    className={`flex h-12 cursor-pointer items-center gap-2 rounded-xl border px-4 font-medium shadow-sm transition-all ${
-                                        !isPaginated
-                                            ? "border-red-500 bg-red-500 text-white"
-                                            : "dark:bg-card bg-white hover:border-red-200 dark:border-white/10 dark:text-white"
-                                    }`}
-                                    title={
-                                        isPaginated
-                                            ? "Disable pagination to reorder across the whole list"
-                                            : "Enable pagination"
-                                    }
-                                >
-                                    <LayoutList className='h-4 w-4' />
-                                    <span>{isPaginated ? "Paginated" : "Show All"}</span>
-                                </button>
-                            </div>
-                        )}
+                        <div className='flex flex-col gap-2'>
+                            <label className='text-xs tracking-wider text-gray-500'>
+                                Reordering
+                            </label>
+                            <button
+                                onClick={() => setIsPaginated(!isPaginated)}
+                                className={`flex h-12 cursor-pointer items-center gap-2 rounded-xl border px-4 font-medium shadow-sm transition-all ${
+                                    !isPaginated
+                                        ? "border-red-500 bg-red-500 text-white"
+                                        : "dark:bg-card bg-white hover:border-red-200 dark:border-white/10 dark:text-white"
+                                }`}
+                                title={
+                                    isPaginated
+                                        ? "Disable pagination to reorder across the whole list"
+                                        : "Enable pagination"
+                                }
+                            >
+                                <LayoutList className='h-4 w-4' />
+                                <span>{isPaginated ? "Paginated" : "Show All"}</span>
+                            </button>
+                        </div>
                     </div>
 
                     <div className='flex flex-col items-end gap-2'>
@@ -462,7 +527,7 @@ export default function Playlists() {
                 <div className='flex justify-center py-20'>
                     <Loader2 className='h-12 w-12 animate-spin text-red-600' />
                 </div>
-            ) : sortedSongs.length === 0 ? (
+            ) : localSongs.length === 0 ? (
                 <div className='py-5 text-center text-2xl text-gray-500'>No songs found.</div>
             ) : (
                 <div className='flex flex-col gap-8'>
@@ -472,7 +537,7 @@ export default function Playlists() {
                                 ? "All Songs"
                                 : playlists.find((p) => p.id === selectedView)?.name || "Playlist"}
                         </h2>
-                        <span className='text-sm text-gray-500'>{sortedSongs.length} songs</span>
+                        <span className='text-sm text-gray-500'>{localSongs.length} songs</span>
                     </div>
 
                     {isReorderEnabled ? (
@@ -482,18 +547,19 @@ export default function Playlists() {
                             onReorder={handleReorder}
                             className='flex flex-col gap-2'
                         >
-                            {paginatedSongs.map((song, index) => (
+                            {paginatedSongs.map((song) => (
                                 <ReorderItem
                                     key={song.id}
                                     song={song}
                                     selectedSongIds={selectedSongIds}
                                     toggleSelect={toggleSelect}
-                                    handlePlay={() =>
-                                        handlePlay(
-                                            isPaginated
-                                                ? (currentPage - 1) * ITEMS_PER_PAGE + index
-                                                : index,
-                                        )
+                                    handlePlay={() => handlePlay(localSongs.indexOf(song))}
+                                    onAddToQueue={() => {
+                                        addToNowPlaying(song)
+                                        toast.success("Added to queue")
+                                    }}
+                                    onDownload={() =>
+                                        window.open(apiService.getDownloadUrl(song.id), "_blank")
                                     }
                                 />
                             ))}
@@ -506,11 +572,9 @@ export default function Playlists() {
                                     : "flex flex-col gap-2"
                             }
                         >
-                            {paginatedSongs.map((song, index) => {
+                            {paginatedSongs.map((song) => {
                                 const isSelected = selectedSongIds.includes(song.id)
-                                const globalIndex = isPaginated
-                                    ? (currentPage - 1) * ITEMS_PER_PAGE + index
-                                    : index
+                                const globalIndex = localSongs.indexOf(song)
 
                                 return viewMode === "grid" ? (
                                     <div
@@ -528,12 +592,40 @@ export default function Playlists() {
                                                 alt={song.title}
                                                 className='h-full w-full object-cover'
                                             />
-                                            <div className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
+                                            <div className='absolute inset-0 flex items-center justify-center gap-3 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
                                                 <button
-                                                    onClick={() => handlePlay(globalIndex)}
-                                                    className='flex h-12 w-12 cursor-pointer items-center justify-center rounded-full bg-red-600 text-white shadow-lg transition-transform hover:scale-110'
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        handlePlay(globalIndex)
+                                                    }}
+                                                    className='flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-red-600 text-white shadow-lg transition-transform hover:scale-110'
+                                                    title='Play Now'
                                                 >
-                                                    <Play className='h-6 w-6 translate-x-0.5 fill-current' />
+                                                    <Play className='h-5 w-5 translate-x-0.5 fill-current' />
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        addToNowPlaying(song)
+                                                        toast.success("Added to queue")
+                                                    }}
+                                                    className='flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white/20 text-white shadow-lg backdrop-blur-md transition-transform hover:scale-110'
+                                                    title='Add to Queue'
+                                                >
+                                                    <ListMusic className='h-5 w-5' />
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        window.open(
+                                                            apiService.getDownloadUrl(song.id),
+                                                            "_blank",
+                                                        )
+                                                    }}
+                                                    className='flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white/20 text-white shadow-lg backdrop-blur-md transition-transform hover:scale-110'
+                                                    title='Download MP3'
+                                                >
+                                                    <Download className='h-5 w-5' />
                                                 </button>
                                             </div>
                                             {isSelected && (
@@ -547,10 +639,10 @@ export default function Playlists() {
                                         </div>
                                         <div className='p-3'>
                                             <h3 className='line-clamp-2 text-sm font-semibold dark:text-white'>
-                                                {song.title}
+                                                {song.title || "Unknown Title"}
                                             </h3>
                                             <p className='mt-1 text-xs text-gray-500 dark:text-gray-400'>
-                                                {song.uploader}
+                                                {song.uploader || "Unknown Artist"}
                                             </p>
                                         </div>
                                     </div>
@@ -572,7 +664,10 @@ export default function Playlists() {
                                             />
                                             <div className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
                                                 <button
-                                                    onClick={() => handlePlay(globalIndex)}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        handlePlay(globalIndex)
+                                                    }}
                                                     className='cursor-pointer rounded-full bg-red-600 p-1.5 text-white shadow-lg'
                                                 >
                                                     <Play className='h-4 w-4 translate-x-0.5 fill-current' />
@@ -581,18 +676,42 @@ export default function Playlists() {
                                         </div>
                                         <div className='min-w-0 flex-1'>
                                             <h3 className='truncate text-sm font-semibold dark:text-white'>
-                                                {song.title}
+                                                {song.title || "Unknown Title"}
                                             </h3>
                                             <p className='truncate text-xs text-gray-500 dark:text-gray-400'>
-                                                {song.uploader}
+                                                {song.uploader || "Unknown Artist"}
                                             </p>
                                         </div>
-                                        <div className='flex items-center gap-4 pr-2'>
-                                            <span className='text-xs font-medium text-gray-400'>
+                                        <div className='flex items-center gap-2 pr-2'>
+                                            <span className='mr-2 text-xs font-medium text-gray-400'>
                                                 {formatDuration(song.duration)}
                                             </span>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    addToNowPlaying(song)
+                                                    toast.success("Added to queue")
+                                                }}
+                                                className='flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-black/5 hover:text-red-500 dark:hover:bg-white/5'
+                                                title='Add to Queue'
+                                            >
+                                                <ListMusic className='h-4 w-4' />
+                                            </button>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    window.open(
+                                                        apiService.getDownloadUrl(song.id),
+                                                        "_blank",
+                                                    )
+                                                }}
+                                                className='flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-black/5 hover:text-red-500 dark:hover:bg-white/5'
+                                                title='Download'
+                                            >
+                                                <Download className='h-4 w-4' />
+                                            </button>
                                             {isSelected && (
-                                                <div className='flex h-5 w-5 items-center justify-center rounded bg-red-600 text-[10px] text-white'>
+                                                <div className='ml-2 flex h-5 w-5 items-center justify-center rounded bg-red-600 text-[10px] text-white'>
                                                     ✓
                                                 </div>
                                             )}
@@ -630,82 +749,22 @@ export default function Playlists() {
                 </div>
             )}
 
-            {/* Floating Bulk Action Bar */}
-            <AnimatePresence>
-                {selectedSongIds.length > 0 && (
-                    <motion.div
-                        initial={{ y: 80, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: 80, opacity: 0 }}
-                        className='fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-6 rounded-2xl border border-red-500/20 bg-white/90 px-6 py-3 shadow-2xl backdrop-blur-md dark:border-white/10 dark:bg-black/90'
-                    >
-                        <p className='text-sm font-bold whitespace-nowrap dark:text-white'>
-                            {selectedSongIds.length} selected
-                        </p>
-                        <div className='flex items-center gap-3'>
-                            <button
-                                onClick={handleSelectAll}
-                                className='flex cursor-pointer items-center gap-2 rounded-lg bg-red-600/10 px-4 py-2 text-sm font-bold text-red-600 transition-all hover:bg-red-600 hover:text-white'
-                                title='Toggle All'
-                            >
-                                <CheckSquare className='h-4 w-4' />
-                                <span>
-                                    {selectedSongIds.length === sortedSongs.length
-                                        ? "Deselect All"
-                                        : "Select All"}
-                                </span>
-                            </button>
-
-                            <button
-                                onClick={handlePlaySelected}
-                                className='flex h-12 cursor-pointer items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white transition-transform hover:bg-red-700 active:scale-95'
-                            >
-                                <Play className='h-4 w-4 fill-current' /> Play
-                            </button>
-                            {playlists.length > 0 && (
-                                <div className='flex items-center gap-2 border-x px-3 dark:border-white/10'>
-                                    <PlaylistSelector
-                                        playlists={playlists}
-                                        value={targetPlaylistId}
-                                        onChange={setTargetPlaylistId}
-                                        className='w-48'
-                                    />
-                                    <button
-                                        onClick={handleBulkAddToPlaylist}
-                                        disabled={!targetPlaylistId || isBulkActionLoading}
-                                        className='flex min-w-20 cursor-pointer items-center justify-center gap-1 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-bold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50'
-                                    >
-                                        {isBulkActionLoading ? (
-                                            <Loader2 className='h-4 w-4 animate-spin' />
-                                        ) : (
-                                            <Plus className='h-4 w-4' />
-                                        )}
-                                        <span>Add</span>
-                                    </button>
-                                </div>
-                            )}
-                            <button
-                                onClick={handleBulkRemove}
-                                disabled={isBulkActionLoading}
-                                className='flex h-12 cursor-pointer items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-sm font-bold text-gray-700 hover:bg-red-50 hover:text-red-600 dark:bg-white/5 dark:text-gray-300 dark:hover:bg-red-500/10'
-                            >
-                                {isRemoving ? (
-                                    <Loader2 className='h-4 w-4 animate-spin' />
-                                ) : (
-                                    <Trash2 className='h-4 w-4' />
-                                )}
-                                Delete
-                            </button>
-                        </div>
-                        <button
-                            onClick={() => setSelectedSongs([])}
-                            className='cursor-pointer text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white'
-                        >
-                            Clear
-                        </button>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            <BulkActionBar
+                isVisible={selectedSongIds.length > 0}
+                selectedCount={selectedSongIds.length}
+                totalCount={localSongs.length}
+                onSelectAll={handleSelectAll}
+                onPlay={handlePlaySelected}
+                playlists={playlists}
+                playlistValue={targetPlaylistId}
+                onPlaylistValueChange={setTargetPlaylistId}
+                onAddToPlaylist={handleBulkAddToPlaylist}
+                isPlaylistLoading={isBulkActionLoading}
+                onAddToQueue={handleBulkAddToDownloadQueue}
+                onDownload={handleBulkDownload}
+                onDelete={handleBulkRemove}
+                onClear={clearSelection}
+            />
 
             <ConfirmationDialog
                 isOpen={isRemoveDialogOpen}
@@ -724,71 +783,5 @@ export default function Playlists() {
                 type='danger'
             />
         </div>
-    )
-}
-
-function ReorderItem({
-    song,
-    selectedSongIds,
-    toggleSelect,
-    handlePlay,
-}: {
-    song: Song
-    selectedSongIds: string[]
-    toggleSelect: (id: string, e: React.MouseEvent) => void
-    handlePlay: () => void
-}) {
-    const controls = useDragControls()
-    const isSelected = selectedSongIds.includes(song.id)
-
-    return (
-        <Reorder.Item value={song} dragListener={false} dragControls={controls} className='w-full'>
-            <div
-                onClick={(e) => toggleSelect(song.id, e)}
-                className={`group flex cursor-pointer items-center gap-4 rounded-xl border p-2 transition-all select-none ${
-                    isSelected
-                        ? "border-red-500 bg-red-50/5"
-                        : "dark:bg-card border-gray-100 bg-white hover:border-red-200 dark:border-white/10"
-                }`}
-            >
-                <div
-                    onPointerDown={(e) => controls.start(e)}
-                    className='drag-handle cursor-grab p-2 text-gray-400 hover:text-gray-600 active:cursor-grabbing dark:hover:text-gray-200'
-                >
-                    <GripVertical className='h-4 w-4' />
-                </div>
-                <div className='relative h-14 w-24 shrink-0 overflow-hidden rounded-lg'>
-                    <img
-                        src={song.thumbnail}
-                        alt={song.title}
-                        className='h-full w-full object-cover'
-                    />
-                    <div className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
-                        <button
-                            onClick={handlePlay}
-                            className='cursor-pointer rounded-full bg-red-600 p-1.5 text-white shadow-lg'
-                        >
-                            <Play className='h-4 w-4 translate-x-0.5 fill-current' />
-                        </button>
-                    </div>
-                </div>
-                <div className='min-w-0 flex-1'>
-                    <h3 className='truncate text-sm font-semibold dark:text-white'>{song.title}</h3>
-                    <p className='truncate text-xs text-gray-500 dark:text-gray-400'>
-                        {song.uploader}
-                    </p>
-                </div>
-                <div className='flex items-center gap-4 pr-2'>
-                    <span className='text-xs font-medium text-gray-400'>
-                        {formatDuration(song.duration)}
-                    </span>
-                    {isSelected && (
-                        <div className='flex h-5 w-5 items-center justify-center rounded bg-red-600 text-[10px] text-white'>
-                            ✓
-                        </div>
-                    )}
-                </div>
-            </div>
-        </Reorder.Item>
     )
 }

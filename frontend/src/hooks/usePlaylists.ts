@@ -73,7 +73,7 @@ export function usePlaylists(options: PlaylistSortOptions = {}) {
         isError: playlistsQuery.isError,
         createPlaylist: createPlaylistMutation.mutateAsync,
         isCreating: createPlaylistMutation.isPending,
-        addSong: addSongToPlaylistMutation.mutateAsync, // Exporting Async for easier loop handling
+        addSong: addSongToPlaylistMutation.mutateAsync,
         isAdding: addSongToPlaylistMutation.isPending,
         importPlaylist: importPlaylistMutation.mutate,
         isImporting: importPlaylistMutation.isPending,
@@ -84,4 +84,12 @@ export function usePlaylists(options: PlaylistSortOptions = {}) {
         removeSongs: removeSongsMutation.mutate,
         isRemoving: removeSongsMutation.isPending,
     }
+}
+
+export function usePlaylist(id: string | null, options: PlaylistSortOptions = {}) {
+    return useQuery({
+        queryKey: ["playlist", id, options],
+        queryFn: () => (id ? playlistService.getById(id, options) : null),
+        enabled: !!id,
+    })
 }
