@@ -53,4 +53,5 @@ class PlaylistModel(Base):
         "SongModel",
         secondary=playlist_song,
         back_populates="playlists",
+        order_by=SongModel.created_at,
     )

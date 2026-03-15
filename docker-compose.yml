@@ -1,11 +1,10 @@
 services:
-  # Option 1: Unified Fullstack Container (Single Image)
   melora-fullstack:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: melora-app
-    image: melora-fullstack:latest
+    image: ${REGISTRY_NAMESPACE}
     ports:
       - "${PORT:-80}:80"
     environment:
@@ -14,7 +13,6 @@ services:
       - melora_data:/app/data
     restart: always
 
-  # Option 2: Separate Backend Only
   backend:
     build:
       context: ./backend
@@ -29,7 +27,6 @@ services:
       - melora_data:/app/data
     restart: always
 
-  # Option 3: Separate Frontend (If you want to run frontend independently)
   # Note: This frontend container expects a 'backend' service to be reachable at 'backend:8000'
   # unless you modify frontend/nginx.conf.
   frontend:
