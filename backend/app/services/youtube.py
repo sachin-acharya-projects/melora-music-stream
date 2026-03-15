@@ -87,7 +87,7 @@ class YoutubeService:
                         {
                             "id": entry.get("id"),
                             "title": entry.get("title"),
-                            "uploader": entry.get("uploader", "Unknown"),
+                            "uploader": entry.get('uploader') or entry.get('channel') or "Unknown Artist",
                             "thumbnail": entry.get("thumbnail")
                             or (entry.get("thumbnails")[0]["url"] if entry.get("thumbnails") else ""),
                             "duration": entry.get("duration", 0),

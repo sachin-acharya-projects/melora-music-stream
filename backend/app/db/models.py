@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Table
+from sqlalchemy import JSON, Column, DateTime, ForeignKey, Integer, String, Table
 from sqlalchemy.orm import relationship
 
 from .base import Base
@@ -55,3 +55,14 @@ class PlaylistModel(Base):
         back_populates="playlists",
         order_by=SongModel.created_at,
     )
+
+
+class PlaybackStateModel(Base):
+    __tablename__ = "playback_state"
+
+    id = Column(Integer, primary_key=True, index=True)
+    last_song_id = Column(String, nullable=True)
+    current_queue = Column(JSON, default=list)  # List of song IDs
+    recent_songs = Column(JSON, default=list)  # List of song IDs
+    last_playlist_id = Column(String, nullable=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

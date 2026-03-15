@@ -61,6 +61,62 @@ def get_playlists(
     return result
 
 
+@router.get("/{playlist_id}")
+def get_playlist(
+    playlist_id: str,
+    q: str | None = Query(None),
+    sort_by: str = Query("created_at", pattern="^(title|created_at)$"),
+    order: str = Query("desc", pattern="^(asc|desc)$"),
+    db: Session = Depends(get_db),
+):
+    db_playlist = (
+        db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id).first()
+    )
+    if db_playlist is None:
+        raise HTTPException(status_code=404, detail="Playlist not found")
+
+    songs_query = (
+        db.query(SongModel)
+        .join(PlaylistModel.songs)
+        .filter(PlaylistModel.id == playlist_id)
+    )
+
+    if q:
+        songs_query = songs_query.filter(
+            (SongModel.title.ilike(f"%{q}%")) | (SongModel.uploader.ilike(f"%{q}%"))
+        )
+
+    # Apply sorting to songs
+    sort_col = getattr(SongModel, sort_by)
+    order_func = asc if order == "asc" else desc
+    songs_query = songs_query.order_by(order_func(sort_col))
+
+    songs = songs_query.all()
+
+    return {
+        "id": db_playlist.id,
+        "name": db_playlist.name,
+        "created_at": (
+            db_playlist.created_at.isoformat()
+            if db_playlist.created_at is not None
+            else None
+        ),
+        "songs": [
+            {
+                "id": s.id,
+                "title": s.title,
+                "uploader": s.uploader,
+                "thumbnail": s.thumbnail,
+                "duration": s.duration,
+                "created_at": (
+                    s.created_at.isoformat() if s.created_at is not None else None
+                ),
+            }
+            for s in songs
+        ],
+    }
+
+
 @router.post("/")
 def create_playlist(data: PlaylistCreate, db: Session = Depends(get_db)):
     # Idempotent create: if exists by name, return it
@@ -97,7 +153,7 @@ def update_playlist_name(
 
     # Check if new name is already taken
     existing = db.query(PlaylistModel).filter(PlaylistModel.name == data.name).first()
-    if existing is not None and existing.id != playlist_id:  # type: ignore
+    if existing is not None and bool(existing.id != playlist_id):  # type: ignore
         raise HTTPException(status_code=400, detail="Playlist name already exists")
 
     db_playlist.name = data.name  # type: ignore
@@ -159,8 +215,8 @@ def add_to_playlist(
         db.refresh(db_song)
 
     # Idempotent song addition to playlist
-    song_ids = [s.id for s in db_playlist.songs]
-    if db_song.id not in song_ids:
+    song_ids = [str(s.id) for s in db_playlist.songs]
+    if str(db_song.id) not in song_ids:
         db_playlist.songs.append(db_song)
         db.commit()
         return {"message": "Song added", "playlist_id": db_playlist.id}
@@ -179,7 +235,7 @@ def remove_song_from_playlist(
         raise HTTPException(status_code=404, detail="Playlist not found")
 
     db_song = db.query(SongModel).filter(SongModel.id == song_id).first()
-    if db_song is None or db_song.id not in [s.id for s in db_playlist.songs]:
+    if db_song is None or str(db_song.id) not in [str(s.id) for s in db_playlist.songs]:
         raise HTTPException(status_code=404, detail="Song not found in playlist")
 
     db_playlist.songs.remove(db_song)
@@ -220,7 +276,7 @@ def import_playlist(data: PlaylistImport, db: Session = Depends(get_db)):
 
         # 3. Add songs idempotently
         count = 0
-        current_song_ids = [s.id for s in db_playlist.songs]
+        current_song_ids = [str(s.id) for s in db_playlist.songs]
         for s_data in songs_data:
             db_song = db.query(SongModel).filter(SongModel.id == s_data["id"]).first()
             if db_song is None:
@@ -235,9 +291,9 @@ def import_playlist(data: PlaylistImport, db: Session = Depends(get_db)):
                 db.commit()
                 db.refresh(db_song)
 
-            if db_song.id not in current_song_ids:
+            if str(db_song.id) not in current_song_ids:
                 db_playlist.songs.append(db_song)
-                current_song_ids.append(db_song.id)
+                current_song_ids.append(str(db_song.id))
                 count += 1
 
         db.commit()

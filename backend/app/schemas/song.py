@@ -17,3 +17,10 @@ class PlaylistImport(BaseModel):
     url: str
     name: str | None = None
     id: str | None = None
+
+
+class PlaybackState(BaseModel):
+    last_song_id: str | None = None
+    current_queue: list[str] = []
+    recent_songs: list[str] = []
+    last_playlist_id: str | None = None
