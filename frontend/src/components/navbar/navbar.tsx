@@ -1,6 +1,6 @@
 import { useQueueStore } from "@/hooks/useQueue"
 import { useThemeStore } from "@/hooks/useTheme"
-import { ListMusic, Moon, Music2, Plus, ShoppingCart, Sun } from "lucide-react"
+import { ListEnd, ListMusic, Moon, Music2, Plus, Sun } from "lucide-react"
 import { useEffect } from "react"
 import { Link, useLocation } from "react-router-dom"
 
@@ -67,7 +67,7 @@ export default function Navbar() {
                     }`}
                     title='Queue videos'
                 >
-                    <ShoppingCart className='dark:text-white' />
+                    <ListEnd className='dark:text-white' />
                     <span className='-mt-3 flex h-full items-end font-bold text-red-500'>
                         {queue.length}
                     </span>

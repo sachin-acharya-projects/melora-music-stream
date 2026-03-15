@@ -1,6 +1,6 @@
 import { type Playlist } from "@/types"
 import { AnimatePresence, motion } from "framer-motion"
-import { CheckSquare, Download, Loader2, Play, Plus, Trash2 } from "lucide-react"
+import { CheckSquare, Download, ListEnd, Loader2, Play, Plus, Trash2 } from "lucide-react"
 import PlaylistSelector from "../playlist-selector/playlist-selector"
 
 interface BulkActionBarProps {
@@ -93,8 +93,10 @@ export default function BulkActionBar({
                         <button
                             onClick={onAddToQueue}
                             className='cursor-pointer rounded-lg bg-gray-200 px-4 py-2 text-sm font-bold whitespace-nowrap text-gray-700 hover:bg-gray-300 dark:bg-white/10 dark:text-white dark:hover:bg-white/20'
+                            title='Add to Collection'
                         >
-                            Queue
+                            <ListEnd className='h-4 w-4' />
+                            {/* Collection */}
                         </button>
 
                         <button

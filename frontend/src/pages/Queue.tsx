@@ -168,10 +168,10 @@ export default function Queue() {
                         <div className='flex items-center gap-2'>
                             <button
                                 onClick={() => handleDownload(song.id)}
-                                className='cursor-pointer rounded-lg bg-blue-600 p-2 text-white transition-colors hover:bg-red-700'
+                                className='cursor-pointer rounded-lg p-2 transition-colors hover:bg-slate-100 hover:text-gray-500 dark:text-white dark:hover:bg-gray-900 dark:hover:text-gray-300'
                                 title='Download Now'
                             >
-                                <Download className='h-4 w-4' />
+                                <Download className='h-6 w-6' />
                             </button>
 
                             <button
@@ -179,7 +179,7 @@ export default function Queue() {
                                 className='cursor-pointer rounded-lg border p-2 text-gray-400 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-500 dark:border-white/10 dark:hover:bg-red-500/10'
                                 title='Remove from Queue'
                             >
-                                <Trash2 className='h-4 w-4' />
+                                <Trash2 className='h-6 w-6' />
                             </button>
                         </div>
                     </Reorder.Item>
