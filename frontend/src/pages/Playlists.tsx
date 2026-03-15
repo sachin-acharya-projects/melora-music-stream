@@ -27,10 +27,11 @@ import {
     Loader2,
     Play,
     Search,
+    Settings,
     Type,
 } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
-import { useSearchParams } from "react-router-dom"
+import { Link, useSearchParams } from "react-router-dom"
 import { toast } from "react-toastify"
 
 const ITEMS_PER_PAGE = 10
@@ -516,9 +517,20 @@ export default function Playlists() {
                         </div>
                     </div>
 
-                    <div className='flex flex-col items-end gap-2'>
-                        <label className='text-xs tracking-wider text-gray-500'>Layout</label>
-                        <ViewToggle view={viewMode} onChange={setViewMode} />
+                    <div className='flex items-center gap-4'>
+                        <div className='flex flex-col items-end gap-2'>
+                            <label className='text-xs tracking-wider text-gray-500'>Playlist Setting</label>
+                            <Link
+                                to='/playlists/edit'
+                                className='flex h-12 cursor-pointer items-center gap-2 rounded-xl border px-4 font-medium shadow-sm transition-all'
+                            >
+                                <Settings className='h-4 w-4' /> Edit
+                            </Link>
+                        </div>
+                        <div className='flex flex-col items-end gap-2'>
+                            <label className='text-xs tracking-wider text-gray-500'>Layout</label>
+                            <ViewToggle view={viewMode} onChange={setViewMode} />
+                        </div>
                     </div>
                 </div>
             </div>
