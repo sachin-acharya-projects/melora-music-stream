@@ -6,6 +6,7 @@ on:
 
 jobs:
   deploy:
+    name: Deploying to the Server
     runs-on: ubuntu-latest
 
     steps:
@@ -28,4 +29,4 @@ jobs:
           ssh -i ~/.ssh/id_ed25519 \
             -o StrictHostKeyChecking=no \
             ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }} \
-            "cd ${{ secrets.PROJECT_ROOT }} && ./deploy.sh"
+            "cd ${{ secrets.PROJECT_ROOT }} && bash deploy.sh"
