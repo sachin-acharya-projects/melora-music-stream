@@ -33,6 +33,7 @@ export default function EditPlaylists() {
         if (editingId && newName) {
             renamePlaylist({ id: editingId, name: newName })
         }
+        setEditingId(null)
     }
 
     const handleDeleteClick = (playlist: Playlist) => {
@@ -93,14 +94,14 @@ export default function EditPlaylists() {
                                         className='cursor-pointer text-emerald-500'
                                         disabled={isRenaming}
                                     >
-                                        <Check className='h-4 w-4' />
+                                        <Check className='h-6 w-6' />
                                     </button>
                                     <button
                                         type='button'
                                         onClick={() => setEditingId(null)}
                                         className='cursor-pointer text-red-500'
                                     >
-                                        <X className='h-4 w-4' />
+                                        <X className='h-6 w-6' />
                                     </button>
                                 </form>
                             ) : (
