@@ -37,9 +37,24 @@ class YoutubeService:
         ydl_opts = {
             "format": "bestaudio/best",
             "quiet": True,
+            "no_warnings": True,
+            "nocheckcertificate": True,
+            "referer": "https://www.youtube.com/",
+            "user_agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/122.0.0.0 Safari/537.36"
+            ),
+            "extractor_args": {
+                "youtube": {
+                    "player_client": ["android", "web"],
+                    "player_skip": ["webpage", "configs"],
+                }
+            },
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
+            # Passing the video ID directly is often more reliable than the full URL
+            info = ydl.extract_info(video_id, download=False)
             return {
                 "url": info["url"],
                 "title": info["title"],
@@ -87,7 +102,7 @@ class YoutubeService:
                         {
                             "id": entry.get("id"),
                             "title": entry.get("title"),
-                            "uploader": entry.get('uploader') or entry.get('channel') or "Unknown Artist",
+                            "uploader": entry.get("uploader") or entry.get("channel") or "Unknown Artist",
                             "thumbnail": entry.get("thumbnail")
                             or (entry.get("thumbnails")[0]["url"] if entry.get("thumbnails") else ""),
                             "duration": entry.get("duration", 0),

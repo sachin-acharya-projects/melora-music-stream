@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.api import api_router
+from app.core.admin import setup_admin
 from app.core.config import settings
 from app.db.base import engine
 from app.db.models import Base
@@ -24,6 +25,9 @@ if settings.BACKEND_CORS_ORIGINS:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+# Setup Admin Panel
+setup_admin(app, engine)
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
 

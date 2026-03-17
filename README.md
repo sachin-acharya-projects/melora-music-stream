@@ -1,130 +1,68 @@
-# Melora - Full-Stack YouTube Music Downloader
+# Melora - Music Search & Streaming
 
-Melora is a **full-stack web application** for searching, streaming, and downloading YouTube music. It combines a **React + Vite frontend** with a **FastAPI backend**, providing a seamless user experience with persistent playback, smart queueing, and playlist management.
+Melora is a full-stack application built with FastAPI (Python) and React + Vite (TypeScript) for searching, streaming, and downloading music from YouTube.
 
-This README gives an **overview of the project**, how frontend and backend interact, and the overall development workflow. Detailed documentation for each part is in the respective directories:
+## 🚀 Quick Start with Docker
 
-- `frontend/README.md` – frontend-specific setup, scripts, and architecture
-- `backend/README.md` – backend-specific API documentation, setup, and dependencies
+The easiest way to run Melora is using Docker. We provide a **Unified Fullstack Image** that runs both the frontend and backend in a single container.
 
----
+### 1. Build and Run (Fullstack)
+```bash
+# Build the unified image
+make docker-build-fullstack
 
-## 🚀 Project Overview
-
-### Frontend
-
-- Built with **React + TypeScript** and **Vite**
-- Persistent **global audio player** with smart queueing
-- Playlist management with drag-and-drop reordering
-- Dark/light theme support, responsive UI, and smooth animations
-- All frontend-specific instructions and features are in `frontend/README.md`
-
-### Backend
-
-- Built with **FastAPI** and **Uvicorn**
-- Provides APIs for:
-    - Audio streaming (`/stream`)
-    - YouTube search and playlist import (`/search`, `/import`)
-    - Playlist and queue management (`/playlists`, `/queue`)
-
-- Handles **audio extraction** and serves high-quality music to the frontend
-- Backend-specific instructions are in `backend/README.md`
-
----
-
-## 🏗 Architecture
-
-```text
-project/
-├─ frontend/        # React/Vite application (UI + state management)
-│  └─ README.md     # Frontend-specific documentation
-├─ backend/         # FastAPI server (APIs + streaming logic)
-│  └─ README.md     # Backend-specific documentation
-├─ Makefile         # Dev commands for frontend + backend
-├─ README.md        # This root-level project overview
-└─ .gitignore
+# Run the unified container (Defaults to port 80)
+make docker-run-fullstack
 ```
+Once running, you can access the app at `http://localhost`.
 
-- The **frontend** communicates with the **backend API** via `VITE_BASE_URL`.
-- Persistent state (player, queue, playlists) is managed **on the frontend**.
-- Backend serves audio streams, playlists, and search results.
+### 2. Available Endpoints
+- **Frontend**: `http://localhost/`
+- **API v1**: `http://localhost/api/v1`
+- **Interactive Docs**: `http://localhost/docs`
+- **Database Admin**: `http://localhost/admin`
 
----
-
-## 🛠 Development Workflow
-
-The project includes a **Makefile at the root** for easy local development:
+### 3. Custom Configuration (Environment Variables)
+You can customize the host-side ports and debug mode using environment variables:
 
 ```bash
-# Start frontend + backend simultaneously
-make dev
-
-# Start frontend only
-make frontend
-
-# Start backend only
-make backend
-
-# Build frontend for production
-make build
+# Run on a different port (e.g., 8080) in Debug mode
+PORT=8080 DEBUG=true make docker-run-fullstack
 ```
 
-> Frontend and backend have separate dependency management (`npm install` in `frontend`, `pip install -r requirements.txt` in `backend`).
+## 🛠️ Development Setup
 
----
-
-## 🧩 Environment Variables
-
-- **Frontend**: `.env` file in `frontend/`
-
-    ```env
-    VITE_BASE_URL=http://localhost:8000
-    ```
-
-- **Backend**: `.env` file in `backend/` (optional, e.g., PORT configuration)
-
----
-
-## ✅ Getting Started
-
-1. Clone the repository:
-
+### Local Installation
 ```bash
-git clone <repo-url>
-cd project
+# Install all dependencies (Frontend + Backend)
+make install
 ```
 
-2. Install dependencies:
-
+### Run Locally (without Docker)
 ```bash
-# Frontend
-cd frontend
-npm install
-
-# Backend
-cd ../backend
-python -m venv venv
-source venv/bin/activate  # Linux/macOS
-# or venv\Scripts\activate # Windows
-pip install -r requirements.txt
-```
-
-3. Start development servers:
-
-```bash
+# Start both frontend and backend
 make dev
 ```
 
-4. Access the app at `http://localhost:5173` (default Vite port)
+### Docker Modular Setup (Backend Only)
+If you only want to run or deploy the backend:
+```bash
+# Build backend image
+make docker-build-backend
 
----
+# Run backend (Defaults to port 8000)
+make docker-run-backend
 
-## 📌 Notes
+# With custom port
+BACKEND_PORT=9000 make docker-run-backend
+```
 
-- All frontend-specific architecture and scripts are in `frontend/README.md`
-- All backend-specific API and streaming details are in `backend/README.md`
-- Root README is only for **high-level project overview, structure, and dev workflow**
+## 📂 Project Structure
+- `backend/`: FastAPI application code.
+- `frontend/`: React + Vite application code.
+- `nginx.conf`: Nginx configuration for the unified full-stack image.
+- `docker-compose.yml`: Orchestration for different deployment scenarios.
+- `Makefile`: Convenient shortcuts for common tasks.
 
----
-
-Built with ❤️ to bring YouTube music to your fingertips.
+## 💾 Data Persistence
+By default, Docker uses a volume named `melora_data` to persist your SQLite database and downloaded music files. This ensures your data survives container restarts and updates.

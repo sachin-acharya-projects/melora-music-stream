@@ -65,7 +65,7 @@ All components follow a strict structural standard for better discoverability an
 
 ### Prerequisites
 
-- Node.js (v18+)
+- Node.js (v24+)
 - Backend API running at `http://localhost:8000` (configurable in `.env`)
 
 ### Installation

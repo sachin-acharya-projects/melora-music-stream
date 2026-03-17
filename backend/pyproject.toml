@@ -15,6 +15,9 @@ dependencies = [
     "sqlalchemy==2.0.48",
     "pydantic-settings==2.13.1",
     "python-dotenv==1.2.2",
+    "sqladmin==0.23.0",
+    "wtforms==3.1.2",
+    "python-multipart==0.0.22",
 ]
 
 [project.optional-dependencies]

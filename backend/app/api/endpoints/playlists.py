@@ -23,12 +23,8 @@ def get_playlists(
     playlists = (
         db.query(PlaylistModel)
         .outerjoin(PlaylistModel.songs)
-        .options(
-            contains_eager(PlaylistModel.songs)
-        )
-        .order_by(
-            PlaylistModel.id, order_func(sort_col)
-        )
+        .options(contains_eager(PlaylistModel.songs))
+        .order_by(PlaylistModel.id, order_func(sort_col))
         .all()
     )
 
