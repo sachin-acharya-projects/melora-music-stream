@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 
 from pydantic_settings import BaseSettings
 
@@ -30,4 +30,4 @@ class Settings(BaseSettings):
 settings = Settings()
 
 # Ensure downloads directory exists
-os.makedirs(settings.DOWNLOADS_DIR, exist_ok=True)
+Path(settings.DOWNLOADS_DIR).mkdir(parents=True, exist_ok=True)

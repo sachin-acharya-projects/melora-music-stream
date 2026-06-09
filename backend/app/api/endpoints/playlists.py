@@ -1,8 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from typing import Annotated, Any
+
+from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import asc, desc
 from sqlalchemy.orm import Session, contains_eager
 
-from app.db.base import get_db
+from app.api.deps import SessionDep
 from app.db.models import PlaylistModel, SongModel
 from app.schemas.song import PlaylistCreate, PlaylistImport, Song
 from app.services.youtube import youtube_service
@@ -12,10 +14,10 @@ router = APIRouter()
 
 @router.get("/")
 def get_playlists(
-    sort_by: str = Query("created_at", pattern="^(name|created_at)$"),
-    order: str = Query("desc", pattern="^(asc|desc)$"),
-    db: Session = Depends(get_db),
-):
+    db: SessionDep,
+    sort_by: Annotated[str, Query(pattern="^(name|created_at)$")] = "created_at",
+    order: Annotated[str, Query(pattern="^(asc|desc)$")] = "desc",
+) -> list[dict[str, Any]]:
     # Determine sorting column
     sort_col = getattr(SongModel, sort_by, "title")
     order_func = asc if order == "asc" else desc
@@ -60,11 +62,11 @@ def get_playlists(
 @router.get("/{playlist_id}")
 def get_playlist(
     playlist_id: str,
-    q: str | None = Query(None),
-    sort_by: str = Query("created_at", pattern="^(title|created_at)$"),
-    order: str = Query("desc", pattern="^(asc|desc)$"),
-    db: Session = Depends(get_db),
-):
+    db: SessionDep,
+    q: Annotated[str | None, Query()] = None,
+    sort_by: Annotated[str, Query(pattern="^(title|created_at)$")] = "created_at",
+    order: Annotated[str, Query(pattern="^(asc|desc)$")] = "desc",
+) -> dict[str, Any]:
     db_playlist = (
         db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id).first()
     )
@@ -114,7 +116,7 @@ def get_playlist(
 
 
 @router.post("/")
-def create_playlist(data: PlaylistCreate, db: Session = Depends(get_db)):
+def create_playlist(data: PlaylistCreate, db: SessionDep) -> dict[str, Any]:
     # Idempotent create: if exists by name, return it
     db_playlist = (
         db.query(PlaylistModel).filter(PlaylistModel.name == data.name).first()
@@ -139,8 +141,8 @@ def create_playlist(data: PlaylistCreate, db: Session = Depends(get_db)):
 
 @router.patch("/{playlist_id}")
 def update_playlist_name(
-    playlist_id: str, data: PlaylistCreate, db: Session = Depends(get_db)
-):
+    playlist_id: str, data: PlaylistCreate, db: SessionDep
+) -> dict[str, Any]:
     db_playlist = (
         db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id).first()
     )
@@ -149,10 +151,10 @@ def update_playlist_name(
 
     # Check if new name is already taken
     existing = db.query(PlaylistModel).filter(PlaylistModel.name == data.name).first()
-    if existing is not None and bool(existing.id != playlist_id):  # type: ignore
+    if existing is not None and bool(existing.id != playlist_id):
         raise HTTPException(status_code=400, detail="Playlist name already exists")
 
-    db_playlist.name = data.name  # type: ignore
+    db_playlist.name = data.name
     db.commit()
     return {
         "message": "Playlist updated",
@@ -162,7 +164,7 @@ def update_playlist_name(
 
 
 @router.delete("/{playlist_id}")
-def delete_playlist(playlist_id: str, db: Session = Depends(get_db)):
+def delete_playlist(playlist_id: str, db: SessionDep) -> dict[str, str]:
     db_playlist = (
         db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id).first()
     )
@@ -176,8 +178,8 @@ def delete_playlist(playlist_id: str, db: Session = Depends(get_db)):
 
 @router.post("/{playlist_id_or_name}/add")
 def add_to_playlist(
-    playlist_id_or_name: str, song: Song, db: Session = Depends(get_db)
-):
+    playlist_id_or_name: str, song: Song, db: SessionDep
+) -> dict[str, Any]:
     # Try by ID first, then by name
     db_playlist = (
         db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id_or_name).first()
@@ -220,10 +222,65 @@ def add_to_playlist(
     return {"message": "Song already in playlist", "playlist_id": db_playlist.id}
 
 
+@router.post("/{playlist_id_or_name}/add-bulk")
+def add_songs_to_playlist(
+    playlist_id_or_name: str,
+    songs: list[Song],
+    db: SessionDep,
+) -> dict[str, Any]:
+    # Try by ID first, then by name
+    db_playlist = (
+        db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id_or_name).first()
+    )
+    if db_playlist is None:
+        db_playlist = (
+            db.query(PlaylistModel)
+            .filter(PlaylistModel.name == playlist_id_or_name)
+            .first()
+        )
+
+    # If still not found, create by name (using playlist_id_or_name as name)
+    if db_playlist is None:
+        db_playlist = PlaylistModel(name=playlist_id_or_name)
+        db.add(db_playlist)
+        db.commit()
+        db.refresh(db_playlist)
+
+    added_count = 0
+    current_song_ids = {str(s.id) for s in db_playlist.songs}
+    for song in songs:
+        # Idempotent song creation
+        db_song = db.query(SongModel).filter(SongModel.id == song.id).first()
+        if db_song is None:
+            db_song = SongModel(
+                id=song.id,
+                title=song.title,
+                uploader=song.uploader,
+                thumbnail=song.thumbnail,
+                duration=song.duration,
+            )
+            db.add(db_song)
+            db.commit()
+            db.refresh(db_song)
+
+        # Idempotent song addition to playlist
+        if str(db_song.id) not in current_song_ids:
+            db_playlist.songs.append(db_song)
+            current_song_ids.add(str(db_song.id))
+            added_count += 1
+
+    db.commit()
+    return {
+        "message": f"{added_count} songs added",
+        "playlist_id": db_playlist.id,
+        "count": added_count,
+    }
+
+
 @router.delete("/{playlist_id}/songs/{song_id}")
 def remove_song_from_playlist(
-    playlist_id: str, song_id: str, db: Session = Depends(get_db)
-):
+    playlist_id: str, song_id: str, db: SessionDep
+) -> dict[str, str]:
     db_playlist = (
         db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id).first()
     )
@@ -240,32 +297,10 @@ def remove_song_from_playlist(
 
 
 @router.post("/import")
-def import_playlist(data: PlaylistImport, db: Session = Depends(get_db)):
+def import_playlist(data: PlaylistImport, db: SessionDep) -> dict[str, Any]:
     try:
         # 1. Identify playlist
-        db_playlist = None
-        if data.id:
-            db_playlist = (
-                db.query(PlaylistModel).filter(PlaylistModel.id == data.id).first()
-            )
-            if db_playlist is None:
-                raise HTTPException(
-                    status_code=404, detail="Playlist with provided ID not found"
-                )
-        elif data.name:
-            db_playlist = (
-                db.query(PlaylistModel).filter(PlaylistModel.name == data.name).first()
-            )
-            if db_playlist is None:
-                db_playlist = PlaylistModel(name=data.name)
-                db.add(db_playlist)
-                db.commit()
-                db.refresh(db_playlist)
-        else:
-            raise HTTPException(
-                status_code=400,
-                detail="Either playlist 'id' or 'name' must be provided",
-            )
+        db_playlist = _get_or_create_playlist_for_import(data, db)
 
         # 2. Extract songs
         songs_data = youtube_service.extract_playlist_info(data.url)
@@ -293,9 +328,40 @@ def import_playlist(data: PlaylistImport, db: Session = Depends(get_db)):
                 count += 1
 
         db.commit()
-        return {"message": "Imported", "count": count, "playlist_id": db_playlist.id}
     except HTTPException:
         raise
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e)) from None
+    else:
+        return {"message": "Imported", "count": count, "playlist_id": db_playlist.id}
+
+
+def _get_or_create_playlist_for_import(
+    data: PlaylistImport, db: Session
+) -> PlaylistModel:
+    if data.id:
+        db_playlist = (
+            db.query(PlaylistModel).filter(PlaylistModel.id == data.id).first()
+        )
+        if db_playlist is None:
+            raise HTTPException(
+                status_code=404, detail="Playlist with provided ID not found"
+            )
+        return db_playlist
+
+    if data.name:
+        db_playlist = (
+            db.query(PlaylistModel).filter(PlaylistModel.name == data.name).first()
+        )
+        if db_playlist is None:
+            db_playlist = PlaylistModel(name=data.name)
+            db.add(db_playlist)
+            db.commit()
+            db.refresh(db_playlist)
+        return db_playlist
+
+    raise HTTPException(
+        status_code=400,
+        detail="Either playlist 'id' or 'name' must be provided",
+    )

@@ -21,6 +21,6 @@ class PlaylistImport(BaseModel):
 
 class PlaybackState(BaseModel):
     last_song_id: str | None = None
-    current_queue: list[str] = []
-    recent_songs: list[str] = []
+    current_queue: list[Song] = []
+    recent_songs: list[Song] = []
     last_playlist_id: str | None = None

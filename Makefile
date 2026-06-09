@@ -1,69 +1,306 @@
-.PHONY: dev frontend backend build lint format preview install clean docker-build-fullstack docker-run-fullstack docker-build-backend docker-run-backend docker-clean
-
-# Load .env file for backend if it exists
+# Load .env file if exists
 ifneq ("$(wildcard .env)","")
     include .env
     export $(shell sed 's/=.*//' .env)
 endif
 
-# Default PORT if not provided in .env
-PORT ?= 8000
+# Dynamic Variables
+PYTHON   ?= python3
+PORT     ?= 8000
+NODE_PM  ?= pnpm
 
-# Frontend directory
-FRONTEND_DIR=frontend
+# Docker Configuration
+DOCKER_FULLSTACK_IMAGE ?= melora-fullstack:latest
+DOCKER_BACKEND_IMAGE   ?= melora-backend:latest
 
-# Backend directory
-BACKEND_DIR=backend
+COMPOSE ?= docker compose
 
-# FastAPI app entry
-BACKEND_APP=app.main:app
+# Project Paths
+ROOT_DIR     := $(CURDIR)
+BACKEND_DIR  := $(ROOT_DIR)/backend
+FRONTEND_DIR := $(ROOT_DIR)/frontend
 
-dev:
-	@echo "Starting frontend and backend..."
-	$(MAKE) -j2 frontend backend
+VENV_DIR := $(BACKEND_DIR)/.venv
+BIN_DIR  := $(VENV_DIR)/bin
 
-frontend:
-	cd $(FRONTEND_DIR) && npm run dev
+# Backend Commands
+PIP     := $(BIN_DIR)/pip
+PYTEST  := $(BIN_DIR)/pytest
+UVICORN := $(BIN_DIR)/uvicorn
+RUFF    := $(BIN_DIR)/ruff
+MYPY    := $(BIN_DIR)/mypy
 
-backend:
-	cd $(BACKEND_DIR) && uvicorn $(BACKEND_APP) --host 0.0.0.0 --port $(PORT) --reload
+# Terminal Output
+BLUE   := \033[34m
+GREEN  := \033[32m
+YELLOW := \033[33m
+RESET  := \033[0m
 
-build:
-	cd $(FRONTEND_DIR) && npm run build
+INFO    := $(BLUE)➤$(RESET)
+SUCCESS := $(GREEN)➤$(RESET)
+WARN    := $(YELLOW)➤$(RESET)
 
-lint:
-	cd $(FRONTEND_DIR) && npm run lint
-	cd $(BACKEND_DIR) && python -m ruff check --fix .
+# Shell Configuration
+SHELL := /bin/bash
+.SHELLFLAGS := -eu -o pipefail -c
+.ONESHELL:
 
-format:
-	cd $(FRONTEND_DIR) && npm run format
-	cd $(BACKEND_DIR) && python -m ruff format .
+# Default Target
+.DEFAULT_GOAL := help
 
-preview:
-	cd $(FRONTEND_DIR) && npm run preview
 
-install:
-	cd $(FRONTEND_DIR) && npm install
-	cd $(BACKEND_DIR) && pip install -r requirements.txt
+##@ Help
 
-clean:
-	find . -type d -name "__pycache__" -exec rm -rf {} +
-	find . -type d -name ".ruff_cache" -exec rm -rf {} +
-	find . -type d -name "node_modules" -exec rm -rf {} +
+.PHONY: help
 
-# Docker targets
-docker-build-fullstack:
-	docker build -t melora-fullstack:latest .
+help: ## Display available commands
+	@echo "Full-stack Development Toolkit"
+	@echo "Utilities for backend, frontend, testing, linting, formatting, and local development."
+	@echo ""
+	@echo "Usage:"
+	@echo "  make <target>"
+	@echo ""
+	@echo "Examples:"
+	@echo "  make install"
+	@echo "  make dev"
+	@echo "  make backend-dev PORT=9000"
+	@echo ""
 
-docker-run-fullstack:
-	PORT=$(PORT) docker compose up melora-fullstack -d
+	@awk 'BEGIN {FS = ":.*## "}; \
+	/^##@/ { \
+		printf "\n\033[1m%s\033[0m\n", substr($$0, 5) \
+	} \
+	/^[a-zA-Z0-9_-]+:.*## / { \
+		printf "  \033[36m%-24s\033[0m %s\n", $$1, $$2 \
+	}' $(MAKEFILE_LIST)
 
-docker-build-backend:
-	docker build -t melora-backend:latest $(BACKEND_DIR)
+	@echo ""
 
-docker-run-backend:
-	BACKEND_PORT=$(PORT) docker compose up backend -d
 
-docker-clean:
-	docker compose down -v
+##@ Environment Setup
+
+.PHONY: env install frontend-install backend-install
+
+$(VENV_DIR): ## Create Python virtual environment
+	@printf "$(INFO) Creating virtual environment...\n"
+	$(PYTHON) -m venv $(VENV_DIR)
+	@printf "$(SUCCESS) Virtual environment created at $(VENV_DIR)\n"
+
+env: $(VENV_DIR) ## Create virtual environment
+
+install: $(VENV_DIR) frontend-install backend-install ## Install all project dependencies
+	@echo ""
+	@printf "$(SUCCESS) Installation complete.\n"
+
+frontend-install: ## Install frontend dependencies
+	@echo ""
+	@printf "$(INFO) Installing frontend dependencies...\n"
+	cd $(FRONTEND_DIR)
+	$(NODE_PM) install
+	@printf "$(SUCCESS) Frontend dependencies installed.\n"
+
+
+backend-install: ## Install backend dependencies
+	@echo ""
+	@printf "$(INFO) Installing backend dependencies...\n"
+	cd $(BACKEND_DIR)
+	$(PIP) install -e .[dev]
+	@printf "$(SUCCESS) Backend dependencies installed.\n"
+
+
+##@ Development
+
+.PHONY: dev backend-dev frontend-dev
+
+dev: ## Run backend and frontend concurrently
+	@printf "$(INFO) Starting full development environment...\n"
+	$(MAKE) -j2 backend-dev frontend-dev
+
+backend-dev: ## Run FastAPI backend server
+	@printf "$(INFO) Starting backend server on port $(PORT)...\n"
+	cd $(BACKEND_DIR)
+	$(UVICORN) app.main:app \
+		--reload \
+		--host 0.0.0.0 \
+		--port $(PORT)
+
+frontend-dev: ## Run React frontend development server
+	@printf "$(INFO) Starting frontend development server...\n"
+	cd $(FRONTEND_DIR)
+	$(NODE_PM) run dev
+
+
+##@ Testing
+
+.PHONY: test backend-test frontend-test
+
+test: backend-test frontend-test ## Run all tests
+
+backend-test: ## Run backend tests
+	@printf "$(INFO) Running backend tests...\n"
+	cd $(BACKEND_DIR)
+	$(PYTEST)
+
+frontend-test: ## Run frontend tests
+	@printf "$(INFO) Running frontend tests...\n"
+	cd $(FRONTEND_DIR)
+	$(NODE_PM) run test
+
+
+##@ Linting
+
+.PHONY: lint backend-lint frontend-lint
+
+lint: backend-lint frontend-lint ## Run all linters
+
+backend-lint: ## Run backend linters
+	@printf "$(INFO) Running Ruff...\n"
+	cd $(BACKEND_DIR)
+	$(RUFF) check .
+
+frontend-lint: ## Run frontend linters
+	@printf "$(INFO) Running ESLint and Stylelint...\n"
+	cd $(FRONTEND_DIR)
+	$(NODE_PM) run lint
+	$(NODE_PM) run lint:css
+
+
+##@ Formatting
+
+.PHONY: format backend-format frontend-format
+
+format: backend-format frontend-format ## Format backend and frontend code
+
+backend-format: ## Format backend code
+	@printf "$(INFO) Formatting backend code...\n"
+	cd $(BACKEND_DIR)
+	$(RUFF) format .
+	$(RUFF) check --fix --select I .
+
+frontend-format: ## Format frontend code
+	@printf "$(INFO) Formatting frontend code...\n"
+	cd $(FRONTEND_DIR)
+	$(NODE_PM) run format
+
+
+##@ Type Checking
+
+.PHONY: typecheck backend-typecheck frontend-typecheck
+
+typecheck: backend-typecheck frontend-typecheck ## Run all type checkers
+
+backend-typecheck: ## Run backend type checker
+	@printf "$(INFO) Running MyPy...\n"
+	cd $(BACKEND_DIR)
+	$(MYPY) .
+
+frontend-typecheck: ## Run frontend type checker
+	@printf "$(INFO) Running frontend type checker...\n"
+	cd $(FRONTEND_DIR)
+	$(NODE_PM) run typecheck
+
+
+##@ Database Migrations
+
+.PHONY: migrate-create migrate-apply migrate-rollback
+
+migrate-create: ## Create a new database migration (Usage: make migrate-create MESSAGE="description")
+	@printf "$(INFO) Creating new migration: $(MESSAGE)...\n"
+	cd $(BACKEND_DIR)
+	$(BIN_DIR)/alembic revision --autogenerate -m "$(MESSAGE)"
+
+migrate-apply: ## Apply all pending migrations
+	@printf "$(INFO) Applying migrations...\n"
+	cd $(BACKEND_DIR)
+	$(BIN_DIR)/alembic upgrade head
+
+migrate-rollback: ## Rollback the last migration
+	@printf "$(INFO) Rolling back last migration...\n"
+	cd $(BACKEND_DIR)
+	$(BIN_DIR)/alembic downgrade -1
+
+
+##@ Frontend Build
+
+.PHONY: frontend-build frontend-preview
+
+frontend-build: ## Build frontend for production
+	@printf "$(INFO) Building frontend...\n"
+	cd $(FRONTEND_DIR)
+	$(NODE_PM) run build
+
+frontend-preview: ## Preview production frontend build
+	@printf "$(INFO) Previewing frontend build...\n"
+	cd $(FRONTEND_DIR)
+	$(NODE_PM) run preview
+
+
+##@ Docker
+
+.PHONY: docker-build-fullstack docker-run-fullstack \
+        docker-build-backend docker-run-backend docker-clean \
+        docker-rebuild-fullstack docker-check
+
+docker-build-fullstack: ## Build full-stack Docker image
+	@printf "$(INFO) Building full-stack Docker image...\n"
+	docker build -t $(DOCKER_FULLSTACK_IMAGE) .
+
+docker-run-fullstack: ## Run full-stack Docker container via Docker Compose
+	@printf "$(INFO) Starting full-stack container...\n"
+	PORT=$(PORT) $(COMPOSE) up melora-fullstack -d
+
+docker-build-backend: ## Build backend Docker image
+	@printf "$(INFO) Building backend Docker image...\n"
+	docker build -t $(DOCKER_BACKEND_IMAGE) $(BACKEND_DIR)
+
+docker-run-backend: ## Run backend container via Docker Compose
+	@printf "$(INFO) Starting backend container...\n"
+	BACKEND_PORT=$(PORT) $(COMPOSE) up backend -d
+
+docker-clean: ## Stop containers and remove Docker volumes
+	@printf "$(WARN) Cleaning Docker resources...\n"
+	$(COMPOSE) down -v
 	docker system prune -f
+	@printf "$(SUCCESS) Docker cleanup complete.\n"
+
+docker-rebuild-fullstack: docker-clean docker-build-fullstack ## Rebuild full-stack Docker image
+	@printf "$(SUCCESS) Full-stack image rebuilt.\n"
+
+docker-check: docker-build-backend ## Verify backend Docker image builds successfully
+
+
+##@ Quality Checks
+
+.PHONY: check backend-check frontend-check
+
+check: backend-check frontend-check ## Run linting, type checking, and tests
+
+backend-check: ## Run backend linting, type checking, and tests
+	@printf "$(INFO) Running backend checks...\n"
+	$(MAKE) backend-lint backend-typecheck backend-test
+
+frontend-check: ## Run frontend linting, type checking, and tests
+	@printf "$(INFO) Running frontend checks...\n"
+	$(MAKE) frontend-lint frontend-typecheck frontend-test frontend-build
+
+
+##@ Cleanup
+
+.PHONY: clean
+
+clean: ## Remove caches and temporary files
+	@printf "$(WARN) Cleaning project...\n"
+
+	find . -type d -name "__pycache__" -exec rm -rf {} +
+	find . -type d -name ".pytest_cache" -exec rm -rf {} +
+	find . -type d -name ".ruff_cache" -exec rm -rf {} +
+	find . -type d -name ".mypy_cache" -exec rm -rf {} +
+
+	rm -rf $(FRONTEND_DIR)/node_modules
+	rm -rf $(VENV_DIR)
+
+	rm -rf build/
+	rm -rf dist/
+	rm -rf *.egg-info
+
+	@printf "$(SUCCESS) Cleanup complete.\n"

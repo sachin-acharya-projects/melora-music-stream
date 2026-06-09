@@ -4,8 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.api import api_router
 from app.core.admin import setup_admin
 from app.core.config import settings
-from app.db.base import engine
-from app.db.models import Base
+from app.db import models  # noqa: F401
+from app.db.base import Base, engine
 
 # Create DB tables
 Base.metadata.create_all(bind=engine)
@@ -34,4 +34,4 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8005)
+    uvicorn.run(app, host="0.0.0.0", port=8005)  # noqa: S104
