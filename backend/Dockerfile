@@ -17,10 +17,12 @@ COPY . .
 # Environment variables
 ENV PYTHONPATH=/app
 ENV DOWNLOADS_DIR=/app/data/downloads
+ENV CACHE_DIR=/app/data/cache
 ENV DATABASE_URL=sqlite:////app/data/melora.db
+ENV REDIS_URL=redis://redis:6379/0
 
-# Ensure data and downloads directories exist
-RUN mkdir -p /app/data /app/data/downloads
+# Ensure data, downloads, and cache directories exist
+RUN mkdir -p /app/data /app/data/downloads /app/data/cache
 
 # Command to run the application
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

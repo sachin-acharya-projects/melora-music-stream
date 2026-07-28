@@ -8,6 +8,7 @@ class PlaybackStateModel(BaseModel):
     # Manual override because singular name is preferred for this table
     _override_tablename = "playback_state"
 
+    user_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
     last_song_id: Mapped[str | None] = mapped_column(String, nullable=True)
     # List of song IDs
     current_queue: Mapped[list[str]] = mapped_column(JSON, default=list)

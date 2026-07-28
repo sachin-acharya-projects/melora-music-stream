@@ -1,19 +1,33 @@
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.admin import setup_admin
 from app.api.api import api_router
-from app.core.admin import setup_admin
 from app.core.config import settings
-from app.db import models  # noqa: F401
-from app.db.base import Base, engine
+from app.db import models  # noqa: F401 - import used for registering the models
+from app.db.base import engine
 
-# Create DB tables
-Base.metadata.create_all(bind=engine)
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
+    # Run migrations on startup - using lazy import to avoid circular imports
+    from alembic.config import Config  # noqa: PLC0415
+
+    from alembic import command  # noqa: PLC0415
+
+    alembic_cfg = Config("alembic.ini")
+    command.upgrade(alembic_cfg, "head")
+    yield
+
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     debug=settings.DEBUG,
+    lifespan=lifespan,
 )
 
 # CORS Middleware
@@ -34,4 +48,4 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8005)  # noqa: S104
+    uvicorn.run(app, host="127.0.0.1", port=8005)
