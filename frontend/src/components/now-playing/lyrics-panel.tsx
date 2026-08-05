@@ -6,6 +6,7 @@ import { Loader2, Music2 } from "lucide-react"
 import { useEffect, useMemo, useRef } from "react"
 
 const LAST_LINE_FALLBACK_SECONDS = 2.5
+const CHARS_PER_SECOND = 16
 
 export function LyricsPanel({ song }: { song: PlaylistItem }) {
     const lyricsQuery = useLyrics(song.id)
@@ -59,11 +60,13 @@ export function LyricsPanel({ song }: { song: PlaylistItem }) {
 
     const renderWords = (text: string, lineTime: number, endTime: number) => {
         const words = text.split(" ")
-        const duration = Math.max(endTime - lineTime, 0.5)
         const totalChars = words.reduce((acc, word) => acc + word.length, 0)
+        const lineDuration = Math.max(endTime - lineTime, 0.5)
+        const speechDuration = totalChars / CHARS_PER_SECOND
+        const wordWindow = Math.min(lineDuration, speechDuration)
         let accumulated = 0
         return words.map((word, index) => {
-            const wordStart = lineTime + (accumulated / totalChars) * duration
+            const wordStart = lineTime + (accumulated / totalChars) * wordWindow
             accumulated += word.length + 1
             const isWordActive = progress >= wordStart
             return (
