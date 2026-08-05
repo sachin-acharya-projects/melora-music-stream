@@ -7,9 +7,10 @@ import { usePlayerStore } from "@/hooks/usePlayer"
 import { usePlaylists } from "@/hooks/usePlaylists"
 import { formatDuration } from "@/lib/utils"
 import { type Playlist } from "@/types"
-import { motion } from "framer-motion"
+import { AnimatePresence, motion } from "framer-motion"
 import {
     Check,
+    CheckSquare,
     Edit2,
     Import,
     ListMusic,
@@ -21,7 +22,7 @@ import {
     Trash2,
     X,
 } from "lucide-react"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 
 export function PlaylistCollection({ playlists }: { playlists: Playlist[] }) {
@@ -34,6 +35,7 @@ export function PlaylistCollection({ playlists }: { playlists: Playlist[] }) {
         isImporting,
         renamePlaylist,
         deletePlaylist,
+        deletePlaylistsBulk,
     } = usePlaylists()
 
     const [isModalOpen, setIsModalOpen] = useState(false)
@@ -44,11 +46,47 @@ export function PlaylistCollection({ playlists }: { playlists: Playlist[] }) {
     const [newName, setNewName] = useState("")
     const [playlistToDelete, setPlaylistToDelete] = useState<Playlist | null>(null)
     const [isSearchAddOpen, setIsSearchAddOpen] = useState(false)
+    const [selectedPlaylistIds, setSelectedPlaylistIds] = useState<string[]>([])
+    const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false)
     const { moreMenuFor, setMoreMenuFor, renderMoreMenu, renderDialogs } = usePlaylistMenu({
         playlists,
     })
 
+    const selectedPlaylists = useMemo(
+        () => playlists.filter((p) => selectedPlaylistIds.includes(p.id)),
+        [playlists, selectedPlaylistIds],
+    )
+
     const openPlaylist = (id: string) => navigate(`/playlists?playlist=${id}`)
+
+    const clearSelection = () => setSelectedPlaylistIds([])
+
+    const togglePlaylistSelect = (id: string) => {
+        setSelectedPlaylistIds((prev) =>
+            prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+        )
+    }
+
+    const toggleSelectAll = () => {
+        setSelectedPlaylistIds((prev) =>
+            prev.length === playlists.length ? [] : playlists.map((p) => p.id),
+        )
+    }
+
+    const handleBulkPlay = () => {
+        const songs = selectedPlaylists.flatMap((p) => p.songs)
+        if (songs.length > 0) {
+            setPlaylist(songs, 0, selectedPlaylists[0]?.id ?? null)
+            navigate(`/playlists?playlist=${selectedPlaylists[0]?.id}`)
+        }
+        clearSelection()
+    }
+
+    const handleBulkDelete = () => {
+        deletePlaylistsBulk(selectedPlaylistIds)
+        setIsBulkDeleteOpen(false)
+        clearSelection()
+    }
 
     const openModal = (mode: "create" | "import") => {
         setModalMode(mode)
@@ -145,6 +183,27 @@ export function PlaylistCollection({ playlists }: { playlists: Playlist[] }) {
                             >
                                 <div className='relative aspect-square overflow-hidden rounded-t-2xl'>
                                     <PlaylistArt playlist={playlist} className='h-full w-full' />
+
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            togglePlaylistSelect(playlist.id)
+                                        }}
+                                        title={
+                                            selectedPlaylistIds.includes(playlist.id)
+                                                ? "Deselect"
+                                                : "Select"
+                                        }
+                                        className={`absolute top-2 left-2 z-10 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border-2 shadow-lg transition-all ${
+                                            selectedPlaylistIds.includes(playlist.id)
+                                                ? "border-red-600 bg-red-600 text-white opacity-100"
+                                                : "border-white/70 bg-black/40 text-white opacity-0 group-hover:opacity-100 hover:border-red-600 hover:bg-red-600"
+                                        }`}
+                                    >
+                                        {selectedPlaylistIds.includes(playlist.id) && (
+                                            <Check className='h-4 w-4' />
+                                        )}
+                                    </button>
 
                                     <div className='absolute inset-0 flex items-center justify-center gap-2 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
                                         <button
@@ -250,6 +309,58 @@ export function PlaylistCollection({ playlists }: { playlists: Playlist[] }) {
                 </div>
             )}
 
+            <AnimatePresence>
+                {selectedPlaylistIds.length > 0 && (
+                    <motion.div
+                        initial={{ y: 80, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: 80, opacity: 0 }}
+                        transition={{ duration: 0.25 }}
+                        className='fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-6 rounded-2xl border border-red-500/20 bg-white/90 px-6 py-3 shadow-2xl backdrop-blur-md dark:border-white/10 dark:bg-black/90'
+                    >
+                        <p className='text-sm font-bold whitespace-nowrap dark:text-white'>
+                            {selectedPlaylistIds.length} selected
+                        </p>
+
+                        <div className='flex items-center gap-3'>
+                            <button
+                                onClick={toggleSelectAll}
+                                className='flex cursor-pointer items-center gap-2 rounded-lg bg-red-100 px-4 py-2 text-sm font-bold text-red-600 transition-all hover:bg-red-600 hover:text-white dark:bg-red-950'
+                                title='Toggle All'
+                            >
+                                <CheckSquare className='h-4 w-4' />
+                                <span>
+                                    {selectedPlaylistIds.length === playlists.length
+                                        ? "Deselect All"
+                                        : "Select All"}
+                                </span>
+                            </button>
+
+                            <button
+                                onClick={handleBulkPlay}
+                                className='flex cursor-pointer items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white transition-transform active:scale-95'
+                            >
+                                <Play className='h-4 w-4 fill-current' /> Play
+                            </button>
+
+                            <button
+                                onClick={() => setIsBulkDeleteOpen(true)}
+                                className='flex cursor-pointer items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-sm font-bold text-gray-700 hover:bg-red-50 hover:text-red-600 dark:bg-white/5 dark:text-gray-300 dark:hover:bg-red-500/10'
+                            >
+                                <Trash2 className='h-4 w-4' /> Delete
+                            </button>
+                        </div>
+
+                        <button
+                            onClick={clearSelection}
+                            className='cursor-pointer text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white'
+                        >
+                            Clear
+                        </button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             <ConfirmationDialog
                 isOpen={!!playlistToDelete}
                 title='Delete Playlist'
@@ -262,6 +373,16 @@ export function PlaylistCollection({ playlists }: { playlists: Playlist[] }) {
                     setPlaylistToDelete(null)
                 }}
                 onCancel={() => setPlaylistToDelete(null)}
+                type='danger'
+            />
+
+            <ConfirmationDialog
+                isOpen={isBulkDeleteOpen}
+                title='Delete Playlists'
+                message={`Are you sure you want to delete ${selectedPlaylistIds.length} playlist${selectedPlaylistIds.length === 1 ? "" : "s"}? This action cannot be undone.`}
+                confirmText='Delete'
+                onConfirm={handleBulkDelete}
+                onCancel={() => setIsBulkDeleteOpen(false)}
                 type='danger'
             />
 

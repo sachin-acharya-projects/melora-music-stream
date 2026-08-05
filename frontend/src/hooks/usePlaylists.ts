@@ -38,8 +38,11 @@ export function usePlaylists(options: PlaylistSortOptions = {}) {
 
     const importPlaylistMutation = useMutation({
         mutationFn: playlistService.import,
-        onSuccess: () => {
+        onSuccess: (_data, { id }) => {
             queryClient.invalidateQueries({ queryKey: ["playlists"] })
+            if (id) {
+                queryClient.invalidateQueries({ queryKey: ["playlist", id] })
+            }
             toast.success("Playlist imported successfully")
         },
         onError: () => toast.error("Failed to import playlist"),
@@ -64,6 +67,19 @@ export function usePlaylists(options: PlaylistSortOptions = {}) {
             toast.success("Playlist deleted")
         },
         onError: () => toast.error("Failed to delete playlist"),
+    })
+
+    const deletePlaylistsBulkMutation = useMutation({
+        mutationFn: async (ids: string[]) => {
+            for (const id of ids) {
+                await playlistService.delete(id)
+            }
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["playlists"] })
+            toast.success("Playlists deleted")
+        },
+        onError: () => toast.error("Failed to delete some playlists"),
     })
 
     const removeSongsMutation = useMutation({
@@ -96,6 +112,8 @@ export function usePlaylists(options: PlaylistSortOptions = {}) {
         isRenaming: renamePlaylistMutation.isPending,
         deletePlaylist: deletePlaylistMutation.mutate,
         isDeleting: deletePlaylistMutation.isPending,
+        deletePlaylistsBulk: deletePlaylistsBulkMutation.mutateAsync,
+        isDeletingBulk: deletePlaylistsBulkMutation.isPending,
         removeSongs: removeSongsMutation.mutate,
         isRemoving: removeSongsMutation.isPending,
     }

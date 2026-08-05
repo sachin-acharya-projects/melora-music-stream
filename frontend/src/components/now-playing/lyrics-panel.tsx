@@ -5,6 +5,8 @@ import { type PlaylistItem } from "@/store/player/types"
 import { Loader2, Music2 } from "lucide-react"
 import { useEffect, useMemo, useRef } from "react"
 
+const LAST_LINE_FALLBACK_SECONDS = 2.5
+
 export function LyricsPanel({ song }: { song: PlaylistItem }) {
     const lyricsQuery = useLyrics(song.id)
     const progress = usePlayerStore((s) => s.progress)
@@ -55,6 +57,24 @@ export function LyricsPanel({ song }: { song: PlaylistItem }) {
         }
     }, [activeIndex])
 
+    const renderWords = (text: string, lineTime: number, endTime: number) => {
+        const words = text.split(" ")
+        const duration = Math.max(endTime - lineTime, 0.5)
+        const totalChars = words.reduce((acc, word) => acc + word.length, 0)
+        let accumulated = 0
+        return words.map((word, index) => {
+            const wordStart = lineTime + (accumulated / totalChars) * duration
+            accumulated += word.length + 1
+            const isWordActive = progress >= wordStart
+            return (
+                <span key={index} className={cn(isWordActive && "font-bold text-red-500")}>
+                    {word}
+                    {index < words.length - 1 ? " " : ""}
+                </span>
+            )
+        })
+    }
+
     if (lyricsQuery.isLoading) {
         return (
             <div className='flex flex-col items-center gap-3 py-16'>
@@ -91,6 +111,11 @@ export function LyricsPanel({ song }: { song: PlaylistItem }) {
             >
                 {timedLines.map((line, index) => {
                     const isActive = index === activeIndex
+                    const lineTime = line.time ?? 0
+                    const nextTime =
+                        index + 1 < timedLines.length ? timedLines[index + 1].time : null
+                    const lineEnd =
+                        nextTime ?? Math.max(lineTime + LAST_LINE_FALLBACK_SECONDS, lineTime + 0.5)
                     const seekable = line.time !== null
                     return (
                         <p
@@ -100,15 +125,15 @@ export function LyricsPanel({ song }: { song: PlaylistItem }) {
                                 if (line.time !== null) seekTo(line.time)
                             }}
                             className={cn(
-                                "text-base leading-relaxed transition-all duration-300",
+                                "text-base leading-relaxed transition-colors duration-300",
                                 isActive
-                                    ? "scale-[1.03] font-semibold text-red-500"
+                                    ? "font-medium text-gray-700 dark:text-gray-100"
                                     : seekable
                                       ? "cursor-pointer text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                                       : "text-gray-500 dark:text-gray-400",
                             )}
                         >
-                            {line.text}
+                            {isActive ? renderWords(line.text, lineTime, lineEnd) : line.text}
                         </p>
                     )
                 })}
