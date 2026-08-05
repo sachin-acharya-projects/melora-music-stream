@@ -23,6 +23,7 @@ import {
     Shuffle,
     SkipBack,
     SkipForward,
+    Sparkles,
     Target,
     Volume1,
     Volume2,
@@ -552,14 +553,28 @@ export default function NowPlaying() {
                             </div>
 
                             {relatedSongs.length > 0 && (
-                                <div className='flex flex-col gap-3'>
-                                    <h3 className='text-lg font-bold dark:text-white'>
-                                        Play something similar
-                                    </h3>
-                                    <p className='text-sm text-gray-500 dark:text-gray-400'>
-                                        More {currentSong.uploader} from your playlists
-                                    </p>
-                                    <div className='flex flex-col gap-2'>
+                                <div className='flex flex-col gap-3 border-t border-gray-200 pt-6 dark:border-white/10'>
+                                    <div className='flex items-center justify-between gap-3'>
+                                        <div className='flex items-center gap-2'>
+                                            <Sparkles className='h-4 w-4 shrink-0 text-red-500' />
+                                            <div className='flex flex-col gap-0.5'>
+                                                <h3 className='text-sm font-bold text-gray-900 dark:text-white'>
+                                                    Play something similar
+                                                </h3>
+                                                <p className='text-xs text-gray-500 dark:text-gray-400'>
+                                                    More {currentSong.uploader} from your playlists
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => playRelated(0)}
+                                            className='flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-red-700'
+                                            title='Play all similar songs'
+                                        >
+                                            <Play className='h-3.5 w-3.5 fill-current' /> Play all
+                                        </button>
+                                    </div>
+                                    <div className='flex flex-col gap-1'>
                                         {relatedSongs.map((song, index) => (
                                             <div
                                                 key={song.id}
