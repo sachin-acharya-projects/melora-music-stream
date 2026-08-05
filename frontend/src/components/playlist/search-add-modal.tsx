@@ -3,7 +3,7 @@ import { formatDuration } from "@/lib/utils"
 import { apiService } from "@/services/api.service"
 import { type Playlist, type Song } from "@/types"
 import { motion } from "framer-motion"
-import { Check, ChevronDown, Loader2, Plus, Search, X } from "lucide-react"
+import { Check, ChevronDown, Import, Loader2, Plus, Search, X } from "lucide-react"
 import { useState } from "react"
 import { toast } from "react-toastify"
 
@@ -11,10 +11,12 @@ export function SearchAddModal({
     playlists,
     lockedTargetId,
     onClose,
+    onSwitchToImport,
 }: {
     playlists: Playlist[]
     lockedTargetId?: string
     onClose: () => void
+    onSwitchToImport?: () => void
 }) {
     const { addSongsBulk, isAddingBulk } = usePlaylists()
     const [targetId, setTargetId] = useState(lockedTargetId ?? playlists[0]?.id ?? "")
@@ -197,6 +199,16 @@ export function SearchAddModal({
                         </div>
                     )}
                 </div>
+
+                {onSwitchToImport && (
+                    <button
+                        type='button'
+                        onClick={onSwitchToImport}
+                        className='mt-4 flex cursor-pointer items-center justify-center gap-2 self-center border-t pt-4 text-sm font-medium text-gray-500 transition-colors hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400'
+                    >
+                        <Import className='h-4 w-4' /> Import from YouTube instead
+                    </button>
+                )}
             </motion.div>
         </div>
     )

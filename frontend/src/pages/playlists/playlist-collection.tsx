@@ -366,7 +366,15 @@ export function PlaylistCollection({ playlists }: { playlists: Playlist[] }) {
             {renderDialogs()}
 
             {isSearchAddOpen && (
-                <SearchAddModal playlists={playlists} onClose={() => setIsSearchAddOpen(false)} />
+                <SearchAddModal
+                    playlists={playlists}
+                    onClose={() => setIsSearchAddOpen(false)}
+                    onSwitchToImport={() => {
+                        setIsSearchAddOpen(false)
+                        setModalMode("import")
+                        setIsModalOpen(true)
+                    }}
+                />
             )}
         </div>
     )

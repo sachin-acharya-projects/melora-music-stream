@@ -27,6 +27,7 @@ import {
     Loader2,
     MoreHorizontal,
     Play,
+    Plus,
     Search,
     Shuffle,
     Trash2,
@@ -275,10 +276,10 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
                             <Shuffle className='h-4 w-4' /> Shuffle
                         </button>
                         <button
-                            onClick={() => setIsImportModalOpen(true)}
+                            onClick={() => setIsSearchAddOpen(true)}
                             className='dark:bg-card flex h-10 cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 text-sm font-medium transition-all hover:border-red-200 dark:border-white/10 dark:text-white'
                         >
-                            <Import className='h-4 w-4' /> Add Songs
+                            <Plus className='h-4 w-4' /> Add Songs
                         </button>
 
                         {isRenameOpen ? (
@@ -655,7 +656,9 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className='mb-4 flex items-center justify-between'>
-                            <h2 className='text-lg font-bold dark:text-white'>Add Songs</h2>
+                            <h2 className='text-lg font-bold dark:text-white'>
+                                Import from YouTube
+                            </h2>
                             <button
                                 onClick={() => setIsImportModalOpen(false)}
                                 className='cursor-pointer text-gray-400 transition-colors hover:text-red-500'
@@ -729,6 +732,10 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
                     playlists={playlists}
                     lockedTargetId={playlistId}
                     onClose={() => setIsSearchAddOpen(false)}
+                    onSwitchToImport={() => {
+                        setIsSearchAddOpen(false)
+                        setIsImportModalOpen(true)
+                    }}
                 />
             )}
         </div>
