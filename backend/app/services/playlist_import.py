@@ -6,7 +6,6 @@ from sqlalchemy.orm import Session
 from app.db.models.playlist import PlaylistModel
 from app.db.models.song import SongModel
 from app.schemas.song import PlaylistImport, Song
-from app.services.songs import SongService
 from app.services.youtube import youtube_service
 
 
@@ -19,32 +18,53 @@ class PlaylistImportService:
         db_playlist = PlaylistImportService._get_or_create_playlist_for_import(db, data)
 
         songs_data = youtube_service.extract_playlist_info(data.url)
-        songs = [
-            Song(
-                id=s_data["id"],
+        # De-duplicate by video id (YouTube playlists may repeat videos) and skip
+        # malformed entries that failed to resolve an id.
+        songs_by_id: dict[str, Song] = {}
+        for s_data in songs_data:
+            song_id = s_data.get("id")
+            if not song_id:
+                continue
+            songs_by_id[song_id] = Song(
+                id=song_id,
                 title=s_data["title"],
                 uploader=s_data["uploader"],
                 thumbnail=s_data["thumbnail"],
                 duration=s_data["duration"],
             )
-            for s_data in songs_data
-        ]
 
         current_song_ids = {str(s.id) for s in db_playlist.songs}
-        new_songs = [s for s in songs if s.id not in current_song_ids]
-        added_count = len(new_songs)
+        new_songs = [
+            song
+            for song_id, song in songs_by_id.items()
+            if song_id not in current_song_ids
+        ]
 
         if new_songs:
-            for s in new_songs:
-                SongService.upsert_song(db, s)
-                db_song = db.query(SongModel).filter(SongModel.id == s.id).first()
-                if db_song:
-                    db_playlist.songs.append(db_song)
+            existing_songs = {
+                song.id: song
+                for song in db.query(SongModel)
+                .filter(SongModel.id.in_(list(songs_by_id)))
+                .all()
+            }
+            for song in new_songs:
+                db_song = existing_songs.get(song.id)
+                if db_song is None:
+                    db_song = SongModel(
+                        id=song.id,
+                        title=song.title,
+                        uploader=song.uploader,
+                        thumbnail=song.thumbnail,
+                        duration=song.duration,
+                    )
+                    db.add(db_song)
+                    existing_songs[song.id] = db_song
+                db_playlist.songs.append(db_song)
             db.commit()
 
         return {
             "message": "Imported",
-            "count": added_count,
+            "count": len(new_songs),
             "playlist_id": db_playlist.id,
         }
 

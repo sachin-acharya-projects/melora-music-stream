@@ -60,19 +60,23 @@ export function PlaylistCollection({ playlists }: { playlists: Playlist[] }) {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!name) return
-        if (url) {
-            const existing = playlists.find((p) => p.name?.toLowerCase() === name.toLowerCase())
-            if (existing) {
-                await importPlaylist({ url, id: existing.id })
+        try {
+            if (url) {
+                const existing = playlists.find((p) => p.name?.toLowerCase() === name.toLowerCase())
+                if (existing) {
+                    await importPlaylist({ url, id: existing.id })
+                } else {
+                    await importPlaylist({ url, name })
+                }
             } else {
-                await importPlaylist({ url, name })
+                await createPlaylist(name)
             }
-        } else {
-            await createPlaylist(name)
+            setName("")
+            setUrl("")
+            setIsModalOpen(false)
+        } catch {
+            // Error toast is handled by the mutation's onError.
         }
-        setName("")
-        setUrl("")
-        setIsModalOpen(false)
     }
 
     const handleRename = (e: React.FormEvent) => {
@@ -284,80 +288,93 @@ export function PlaylistCollection({ playlists }: { playlists: Playlist[] }) {
                             </button>
                         </div>
 
-                        <form onSubmit={handleSubmit} className='flex flex-col gap-4'>
-                            <div className='flex flex-col gap-1.5'>
-                                <label className='text-sm font-medium text-gray-700 dark:text-gray-300'>
-                                    {modalMode === "import" ? "Import into" : "Playlist Name"}
-                                </label>
-                                <PlaylistSelector
-                                    playlists={playlists}
-                                    value={name}
-                                    onChange={setName}
-                                    showSuggestions={modalMode === "import"}
-                                    placeholder={
-                                        modalMode === "import"
-                                            ? "New or existing name"
-                                            : "e.g. My Chill Mix"
-                                    }
-                                />
-                                {modalMode === "import" && (
-                                    <p className='text-xs text-gray-400'>
-                                        Pick an existing playlist to merge into, or type a new name.
-                                    </p>
-                                )}
+                        {isImporting ? (
+                            <div className='flex flex-col items-center gap-3 py-10'>
+                                <Loader2 className='h-10 w-10 animate-spin text-red-600' />
+                                <p className='text-sm font-medium text-gray-700 dark:text-gray-300'>
+                                    Importing playlist from YouTube...
+                                </p>
+                                <p className='text-xs text-gray-400'>
+                                    Large playlists can take a while.
+                                </p>
                             </div>
-
-                            {modalMode === "import" && (
+                        ) : (
+                            <form onSubmit={handleSubmit} className='flex flex-col gap-4'>
                                 <div className='flex flex-col gap-1.5'>
                                     <label className='text-sm font-medium text-gray-700 dark:text-gray-300'>
-                                        YouTube URL
+                                        {modalMode === "import" ? "Import into" : "Playlist Name"}
                                     </label>
-                                    <input
-                                        type='text'
-                                        value={url}
-                                        onChange={(e) => setUrl(e.target.value)}
-                                        placeholder='https://www.youtube.com/playlist?list=...'
-                                        autoFocus
-                                        required
-                                        className='h-11 w-full rounded-lg border bg-gray-50 px-3 text-sm dark:border-white/5 dark:bg-black dark:text-white'
+                                    <PlaylistSelector
+                                        playlists={playlists}
+                                        value={name}
+                                        onChange={setName}
+                                        showSuggestions={modalMode === "import"}
+                                        placeholder={
+                                            modalMode === "import"
+                                                ? "New or existing name"
+                                                : "e.g. My Chill Mix"
+                                        }
                                     />
-                                </div>
-                            )}
-
-                            {modalMode === "create" && (
-                                <button
-                                    type='button'
-                                    onClick={() => setModalMode("import")}
-                                    className='flex cursor-pointer items-center gap-2 self-start text-sm font-medium text-red-600 transition-colors hover:text-red-700'
-                                >
-                                    <Import className='h-4 w-4' /> Import from YouTube instead
-                                </button>
-                            )}
-
-                            <div className='flex justify-end gap-2 pt-2'>
-                                <button
-                                    type='button'
-                                    onClick={() => setIsModalOpen(false)}
-                                    className='cursor-pointer rounded-lg px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-black/5 dark:text-gray-300 dark:hover:bg-white/5'
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type='submit'
-                                    disabled={isCreating || isImporting}
-                                    className='flex cursor-pointer items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50'
-                                >
-                                    {isCreating || isImporting ? (
-                                        <Loader2 className='h-4 w-4 animate-spin' />
-                                    ) : modalMode === "import" ? (
-                                        <Import className='h-4 w-4' />
-                                    ) : (
-                                        <Plus className='h-4 w-4' />
+                                    {modalMode === "import" && (
+                                        <p className='text-xs text-gray-400'>
+                                            Pick an existing playlist to merge into, or type a new
+                                            name.
+                                        </p>
                                     )}
-                                    {modalMode === "import" ? "Import" : "Create"}
-                                </button>
-                            </div>
-                        </form>
+                                </div>
+
+                                {modalMode === "import" && (
+                                    <div className='flex flex-col gap-1.5'>
+                                        <label className='text-sm font-medium text-gray-700 dark:text-gray-300'>
+                                            YouTube URL
+                                        </label>
+                                        <input
+                                            type='text'
+                                            value={url}
+                                            onChange={(e) => setUrl(e.target.value)}
+                                            placeholder='https://www.youtube.com/playlist?list=...'
+                                            autoFocus
+                                            required
+                                            className='h-11 w-full rounded-lg border bg-gray-50 px-3 text-sm dark:border-white/5 dark:bg-black dark:text-white'
+                                        />
+                                    </div>
+                                )}
+
+                                {modalMode === "create" && (
+                                    <button
+                                        type='button'
+                                        onClick={() => setModalMode("import")}
+                                        className='flex cursor-pointer items-center gap-2 self-start text-sm font-medium text-red-600 transition-colors hover:text-red-700'
+                                    >
+                                        <Import className='h-4 w-4' /> Import from YouTube instead
+                                    </button>
+                                )}
+
+                                <div className='flex justify-end gap-2 pt-2'>
+                                    <button
+                                        type='button'
+                                        onClick={() => setIsModalOpen(false)}
+                                        className='cursor-pointer rounded-lg px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-black/5 dark:text-gray-300 dark:hover:bg-white/5'
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type='submit'
+                                        disabled={isCreating || isImporting}
+                                        className='flex cursor-pointer items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50'
+                                    >
+                                        {isCreating || isImporting ? (
+                                            <Loader2 className='h-4 w-4 animate-spin' />
+                                        ) : modalMode === "import" ? (
+                                            <Import className='h-4 w-4' />
+                                        ) : (
+                                            <Plus className='h-4 w-4' />
+                                        )}
+                                        {modalMode === "import" ? "Import" : "Create"}
+                                    </button>
+                                </div>
+                            </form>
+                        )}
                     </motion.div>
                 </div>
             )}

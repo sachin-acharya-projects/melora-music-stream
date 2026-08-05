@@ -200,9 +200,13 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
     const handleImportMore = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!importUrl) return
-        await importPlaylist({ url: importUrl, id: playlistId })
-        setImportUrl("")
-        setIsImportModalOpen(false)
+        try {
+            await importPlaylist({ url: importUrl, id: playlistId })
+            setImportUrl("")
+            setIsImportModalOpen(false)
+        } catch {
+            // Error toast is handled by the mutation's onError.
+        }
     }
 
     const handleRename = async (e: React.FormEvent) => {
@@ -667,59 +671,71 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
                             </button>
                         </div>
 
-                        <form onSubmit={handleImportMore} className='flex flex-col gap-5'>
-                            <div className='flex flex-col gap-2'>
-                                <label className='text-sm font-medium text-gray-700 dark:text-gray-300'>
-                                    YouTube URL
-                                </label>
-                                <input
-                                    type='text'
-                                    value={importUrl}
-                                    onChange={(e) => setImportUrl(e.target.value)}
-                                    placeholder='Paste a video or playlist link'
-                                    autoFocus
-                                    required
-                                    className='h-11 w-full rounded-lg border bg-gray-50 px-3 text-sm dark:border-white/5 dark:bg-black dark:text-white'
-                                />
-                                <div className='flex flex-col gap-1.5'>
-                                    <p className='text-xs text-gray-400'>
-                                        Adds its songs to "{playlistName}".
-                                    </p>
+                        {isImporting ? (
+                            <div className='flex flex-col items-center gap-3 py-10'>
+                                <Loader2 className='h-10 w-10 animate-spin text-red-600' />
+                                <p className='text-sm font-medium text-gray-700 dark:text-gray-300'>
+                                    Importing playlist from YouTube...
+                                </p>
+                                <p className='text-xs text-gray-400'>
+                                    Large playlists can take a while.
+                                </p>
+                            </div>
+                        ) : (
+                            <form onSubmit={handleImportMore} className='flex flex-col gap-5'>
+                                <div className='flex flex-col gap-2'>
+                                    <label className='text-sm font-medium text-gray-700 dark:text-gray-300'>
+                                        YouTube URL
+                                    </label>
+                                    <input
+                                        type='text'
+                                        value={importUrl}
+                                        onChange={(e) => setImportUrl(e.target.value)}
+                                        placeholder='Paste a video or playlist link'
+                                        autoFocus
+                                        required
+                                        className='h-11 w-full rounded-lg border bg-gray-50 px-3 text-sm dark:border-white/5 dark:bg-black dark:text-white'
+                                    />
+                                    <div className='flex flex-col gap-1.5'>
+                                        <p className='text-xs text-gray-400'>
+                                            Adds its songs to "{playlistName}".
+                                        </p>
+                                        <button
+                                            type='button'
+                                            onClick={() => {
+                                                setIsImportModalOpen(false)
+                                                setIsSearchAddOpen(true)
+                                            }}
+                                            className='cursor-pointer self-start text-xs font-medium text-gray-500 underline-offset-2 transition-colors hover:text-red-500 hover:underline dark:text-gray-400'
+                                        >
+                                            Looking for a specific song? Browse the catalog instead.
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className='flex justify-end gap-2'>
                                     <button
                                         type='button'
-                                        onClick={() => {
-                                            setIsImportModalOpen(false)
-                                            setIsSearchAddOpen(true)
-                                        }}
-                                        className='cursor-pointer self-start text-xs font-medium text-gray-500 underline-offset-2 transition-colors hover:text-red-500 hover:underline dark:text-gray-400'
+                                        onClick={() => setIsImportModalOpen(false)}
+                                        className='cursor-pointer rounded-lg px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-black/5 dark:text-gray-300 dark:hover:bg-white/5'
                                     >
-                                        Looking for a specific song? Browse the catalog instead.
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type='submit'
+                                        disabled={isImporting}
+                                        className='flex cursor-pointer items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50'
+                                    >
+                                        {isImporting ? (
+                                            <Loader2 className='h-4 w-4 animate-spin' />
+                                        ) : (
+                                            <Import className='h-4 w-4' />
+                                        )}
+                                        Import
                                     </button>
                                 </div>
-                            </div>
-
-                            <div className='flex justify-end gap-2'>
-                                <button
-                                    type='button'
-                                    onClick={() => setIsImportModalOpen(false)}
-                                    className='cursor-pointer rounded-lg px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-black/5 dark:text-gray-300 dark:hover:bg-white/5'
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type='submit'
-                                    disabled={isImporting}
-                                    className='flex cursor-pointer items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50'
-                                >
-                                    {isImporting ? (
-                                        <Loader2 className='h-4 w-4 animate-spin' />
-                                    ) : (
-                                        <Import className='h-4 w-4' />
-                                    )}
-                                    Import
-                                </button>
-                            </div>
-                        </form>
+                            </form>
+                        )}
                     </motion.div>
                 </div>
             )}

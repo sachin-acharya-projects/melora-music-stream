@@ -90,7 +90,7 @@ export function usePlaylists(options: PlaylistSortOptions = {}) {
         isAdding: addSongToPlaylistMutation.isPending,
         addSongsBulk: addSongsBulkToPlaylistMutation.mutateAsync,
         isAddingBulk: addSongsBulkToPlaylistMutation.isPending,
-        importPlaylist: importPlaylistMutation.mutate,
+        importPlaylist: importPlaylistMutation.mutateAsync,
         isImporting: importPlaylistMutation.isPending,
         renamePlaylist: renamePlaylistMutation.mutate,
         isRenaming: renamePlaylistMutation.isPending,
