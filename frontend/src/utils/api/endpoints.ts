@@ -4,6 +4,7 @@ export const ENDPOINTS = {
     STREAM: (videoId: string) => `/stream/${videoId}`,
     DOWNLOAD: (videoId: string) => `/download/${videoId}`,
     RELATED_SONGS: (songId: string) => `/songs/${songId}/related`,
+    LYRICS: (songId: string) => `/songs/${songId}/lyrics`,
     PLAYLISTS: {
         BASE: "/playlists/",
         BY_ID: (id: string) => `/playlists/${id}`,

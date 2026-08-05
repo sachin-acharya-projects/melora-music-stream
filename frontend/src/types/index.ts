@@ -19,3 +19,13 @@ export interface PlaylistDetail extends Playlist {
     total_songs: number
     total_duration: number
 }
+
+export interface LyricLine {
+    time: number | null
+    text: string
+}
+
+export interface LyricsResponse {
+    synced: boolean
+    lines: LyricLine[]
+}

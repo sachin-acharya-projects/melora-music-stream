@@ -1,4 +1,5 @@
 import { AddToPlaylistModal } from "@/components/playlist/add-to-playlist-modal"
+import { LyricsPanel } from "@/components/now-playing/lyrics-panel"
 import { ReorderItem } from "@/components/now-playing/reorder-item"
 import { ShortcutHelp } from "@/components/now-playing/shortcut-help"
 import { SongThumb } from "@/components/song-thumb/song-thumb"
@@ -11,6 +12,7 @@ import { motion, Reorder } from "framer-motion"
 import {
     ListMusic,
     ListPlus,
+    MicVocal,
     Music2,
     Pause,
     Play,
@@ -67,6 +69,7 @@ export default function NowPlaying() {
     const [menuQueueId, setMenuQueueId] = useState<string | null>(null)
     const [addToPlaylistTarget, setAddToPlaylistTarget] = useState<PlaylistItem | null>(null)
     const [isCurrentOffscreen, setIsCurrentOffscreen] = useState(false)
+    const [rightTab, setRightTab] = useState<"queue" | "lyrics">("queue")
 
     // Auto-scroll to active item
     useEffect(() => {
@@ -83,7 +86,7 @@ export default function NowPlaying() {
                 behavior: "smooth",
             })
         }
-    }, [currentIndex, playlist])
+    }, [currentIndex, playlist, rightTab])
 
     // Track whether the current song has scrolled out of the visible list area
     const checkActiveVisibility = useCallback(() => {
@@ -440,122 +443,167 @@ export default function NowPlaying() {
                     </div>
                 </div>
 
-                {/* Right side: Up Next */}
+                {/* Right side: Up Next / Lyrics */}
                 <div className='flex flex-col gap-6'>
                     <div className='flex items-center gap-2 border-b pb-4 dark:border-white/10'>
-                        <ListMusic className='h-5 w-5 text-red-500' />
-                        <h2 className='text-xl font-bold dark:text-white'>Up Next</h2>
                         <button
-                            onClick={scrollToActive}
+                            onClick={() => setRightTab("queue")}
                             className={cn(
-                                "ml-4 flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
-                                isCurrentOffscreen
-                                    ? "border-red-200 bg-red-50 text-red-600 hover:bg-red-100 dark:border-red-500/20 dark:bg-red-500/10 dark:hover:bg-red-500/20"
-                                    : "border-gray-200 text-gray-500 hover:border-red-200 hover:text-red-500 dark:border-white/10 dark:text-gray-400 dark:hover:text-red-500",
+                                "flex cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors",
+                                rightTab === "queue"
+                                    ? "bg-red-600 text-white"
+                                    : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/10",
                             )}
-                            title='Scroll to current song'
                         >
-                            <Target
-                                className={cn("h-4 w-4", isCurrentOffscreen && "animate-pulse")}
-                            />
-                            Now playing
+                            <ListMusic className='h-4 w-4' /> Up Next
                         </button>
-                        <span className='ml-auto text-sm text-gray-500'>
-                            {playlist.length} songs
-                        </span>
-                    </div>
-
-                    <div
-                        ref={listRef}
-                        className='relative flex max-h-[55vh] scrollbar-thin scrollbar-thumb-gray-200 flex-col gap-2 overflow-y-auto pr-2 dark:scrollbar-thumb-white/10'
-                    >
-                        <Reorder.Group
-                            axis='y'
-                            values={playlist}
-                            onReorder={reorderPlaylist}
-                            className='flex flex-col gap-2'
+                        <button
+                            onClick={() => setRightTab("lyrics")}
+                            className={cn(
+                                "flex cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors",
+                                rightTab === "lyrics"
+                                    ? "bg-red-600 text-white"
+                                    : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/10",
+                            )}
                         >
-                            {playlist.map((item, index) => (
-                                <ReorderItem
-                                    key={item.queueId}
-                                    item={item}
-                                    index={index}
-                                    activeIndex={currentIndex}
-                                    isPlaying={isPlaying}
-                                    onSelect={() => handleSelect(item, index)}
-                                    activeRef={index === currentIndex ? activeItemRef : null}
-                                    menuOpen={menuQueueId === item.queueId}
-                                    onOpenMenu={() => setMenuQueueId(item.queueId)}
-                                    onCloseMenu={() => setMenuQueueId(null)}
-                                    onPlayNext={() => {
-                                        addToQueueNext(item)
-                                        toast.success(`"${item.title}" added to play next`)
-                                    }}
-                                    onAddToPlaylist={() => {
-                                        setMenuQueueId(null)
-                                        setAddToPlaylistTarget(item)
-                                    }}
-                                    onDownload={() => {
-                                        window.open(apiService.getDownloadUrl(item.id), "_blank")
-                                    }}
-                                    onRemove={() => {
-                                        setMenuQueueId(null)
-                                        removeFromQueue(item.queueId)
-                                    }}
-                                />
-                            ))}
-                        </Reorder.Group>
+                            <MicVocal className='h-4 w-4' /> Lyrics
+                        </button>
                     </div>
 
-                    {relatedSongs.length > 0 && (
-                        <div className='flex flex-col gap-3'>
-                            <h3 className='text-lg font-bold dark:text-white'>
-                                Play something similar
-                            </h3>
-                            <p className='text-sm text-gray-500 dark:text-gray-400'>
-                                More {currentSong.uploader} from your playlists
+                    {rightTab === "lyrics" ? (
+                        currentSong ? (
+                            <LyricsPanel song={currentSong} />
+                        ) : (
+                            <p className='py-16 text-center text-sm text-gray-400'>
+                                Nothing playing right now.
                             </p>
-                            <div className='flex flex-col gap-2'>
-                                {relatedSongs.map((song, index) => (
-                                    <div
-                                        key={song.id}
-                                        className='group flex items-center gap-3 rounded-xl p-2 transition-colors hover:bg-gray-50 dark:hover:bg-white/5'
-                                    >
-                                        <div className='h-10 w-10 shrink-0 overflow-hidden rounded-lg'>
-                                            <SongThumb song={song} />
-                                        </div>
-                                        <div className='min-w-0 flex-1'>
-                                            <p className='truncate text-sm font-medium dark:text-white'>
-                                                {song.title}
-                                            </p>
-                                            <p className='truncate text-xs text-gray-500 dark:text-gray-400'>
-                                                {song.uploader}
-                                            </p>
-                                        </div>
-                                        <span className='text-xs text-gray-400'>
-                                            {formatDuration(song.duration)}
-                                        </span>
-                                        <button
-                                            onClick={() => playRelated(index)}
-                                            className='cursor-pointer rounded-full p-1.5 text-gray-400 transition-colors hover:text-red-500'
-                                            title='Play'
-                                        >
-                                            <Play className='h-4 w-4 fill-current' />
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                addToQueueNext(song)
-                                                toast.success(`"${song.title}" added to play next`)
-                                            }}
-                                            className='cursor-pointer rounded-full p-1.5 text-gray-400 transition-colors hover:text-red-500'
-                                            title='Play next'
-                                        >
-                                            <ListPlus className='h-4 w-4' />
-                                        </button>
-                                    </div>
-                                ))}
+                        )
+                    ) : (
+                        <>
+                            <div className='flex items-center gap-2'>
+                                <button
+                                    onClick={scrollToActive}
+                                    className={cn(
+                                        "flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+                                        isCurrentOffscreen
+                                            ? "border-red-200 bg-red-50 text-red-600 hover:bg-red-100 dark:border-red-500/20 dark:bg-red-500/10 dark:hover:bg-red-500/20"
+                                            : "border-gray-200 text-gray-500 hover:border-red-200 hover:text-red-500 dark:border-white/10 dark:text-gray-400 dark:hover:text-red-500",
+                                    )}
+                                    title='Scroll to current song'
+                                >
+                                    <Target
+                                        className={cn(
+                                            "h-4 w-4",
+                                            isCurrentOffscreen && "animate-pulse",
+                                        )}
+                                    />
+                                    Now playing
+                                </button>
+                                <span className='ml-auto text-sm text-gray-500'>
+                                    {playlist.length} songs
+                                </span>
                             </div>
-                        </div>
+
+                            <div
+                                ref={listRef}
+                                className='relative flex max-h-[55vh] scrollbar-thin scrollbar-thumb-gray-200 flex-col gap-2 overflow-y-auto pr-2 dark:scrollbar-thumb-white/10'
+                            >
+                                <Reorder.Group
+                                    axis='y'
+                                    values={playlist}
+                                    onReorder={reorderPlaylist}
+                                    className='flex flex-col gap-2'
+                                >
+                                    {playlist.map((item, index) => (
+                                        <ReorderItem
+                                            key={item.queueId}
+                                            item={item}
+                                            index={index}
+                                            activeIndex={currentIndex}
+                                            isPlaying={isPlaying}
+                                            onSelect={() => handleSelect(item, index)}
+                                            activeRef={
+                                                index === currentIndex ? activeItemRef : null
+                                            }
+                                            menuOpen={menuQueueId === item.queueId}
+                                            onOpenMenu={() => setMenuQueueId(item.queueId)}
+                                            onCloseMenu={() => setMenuQueueId(null)}
+                                            onPlayNext={() => {
+                                                addToQueueNext(item)
+                                                toast.success(`"${item.title}" added to play next`)
+                                            }}
+                                            onAddToPlaylist={() => {
+                                                setMenuQueueId(null)
+                                                setAddToPlaylistTarget(item)
+                                            }}
+                                            onDownload={() => {
+                                                window.open(
+                                                    apiService.getDownloadUrl(item.id),
+                                                    "_blank",
+                                                )
+                                            }}
+                                            onRemove={() => {
+                                                setMenuQueueId(null)
+                                                removeFromQueue(item.queueId)
+                                            }}
+                                        />
+                                    ))}
+                                </Reorder.Group>
+                            </div>
+
+                            {relatedSongs.length > 0 && (
+                                <div className='flex flex-col gap-3'>
+                                    <h3 className='text-lg font-bold dark:text-white'>
+                                        Play something similar
+                                    </h3>
+                                    <p className='text-sm text-gray-500 dark:text-gray-400'>
+                                        More {currentSong.uploader} from your playlists
+                                    </p>
+                                    <div className='flex flex-col gap-2'>
+                                        {relatedSongs.map((song, index) => (
+                                            <div
+                                                key={song.id}
+                                                className='group flex items-center gap-3 rounded-xl p-2 transition-colors hover:bg-gray-50 dark:hover:bg-white/5'
+                                            >
+                                                <div className='h-10 w-10 shrink-0 overflow-hidden rounded-lg'>
+                                                    <SongThumb song={song} />
+                                                </div>
+                                                <div className='min-w-0 flex-1'>
+                                                    <p className='truncate text-sm font-medium dark:text-white'>
+                                                        {song.title}
+                                                    </p>
+                                                    <p className='truncate text-xs text-gray-500 dark:text-gray-400'>
+                                                        {song.uploader}
+                                                    </p>
+                                                </div>
+                                                <span className='text-xs text-gray-400'>
+                                                    {formatDuration(song.duration)}
+                                                </span>
+                                                <button
+                                                    onClick={() => playRelated(index)}
+                                                    className='cursor-pointer rounded-full p-1.5 text-gray-400 transition-colors hover:text-red-500'
+                                                    title='Play'
+                                                >
+                                                    <Play className='h-4 w-4 fill-current' />
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        addToQueueNext(song)
+                                                        toast.success(
+                                                            `"${song.title}" added to play next`,
+                                                        )
+                                                    }}
+                                                    className='cursor-pointer rounded-full p-1.5 text-gray-400 transition-colors hover:text-red-500'
+                                                    title='Play next'
+                                                >
+                                                    <ListPlus className='h-4 w-4' />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
             </div>

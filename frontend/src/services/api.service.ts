@@ -1,4 +1,4 @@
-import { type Song } from "@/types"
+import { type LyricsResponse, type Song } from "@/types"
 import { ENDPOINTS } from "@/utils/api/endpoints"
 import { http } from "@/utils/api/http"
 
@@ -20,6 +20,11 @@ export const apiService = {
         const { data } = await http.get<Song[]>(ENDPOINTS.RELATED_SONGS(songId), {
             params: { limit },
         })
+        return data
+    },
+
+    getLyrics: async (songId: string): Promise<LyricsResponse> => {
+        const { data } = await http.get<LyricsResponse>(ENDPOINTS.LYRICS(songId))
         return data
     },
 
