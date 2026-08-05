@@ -45,7 +45,7 @@ def get_playlist(
     sort_by: Annotated[str, Query(pattern="^(title|created_at)$")] = "created_at",
     order: Annotated[str, Query(pattern="^(asc|desc)$")] = "desc",
     page: Annotated[int, Query(ge=1)] = 1,
-    page_size: Annotated[int, Query(ge=1, le=100)] = 50,
+    page_size: Annotated[int, Query(ge=1, le=500)] = 50,
 ) -> dict[str, Any]:
     return PlaylistService.get_playlist_by_id(
         db,
