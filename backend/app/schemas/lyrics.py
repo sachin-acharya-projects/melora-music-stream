@@ -9,3 +9,4 @@ class LyricLine(BaseModel):
 class LyricsResponse(BaseModel):
     synced: bool
     lines: list[LyricLine]
+    source: str | None = None

@@ -28,4 +28,5 @@ export interface LyricLine {
 export interface LyricsResponse {
     synced: boolean
     lines: LyricLine[]
+    source?: "lrclib" | "ytmusic" | "captions" | null
 }

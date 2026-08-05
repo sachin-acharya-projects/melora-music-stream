@@ -2,7 +2,7 @@ import { useLyrics } from "@/hooks/useLyrics"
 import { usePlayerStore } from "@/hooks/usePlayer"
 import { cn } from "@/lib/utils"
 import { type PlaylistItem } from "@/store/player/types"
-import { Loader2, Music2 } from "lucide-react"
+import { Captions, Loader2, Music2 } from "lucide-react"
 import { useEffect, useMemo, useRef } from "react"
 
 const LAST_LINE_FALLBACK_SECONDS = 2.5
@@ -19,6 +19,7 @@ export function LyricsPanel({ song }: { song: PlaylistItem }) {
 
     const lines = useMemo(() => lyricsQuery.data?.lines ?? [], [lyricsQuery.data])
     const synced = lyricsQuery.data?.synced ?? false
+    const source = lyricsQuery.data?.source ?? null
 
     const timedLines = useMemo(() => {
         if (synced) return lines
@@ -102,9 +103,18 @@ export function LyricsPanel({ song }: { song: PlaylistItem }) {
     return (
         <div className='flex flex-col gap-3'>
             <div className='flex items-center justify-between'>
-                <p className='text-xs font-medium text-gray-500 dark:text-gray-400'>
-                    {synced ? "Synced lyrics" : "Lyrics · approximate sync"}
-                </p>
+                {source === "captions" ? (
+                    <span
+                        title='Captions are auto-generated from the video and may differ from the official lyrics.'
+                        className='flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+                    >
+                        <Captions className='h-3 w-3' /> Auto-generated captions
+                    </span>
+                ) : (
+                    <p className='text-xs font-medium text-gray-500 dark:text-gray-400'>
+                        {synced ? "Synced lyrics" : "Lyrics · approximate sync"}
+                    </p>
+                )}
                 <p className='text-xs text-gray-400'>{song.uploader}</p>
             </div>
 

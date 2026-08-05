@@ -1,7 +1,9 @@
+import html
 import re
 from typing import Any
 
 import httpx
+import yt_dlp
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from ytmusicapi import YTMusic
@@ -11,7 +13,9 @@ from app.db.models.song import SongModel
 from app.schemas.lyrics import LyricLine, LyricsResponse
 
 _LRC_TIMESTAMP = re.compile(r"\[(\d{1,2}):(\d{1,2})(?:\.(\d{1,3}))?\]")
+_VTT_TAG = re.compile(r"<[^>]+>")
 _MILLISECOND_DIGITS = 3
+_CAPTION_LANG_PRIORITY = ("ne", "en", "en-US", "en-GB", "en-orig")
 
 
 class LyricsService:
@@ -38,12 +42,18 @@ class LyricsService:
             title=song.title or song_id,
             artist=song.uploader or "Unknown Artist",
             duration=song.duration,
+            video_id=song.id,
         )
 
     def get_lyrics(
-        self, *, title: str, artist: str, duration: int | None
+        self,
+        *,
+        title: str,
+        artist: str,
+        duration: int | None,
+        video_id: str | None = None,
     ) -> LyricsResponse:
-        """Fetch and cache lyrics for a track, trying LRCLIB then YouTube Music."""
+        """Fetch and cache lyrics, trying LRCLIB, then YouTube Music, then captions."""
         cache = get_redis()
         cache_key = self._cache_key(title, artist, duration)
         cached = cache.get(cache_key)
@@ -53,6 +63,8 @@ class LyricsService:
         result = self.fetch_lrclib(title, artist, duration)
         if result is None or not result.lines:
             result = self.fetch_ytmusic(title, artist)
+        if result is None or not result.lines:
+            result = self.fetch_captions(video_id) if video_id else None
         if result is None:
             result = LyricsResponse(synced=False, lines=[])
 
@@ -83,13 +95,13 @@ class LyricsService:
         if synced:
             lines = LyricsService.parse_lrc(synced)
             if lines:
-                return LyricsResponse(synced=True, lines=lines)
+                return LyricsResponse(synced=True, lines=lines, source="lrclib")
 
         plain = data.get("plainLyrics")
         if plain:
             lines = LyricsService.plain_lines(plain)
             if lines:
-                return LyricsResponse(synced=False, lines=lines)
+                return LyricsResponse(synced=False, lines=lines, source="lrclib")
         return None
 
     @staticmethod
@@ -144,13 +156,86 @@ class LyricsService:
                 if getattr(line, "text", "")
             ]
             if timed:
-                return LyricsResponse(synced=True, lines=timed)
+                return LyricsResponse(synced=True, lines=timed, source="ytmusic")
         plain = lyrics.get("lyrics")
         if isinstance(plain, str) and plain.strip():
             lines = LyricsService.plain_lines(plain)
             if lines:
-                return LyricsResponse(synced=False, lines=lines)
+                return LyricsResponse(synced=False, lines=lines, source="ytmusic")
         return None
+
+    def fetch_captions(self, video_id: str) -> LyricsResponse | None:
+        """Fetch timed-text captions for a video as a last-resort lyric source."""
+        try:
+            with yt_dlp.YoutubeDL({"skip_download": True, "socket_timeout": 10}) as ydl:
+                info = ydl.extract_info(
+                    f"https://www.youtube.com/watch?v={video_id}", download=False
+                )
+            captions = info.get("subtitles") or info.get("automatic_captions")
+            url = self._pick_caption_url(captions)
+            if not url:
+                return None
+            response = httpx.get(url, timeout=10)
+            response.raise_for_status()
+            lines = LyricsService.parse_vtt(response.text)
+        except Exception:
+            # Any provider error degrades gracefully to "no captions".
+            return None
+        if not lines:
+            return None
+        return LyricsResponse(synced=True, lines=lines, source="captions")
+
+    @staticmethod
+    def _pick_caption_url(
+        captions: dict[str, list[dict[str, Any]]] | None,
+    ) -> str | None:
+        """Pick a caption track URL, preferring Nepali then English, else any."""
+        if not captions:
+            return None
+        for lang in _CAPTION_LANG_PRIORITY:
+            entries = captions.get(lang)
+            if entries:
+                return entries[0].get("url")
+        first = next(iter(captions.values()), None)
+        if first:
+            return first[0].get("url")
+        return None
+
+    @staticmethod
+    def parse_vtt(vtt: str) -> list[LyricLine]:
+        """Parse WebVTT text into timed lines, merging multi-line cues."""
+        lines: list[LyricLine] = []
+        start: float | None = None
+        text_parts: list[str] = []
+        for raw in vtt.splitlines():
+            stripped = raw.strip()
+            if "-->" in stripped:
+                if start is not None and text_parts:
+                    lines.append(LyricLine(time=start, text=" ".join(text_parts)))
+                start = LyricsService._vtt_timestamp(stripped.split("-->")[0])
+                text_parts = []
+            elif not stripped:
+                if start is not None and text_parts:
+                    lines.append(LyricLine(time=start, text=" ".join(text_parts)))
+                start = None
+                text_parts = []
+            elif start is not None and not stripped.startswith("NOTE"):
+                text_parts.append(LyricsService._strip_vtt_tags(stripped))
+        if start is not None and text_parts:
+            lines.append(LyricLine(time=start, text=" ".join(text_parts)))
+        return lines
+
+    @staticmethod
+    def _vtt_timestamp(value: str) -> float:
+        """Convert a VTT timestamp (HH:MM:SS.mmm) to fractional seconds."""
+        total = 0.0
+        for part in value.strip().split(":"):
+            total = total * 60 + float(part)
+        return total
+
+    @staticmethod
+    def _strip_vtt_tags(text: str) -> str:
+        return html.unescape(_VTT_TAG.sub("", text)).strip()
 
 
 lyrics_service = LyricsService()

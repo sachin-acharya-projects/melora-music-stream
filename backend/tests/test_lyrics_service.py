@@ -120,3 +120,94 @@ class TestGetLyrics:
         result = lyrics.get_lyrics(title="Song", artist="Artist", duration=200)
 
         assert result.lines == []
+
+    def test_captions_fallback_used_as_last_resort(
+        self, lyrics: LyricsService, monkeypatch
+    ) -> None:
+        captions = LyricsResponse(
+            synced=True,
+            lines=[{"time": 1.0, "text": "Caption"}],
+            source="captions",
+        )
+        monkeypatch.setattr(
+            LyricsService, "fetch_lrclib", staticmethod(lambda *a, **k: None)
+        )
+        monkeypatch.setattr(
+            LyricsService, "fetch_ytmusic", lambda self, title, artist: None
+        )
+        monkeypatch.setattr(lyrics, "fetch_captions", lambda video_id: captions)
+
+        result = lyrics.get_lyrics(
+            title="Song", artist="Artist", duration=200, video_id="abc123"
+        )
+
+        assert result.source == "captions"
+        assert result.synced is True
+        assert result.lines[0].text == "Caption"
+
+    def test_captions_skipped_without_video_id(
+        self, lyrics: LyricsService, monkeypatch
+    ) -> None:
+        monkeypatch.setattr(
+            LyricsService, "fetch_lrclib", staticmethod(lambda *a, **k: None)
+        )
+        monkeypatch.setattr(
+            LyricsService, "fetch_ytmusic", lambda self, title, artist: None
+        )
+
+        def fail(*args: object, **kwargs: object) -> None:
+            raise AssertionError
+
+        monkeypatch.setattr(lyrics, "fetch_captions", fail)
+
+        result = lyrics.get_lyrics(title="Song", artist="Artist", duration=200)
+
+        assert result.lines == []
+        assert result.source is None
+
+
+class TestParseVtt:
+    def test_parses_timestamps_and_merges_lines(self) -> None:
+        vtt = (
+            "WEBVTT\nKind: captions\nLanguage: en\n\n"
+            "1\n00:00:01.000 --> 00:00:04.000\nHello <c>world</c>\n\n"
+            "2\n00:00:05.000 --> 00:00:08.000\nLine two\ncontinued\n\n"
+        )
+        lines = LyricsService.parse_vtt(vtt)
+        assert lines[0].time == pytest.approx(1.0)
+        assert lines[0].text == "Hello world"
+        assert lines[1].time == pytest.approx(5.0)
+        assert lines[1].text == "Line two continued"
+
+    def test_skips_cue_ids_and_headers(self) -> None:
+        lines = LyricsService.parse_vtt("00:00:01.000 --> 00:00:02.000\nLyric\n")
+        assert len(lines) == 1
+        assert lines[0].text == "Lyric"
+
+    def test_unescapes_html_entities(self) -> None:
+        lines = LyricsService.parse_vtt(
+            "00:00:01.000 --> 00:00:02.000\nRock &amp; roll\n"
+        )
+        assert lines[0].text == "Rock & roll"
+
+    def test_vtt_timestamp_formats(self) -> None:
+        assert LyricsService._vtt_timestamp("01:05.500") == pytest.approx(65.5)
+        assert LyricsService._vtt_timestamp("00:01:02.250") == pytest.approx(62.25)
+
+
+class TestPickCaption:
+    def test_prefers_nepali_then_english(self) -> None:
+        captions = {
+            "en": [{"url": "en-url"}],
+            "ne": [{"url": "ne-url"}],
+            "hi": [{"url": "hi-url"}],
+        }
+        assert LyricsService._pick_caption_url(captions) == "ne-url"
+
+    def test_falls_back_to_first_track(self) -> None:
+        captions = {"hi": [{"url": "hi-url"}]}
+        assert LyricsService._pick_caption_url(captions) == "hi-url"
+
+    def test_empty_returns_none(self) -> None:
+        assert LyricsService._pick_caption_url({}) is None
+        assert LyricsService._pick_caption_url(None) is None
