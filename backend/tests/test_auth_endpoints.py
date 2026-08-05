@@ -1,10 +1,11 @@
-
 from app.db.models.user import UserModel
 from app.services.auth import AuthService
 
 
 class TestAuthMe:
-    def test_returns_current_user(self, client, test_user: UserModel, auth_headers: dict) -> None:
+    def test_returns_current_user(
+        self, client, test_user: UserModel, auth_headers: dict
+    ) -> None:
         response = client.get("/api/v1/auth/me", headers=auth_headers)
         assert response.status_code == 200
         data = response.json()

@@ -9,7 +9,9 @@ class TestGetPlaybackState:
         response = client.get("/api/v1/state/")
         assert response.status_code == 401
 
-    def test_returns_empty_state(self, client, test_user: UserModel, auth_headers: dict) -> None:
+    def test_returns_empty_state(
+        self, client, test_user: UserModel, auth_headers: dict
+    ) -> None:
         response = client.get("/api/v1/state/", headers=auth_headers)
         assert response.status_code == 200
         data = response.json()
@@ -23,7 +25,9 @@ class TestUpdatePlaybackState:
         response = client.post("/api/v1/state/", json={})
         assert response.status_code == 401
 
-    def test_creates_state(self, client, test_user: UserModel, auth_headers: dict) -> None:
+    def test_creates_state(
+        self, client, test_user: UserModel, auth_headers: dict
+    ) -> None:
         state = {
             "last_song_id": "song-1",
             "current_queue": [
@@ -44,7 +48,9 @@ class TestUpdatePlaybackState:
         assert len(data["current_queue"]) == 1
         assert data["current_queue"][0]["id"] == "song-1"
 
-    def test_updates_existing_state(self, client, test_user: UserModel, auth_headers: dict) -> None:
+    def test_updates_existing_state(
+        self, client, test_user: UserModel, auth_headers: dict
+    ) -> None:
         state1 = {
             "last_song_id": "song-1",
             "current_queue": [
@@ -70,7 +76,9 @@ class TestUpdatePlaybackState:
         assert data["last_song_id"] == "song-2"
         assert len(data["recent_songs"]) == 1
 
-    def test_per_user_isolation(self, client, test_user: UserModel, auth_headers: dict, db: Session) -> None:
+    def test_per_user_isolation(
+        self, client, test_user: UserModel, auth_headers: dict, db: Session
+    ) -> None:
         user2 = UserModel(
             id="user-2",
             email="user2@example.com",

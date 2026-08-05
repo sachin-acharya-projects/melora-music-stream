@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, cast
 
 import yt_dlp
 
@@ -6,6 +6,16 @@ from app.core.config import settings
 
 
 class YoutubeService:
+    @staticmethod
+    def _resolve_thumbnail(info: dict[str, Any]) -> str:
+        thumbnail = info.get("thumbnail")
+        if thumbnail:
+            return cast("str", thumbnail)
+        thumbnails = info.get("thumbnails")
+        if thumbnails:
+            return cast("str", thumbnails[0]["url"])
+        return ""
+
     @staticmethod
     def search_songs(query: str) -> list[dict[str, Any]]:
         ydl_opts = {
@@ -98,8 +108,9 @@ class YoutubeService:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
             songs = []
-            if "entries" in info:
-                for entry in info["entries"]:
+            entries = info.get("entries") if isinstance(info, dict) else None
+            if entries:
+                for entry in entries:
                     if entry is None:
                         continue  # Skip if entry failed to extract
                     songs.append(
@@ -109,15 +120,23 @@ class YoutubeService:
                             "uploader": entry.get("uploader")
                             or entry.get("channel")
                             or "Unknown Artist",
-                            "thumbnail": entry.get("thumbnail")
-                            or (
-                                entry.get("thumbnails")[0]["url"]
-                                if entry.get("thumbnails")
-                                else ""
-                            ),
+                            "thumbnail": YoutubeService._resolve_thumbnail(entry),
                             "duration": entry.get("duration", 0),
                         }
                     )
+            elif isinstance(info, dict):
+                # Single video URL (watch), not a playlist
+                songs.append(
+                    {
+                        "id": info.get("id"),
+                        "title": info.get("title"),
+                        "uploader": info.get("uploader")
+                        or info.get("channel")
+                        or "Unknown Artist",
+                        "thumbnail": YoutubeService._resolve_thumbnail(info),
+                        "duration": info.get("duration", 0),
+                    }
+                )
             return songs
 
 

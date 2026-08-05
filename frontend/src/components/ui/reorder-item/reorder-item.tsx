@@ -29,7 +29,7 @@ export default function ReorderItem({
                 onClick={(e) => toggleSelect(song.id, e)}
                 className={`group flex cursor-pointer items-center gap-4 rounded-xl border p-2 transition-all select-none ${
                     isSelected
-                        ? "border-red-500 bg-red-50/5"
+                        ? "border-red-500 bg-red-50 dark:bg-red-950"
                         : "dark:bg-card border-gray-100 bg-white hover:border-red-200 dark:border-white/10"
                 }`}
             >

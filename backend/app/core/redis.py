@@ -111,10 +111,14 @@ class RedisClient:
         else:
             return result
 
-    def set_hash(self, key: str, mapping: dict[str, Any], ttl: int | None = None) -> bool:
+    def set_hash(
+        self, key: str, mapping: dict[str, Any], ttl: int | None = None
+    ) -> bool:
         """Set a hash with optional TTL."""
         try:
-            self.client.hset(key, mapping={k: json.dumps(v) for k, v in mapping.items()})
+            self.client.hset(
+                key, mapping={k: json.dumps(v) for k, v in mapping.items()}
+            )
             if ttl:
                 self.client.expire(key, ttl)
         except (redis.ConnectionError, TypeError):

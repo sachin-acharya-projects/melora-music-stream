@@ -13,3 +13,9 @@ export interface Playlist {
     created_at: string
     songs: Song[]
 }
+
+export interface PlaylistDetail extends Playlist {
+    total: number
+    total_songs: number
+    total_duration: number
+}

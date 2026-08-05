@@ -21,8 +21,18 @@ export function usePlaylists(options: PlaylistSortOptions = {}) {
     const addSongToPlaylistMutation = useMutation({
         mutationFn: ({ playlistId, song }: { playlistId: string; song: Song }) =>
             playlistService.addSong(playlistId, song),
-        onSuccess: () => {
+        onSuccess: (_data, { playlistId }) => {
             queryClient.invalidateQueries({ queryKey: ["playlists"] })
+            queryClient.invalidateQueries({ queryKey: ["playlist", playlistId] })
+        },
+    })
+
+    const addSongsBulkToPlaylistMutation = useMutation({
+        mutationFn: ({ playlistId, songs }: { playlistId: string; songs: Song[] }) =>
+            playlistService.addSongsBulk(playlistId, songs),
+        onSuccess: (_data, { playlistId }) => {
+            queryClient.invalidateQueries({ queryKey: ["playlists"] })
+            queryClient.invalidateQueries({ queryKey: ["playlist", playlistId] })
         },
     })
 
@@ -38,8 +48,9 @@ export function usePlaylists(options: PlaylistSortOptions = {}) {
     const renamePlaylistMutation = useMutation({
         mutationFn: ({ id, name }: { id: string; name: string }) =>
             playlistService.rename(id, name),
-        onSuccess: () => {
+        onSuccess: (_data, { id }) => {
             queryClient.invalidateQueries({ queryKey: ["playlists"] })
+            queryClient.invalidateQueries({ queryKey: ["playlist", id] })
             toast.success("Playlist renamed")
         },
         onError: () => toast.error("Failed to rename playlist"),
@@ -47,8 +58,9 @@ export function usePlaylists(options: PlaylistSortOptions = {}) {
 
     const deletePlaylistMutation = useMutation({
         mutationFn: playlistService.delete,
-        onSuccess: () => {
+        onSuccess: (_data, id) => {
             queryClient.invalidateQueries({ queryKey: ["playlists"] })
+            queryClient.invalidateQueries({ queryKey: ["playlist", id] })
             toast.success("Playlist deleted")
         },
         onError: () => toast.error("Failed to delete playlist"),
@@ -60,8 +72,9 @@ export function usePlaylists(options: PlaylistSortOptions = {}) {
                 await playlistService.removeSong(playlistId, id)
             }
         },
-        onSuccess: () => {
+        onSuccess: (_data, { playlistId }) => {
             queryClient.invalidateQueries({ queryKey: ["playlists"] })
+            queryClient.invalidateQueries({ queryKey: ["playlist", playlistId] })
             toast.success("Songs removed from playlist")
         },
         onError: () => toast.error("Failed to remove some songs"),
@@ -75,6 +88,8 @@ export function usePlaylists(options: PlaylistSortOptions = {}) {
         isCreating: createPlaylistMutation.isPending,
         addSong: addSongToPlaylistMutation.mutateAsync,
         isAdding: addSongToPlaylistMutation.isPending,
+        addSongsBulk: addSongsBulkToPlaylistMutation.mutateAsync,
+        isAddingBulk: addSongsBulkToPlaylistMutation.isPending,
         importPlaylist: importPlaylistMutation.mutate,
         isImporting: importPlaylistMutation.isPending,
         renamePlaylist: renamePlaylistMutation.mutate,

@@ -37,7 +37,9 @@ class PlaybackService:
         }
 
     @staticmethod
-    def upsert_playback_state(db: Session, *, user_id: str, data: PlaybackState) -> None:
+    def upsert_playback_state(
+        db: Session, *, user_id: str, data: PlaybackState
+    ) -> None:
         """Upsert the playback state for a user."""
         all_songs = data.current_queue + data.recent_songs
         for song in all_songs:
@@ -47,7 +49,11 @@ class PlaybackService:
         queue_ids = [s.id for s in data.current_queue]
         recent_ids = [s.id for s in data.recent_songs]
 
-        state = db.query(PlaybackStateModel).filter(PlaybackStateModel.user_id == user_id).first()
+        state = (
+            db.query(PlaybackStateModel)
+            .filter(PlaybackStateModel.user_id == user_id)
+            .first()
+        )
         if state is None:
             state = PlaybackStateModel(
                 user_id=user_id,
@@ -81,7 +87,9 @@ class PlaybackService:
                 "uploader": songs_map[s_id].uploader,
                 "thumbnail": songs_map[s_id].thumbnail,
                 "duration": songs_map[s_id].duration,
-                "created_at": songs_map[s_id].created_at.isoformat() if songs_map[s_id].created_at else None,
+                "created_at": songs_map[s_id].created_at.isoformat()
+                if songs_map[s_id].created_at
+                else None,
             }
             for s_id in song_ids
             if s_id in songs_map

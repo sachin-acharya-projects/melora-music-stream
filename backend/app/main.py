@@ -1,8 +1,11 @@
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from starlette.middleware.sessions import SessionMiddleware
 
 from app.admin import setup_admin
 from app.api.api import api_router
@@ -40,8 +43,17 @@ if settings.BACKEND_CORS_ORIGINS:
         allow_headers=["*"],
     )
 
+app.add_middleware(SessionMiddleware, secret_key=settings.JWT_SECRET_KEY)
+
 # Setup Admin Panel
 setup_admin(app, engine)
+
+# Serve avatars
+avatars_path = Path(settings.AVATARS_DIR)
+avatars_path.mkdir(parents=True, exist_ok=True)
+app.mount(
+    f"/{settings.AVATARS_DIR}", StaticFiles(directory=str(avatars_path)), name="avatars"
+)
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
 

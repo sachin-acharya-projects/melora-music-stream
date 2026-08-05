@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.db.models.playlist import PlaylistModel
 from app.schemas.song import Song
 from app.services.playlists import PlaylistService
+from app.services.songs import SongService
 
 
 @pytest.fixture(name="sample_song")
@@ -66,13 +67,17 @@ class TestUpdatePlaylistName:
         db.add(playlist)
         db.commit()
 
-        result = PlaylistService.update_playlist_name(db, playlist_id=playlist.id, new_name="New Name")
+        result = PlaylistService.update_playlist_name(
+            db, playlist_id=playlist.id, new_name="New Name"
+        )
         assert result["message"] == "Playlist updated"
         assert result["name"] == "New Name"
 
     def test_not_found_raises(self, db: Session) -> None:
         with pytest.raises(Exception) as exc_info:
-            PlaylistService.update_playlist_name(db, playlist_id="nonexistent", new_name="New")
+            PlaylistService.update_playlist_name(
+                db, playlist_id="nonexistent", new_name="New"
+            )
         assert exc_info.value.status_code == 404
 
     def test_duplicate_name_raises(self, db: Session) -> None:
@@ -82,7 +87,9 @@ class TestUpdatePlaylistName:
         db.commit()
 
         with pytest.raises(Exception) as exc_info:
-            PlaylistService.update_playlist_name(db, playlist_id=p2.id, new_name="Name 1")
+            PlaylistService.update_playlist_name(
+                db, playlist_id=p2.id, new_name="Name 1"
+            )
         assert exc_info.value.status_code == 400
 
 
@@ -112,7 +119,9 @@ class TestAddSongToPlaylist:
         )
         assert result["message"] == "Song added"
 
-    def test_creates_playlist_if_not_exists(self, db: Session, sample_song: Song) -> None:
+    def test_creates_playlist_if_not_exists(
+        self, db: Session, sample_song: Song
+    ) -> None:
         result = PlaylistService.add_song_to_playlist(
             db, playlist_id_or_name="New Playlist", song=sample_song
         )
@@ -123,7 +132,9 @@ class TestAddSongToPlaylist:
         db.add(playlist)
         db.commit()
 
-        PlaylistService.add_song_to_playlist(db, playlist_id_or_name=playlist.id, song=sample_song)
+        PlaylistService.add_song_to_playlist(
+            db, playlist_id_or_name=playlist.id, song=sample_song
+        )
         result = PlaylistService.add_song_to_playlist(
             db, playlist_id_or_name=playlist.id, song=sample_song
         )
@@ -136,7 +147,9 @@ class TestRemoveSongFromPlaylist:
         db.add(playlist)
         db.commit()
 
-        PlaylistService.add_song_to_playlist(db, playlist_id_or_name=playlist.id, song=sample_song)
+        PlaylistService.add_song_to_playlist(
+            db, playlist_id_or_name=playlist.id, song=sample_song
+        )
         result = PlaylistService.remove_song_from_playlist(
             db, playlist_id=playlist.id, song_id=sample_song.id
         )
@@ -152,11 +165,81 @@ class TestRemoveSongFromPlaylist:
 
 class TestUpsertSong:
     def test_creates_song(self, db: Session, sample_song: Song) -> None:
-        db_song = PlaylistService.upsert_song(db, sample_song)
+        db_song = SongService.upsert_song(db, sample_song)
         assert db_song.id == sample_song.id
         assert db_song.title == sample_song.title
 
     def test_idempotent(self, db: Session, sample_song: Song) -> None:
-        s1 = PlaylistService.upsert_song(db, sample_song)
-        s2 = PlaylistService.upsert_song(db, sample_song)
+        s1 = SongService.upsert_song(db, sample_song)
+        s2 = SongService.upsert_song(db, sample_song)
         assert s1.id == s2.id
+
+
+class TestGetPlaylistPagination:
+    def test_returns_page_and_total(self, db: Session) -> None:
+        playlist = PlaylistModel(name="Paginated")
+        db.add(playlist)
+        db.commit()
+
+        for i in range(3):
+            PlaylistService.add_song_to_playlist(
+                db,
+                playlist_id_or_name=playlist.id,
+                song=Song(
+                    id=f"song-{i}",
+                    title=f"Song {i}",
+                    uploader="Artist",
+                    thumbnail="",
+                    duration=100,
+                ),
+            )
+
+        result = PlaylistService.get_playlist_by_id(
+            db, playlist.id, page=1, page_size=2
+        )
+        assert result["total"] == 3
+        assert len(result["songs"]) == 2
+
+        second_page = PlaylistService.get_playlist_by_id(
+            db, playlist.id, page=2, page_size=2
+        )
+        assert len(second_page["songs"]) == 1
+
+
+class TestRelatedSongs:
+    def test_returns_same_uploader_only(self, db: Session, sample_song: Song) -> None:
+        playlist = PlaylistModel(name="Related")
+        db.add(playlist)
+        db.commit()
+
+        same_artist = Song(
+            id="song-2",
+            title="Other Track",
+            uploader="Test Artist",
+            thumbnail="",
+            duration=200,
+        )
+        different_artist = Song(
+            id="song-3",
+            title="Other Artist Track",
+            uploader="Someone Else",
+            thumbnail="",
+            duration=220,
+        )
+        PlaylistService.add_song_to_playlist(
+            db, playlist_id_or_name=playlist.id, song=sample_song
+        )
+        PlaylistService.add_song_to_playlist(
+            db, playlist_id_or_name=playlist.id, song=same_artist
+        )
+        PlaylistService.add_song_to_playlist(
+            db, playlist_id_or_name=playlist.id, song=different_artist
+        )
+
+        related = SongService.get_related_songs(db, sample_song.id)
+        ids = [song["id"] for song in related]
+        assert "song-2" in ids
+        assert "song-3" not in ids
+
+    def test_unknown_song_returns_empty(self, db: Session) -> None:
+        assert SongService.get_related_songs(db, "nonexistent") == []

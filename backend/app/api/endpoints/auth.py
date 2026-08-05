@@ -37,12 +37,15 @@ async def google_callback(request: Request, db: SessionDep) -> RedirectResponse:
         AuthService.handle_oauth_error(e)
 
     user_info = AuthService.validate_google_oauth_info(token.get("userinfo"))
+    local_avatar = AuthService.save_avatar(
+        user_info["google_id"], user_info["avatar_url"]
+    )
     user = AuthService.upsert_google_user(
         db,
         google_id=user_info["google_id"],
         email=user_info["email"],
         name=user_info["name"],
-        avatar_url=user_info["avatar_url"],
+        avatar_url=local_avatar or user_info["avatar_url"],
     )
     tokens = AuthService.create_tokens_for_user(user)
     params = {

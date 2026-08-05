@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     PLAYLIST_FILE: str = "playlists.json"
     DOWNLOADS_DIR: str = "downloads"
     CACHE_DIR: str = "cache"
+    AVATARS_DIR: str = "avatars"
     MAX_CACHE_SIZE_GB: int = 10
     CACHE_TTL_HOURS: int = 72
     CACHE_ENABLED: bool = True
@@ -50,6 +51,7 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-# Ensure downloads and cache directories exist
+# Ensure directories exist
 Path(settings.DOWNLOADS_DIR).mkdir(parents=True, exist_ok=True)
 Path(settings.CACHE_DIR).mkdir(parents=True, exist_ok=True)
+Path(settings.AVATARS_DIR).mkdir(parents=True, exist_ok=True)

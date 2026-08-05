@@ -39,10 +39,12 @@ RUN chmod +x /app/start.sh
 # Environment variables
 ENV PYTHONPATH=/app/backend
 ENV DOWNLOADS_DIR=/app/data/downloads
+ENV CACHE_DIR=/app/data/cache
 ENV DATABASE_URL=sqlite:////app/data/melora.db
+ENV REDIS_URL=redis://redis:6379/0
 
 # Ensure data directory exists
-RUN mkdir -p /app/data /app/data/downloads
+RUN mkdir -p /app/data /app/data/downloads /app/data/cache
 
 # Port mapping is handled in docker-compose.yml or at runtime
 # EXPOSE is intentionally omitted

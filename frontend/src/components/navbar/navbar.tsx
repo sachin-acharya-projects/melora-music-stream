@@ -1,7 +1,9 @@
+import Avatar from "@/components/ui/avatar/avatar"
+import { useAuth } from "@/hooks/useAuth"
 import { useQueueStore } from "@/hooks/useQueue"
 import { useThemeStore } from "@/hooks/useTheme"
-import { ListEnd, ListMusic, Moon, Music2, Plus, Sun } from "lucide-react"
-import { useEffect } from "react"
+import { ListEnd, ListMusic, Moon, Music2, Plus, Sun, User, LogOut } from "lucide-react"
+import { useEffect, useState } from "react"
 import { Link, useLocation } from "react-router-dom"
 
 export default function Navbar() {
@@ -9,6 +11,8 @@ export default function Navbar() {
     const toggleTheme = useThemeStore((state) => state.toggleMode)
     const queue = useQueueStore((state) => state.queue)
     const location = useLocation()
+    const { user, logout } = useAuth()
+    const [showUserMenu, setShowUserMenu] = useState(false)
 
     useEffect(() => {
         if (mode === "dark") {
@@ -79,6 +83,60 @@ export default function Navbar() {
                 >
                     {mode === "dark" ? <Sun /> : <Moon />}
                 </button>
+
+                {/* User Menu */}
+                <div className='relative'>
+                    <button
+                        onClick={() => setShowUserMenu(!showUserMenu)}
+                        className='flex h-10 w-10 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-700'
+                        title='User menu'
+                    >
+                        <Avatar
+                            src={user?.avatar_url}
+                            name={user?.display_name || user?.username}
+                            size={40}
+                        />
+                    </button>
+
+                    {showUserMenu && (
+                        <>
+                            <div
+                                className='fixed inset-0 z-40'
+                                onClick={() => setShowUserMenu(false)}
+                            />
+                            <div className='absolute top-12 right-0 z-50 w-48 rounded-lg border border-neutral-200 bg-white shadow-lg dark:border-neutral-700 dark:bg-neutral-900'>
+                                <div className='border-b border-neutral-200 px-4 py-3 dark:border-neutral-700'>
+                                    <p className='text-sm font-medium text-neutral-900 dark:text-white'>
+                                        {user?.display_name || user?.username}
+                                    </p>
+                                    <p className='text-xs text-neutral-500 dark:text-neutral-400'>
+                                        {user?.email}
+                                    </p>
+                                </div>
+                                <div className='py-1'>
+                                    <Link
+                                        to='/profile'
+                                        onClick={() => setShowUserMenu(false)}
+                                        className='flex w-full items-center gap-2 px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800'
+                                    >
+                                        <User className='h-4 w-4' />
+                                        Profile
+                                    </Link>
+                                    <button
+                                        onClick={() => {
+                                            setShowUserMenu(false)
+                                            logout()
+                                        }}
+                                        className='flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20'
+                                    >
+                                        <LogOut className='h-4 w-4' />
+                                        Sign out
+                                    </button>
+                                </div>
+                            </div>
+                        </>
+                    )}
+                </div>
             </div>
         </div>
     )

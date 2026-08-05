@@ -1,4 +1,15 @@
 services:
+  # Redis for caching
+  redis:
+    container_name: melora-redis
+    image: redis:7-alpine
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - melora_redis:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    restart: always
+
   # Option 1: Unified Fullstack Container (Single Image)
   melora-fullstack:
     container_name: melora-fullstack
@@ -10,6 +21,9 @@ services:
       - "${PORT:-80}:80"
     environment:
       - DEBUG=${DEBUG:-false}
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
     volumes:
       - melora_data:/app/data
     restart: always
@@ -25,6 +39,9 @@ services:
       - "${BACKEND_PORT:-8000}:8000"
     environment:
       - DEBUG=${DEBUG:-false}
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
     volumes:
       - melora_data:/app/data
     restart: always
@@ -46,4 +63,6 @@ services:
 
 volumes:
   melora_data:
+    driver: local
+  melora_redis:
     driver: local

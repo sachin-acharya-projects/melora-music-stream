@@ -8,6 +8,7 @@ from app.db.models.associations import playlist_song
 from app.db.models.song import SongModel
 
 if TYPE_CHECKING:
+    from app.db.models.playlist_share import PlaylistShareModel
     from app.db.models.user import UserModel
 
 
@@ -27,5 +28,13 @@ class PlaylistModel(BaseModel):
     owner: Mapped["UserModel | None"] = relationship(
         "UserModel",
         back_populates="playlists",
+        lazy="selectin",
+    )
+
+    share: Mapped["PlaylistShareModel | None"] = relationship(
+        "PlaylistShareModel",
+        back_populates="playlist",
+        uselist=False,
+        cascade="all, delete-orphan",
         lazy="selectin",
     )

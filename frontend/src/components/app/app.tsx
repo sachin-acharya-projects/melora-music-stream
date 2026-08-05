@@ -1,52 +1,134 @@
+import { AuthProvider } from "@/contexts/AuthContext"
+import { useAuth } from "@/hooks/useAuth"
 import { usePlayerStore } from "@/hooks/usePlayer"
-import EditPlaylists from "@/pages/EditPlaylists"
 import Home from "@/pages/Home"
+import Login from "@/pages/Login"
+import AuthCallback from "@/pages/AuthCallback"
 import NowPlaying from "@/pages/NowPlaying"
 import Playlists from "@/pages/Playlists"
+import Profile from "@/pages/Profile"
 import Queue from "@/pages/Queue"
+import SharedPlaylist from "@/pages/SharedPlaylist"
 import { useEffect } from "react"
-import { BrowserRouter, Route, Routes } from "react-router-dom"
+import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom"
 import { ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import AudioPlayer from "../audio-player/audio-player"
 import Background from "../background/background"
 import Navbar from "../navbar/navbar"
+import { Loader2 } from "lucide-react"
 
-export default function App() {
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+    const { isAuthenticated, isLoading } = useAuth()
+
+    if (isLoading) {
+        return (
+            <div className='flex min-h-screen items-center justify-center'>
+                <Loader2 className='h-8 w-8 animate-spin text-red-500' />
+            </div>
+        )
+    }
+
+    if (!isAuthenticated) {
+        return <Navigate to='/login' replace />
+    }
+
+    return <>{children}</>
+}
+
+function AppContent() {
     const initialize = usePlayerStore((s) => s.initialize)
+    const { isAuthenticated, isLoading } = useAuth()
 
     useEffect(() => {
-        initialize()
-    }, [initialize])
+        if (isAuthenticated) {
+            initialize()
+        }
+    }, [initialize, isAuthenticated])
+
+    if (isLoading) {
+        return (
+            <div className='flex min-h-screen items-center justify-center'>
+                <Loader2 className='h-8 w-8 animate-spin text-red-500' />
+            </div>
+        )
+    }
 
     return (
+        <section>
+            {isAuthenticated && <Navbar />}
+            <Background />
+            <main className={isAuthenticated ? "pt-22" : ""}>
+                <Routes>
+                    <Route path='/login' element={<Login />} />
+                    <Route path='/auth/callback' element={<AuthCallback />} />
+                    <Route path='/s/:token' element={<SharedPlaylist />} />
+                    <Route
+                        path='/'
+                        element={
+                            <ProtectedRoute>
+                                <Home />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path='/playlists'
+                        element={
+                            <ProtectedRoute>
+                                <Playlists />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path='/queue'
+                        element={
+                            <ProtectedRoute>
+                                <Queue />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path='/now-playing'
+                        element={
+                            <ProtectedRoute>
+                                <NowPlaying />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path='/profile'
+                        element={
+                            <ProtectedRoute>
+                                <Profile />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route path='*' element={<Navigate to='/' replace />} />
+                </Routes>
+            </main>
+            {isAuthenticated && <AudioPlayer />}
+            <ToastContainer
+                position='bottom-right'
+                autoClose={3000}
+                hideProgressBar={false}
+                newestOnTop
+                closeOnClick
+                rtl={false}
+                pauseOnFocusLoss
+                draggable
+                pauseOnHover
+                theme='light'
+            />
+        </section>
+    )
+}
+
+export default function App() {
+    return (
         <BrowserRouter>
-            <section>
-                <Navbar />
-                <Background />
-                <main className='pt-22'>
-                    <Routes>
-                        <Route path='/' element={<Home />} />
-                        <Route path='/playlists' element={<Playlists />} />
-                        <Route path='/playlists/edit' element={<EditPlaylists />} />
-                        <Route path='/queue' element={<Queue />} />
-                        <Route path='/now-playing' element={<NowPlaying />} />
-                    </Routes>
-                </main>
-                <AudioPlayer />
-                <ToastContainer
-                    position='bottom-right'
-                    autoClose={3000}
-                    hideProgressBar={false}
-                    newestOnTop
-                    closeOnClick
-                    rtl={false}
-                    pauseOnFocusLoss
-                    draggable
-                    pauseOnHover
-                    theme='light'
-                />
-            </section>
+            <AuthProvider>
+                <AppContent />
+            </AuthProvider>
         </BrowserRouter>
     )
 }

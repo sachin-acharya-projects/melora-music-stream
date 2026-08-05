@@ -18,7 +18,13 @@ class TestUpsertPlaybackState:
         data = PlaybackState(
             last_song_id="song-1",
             current_queue=[
-                Song(id="song-1", title="Song 1", uploader="A", thumbnail="t", duration=100)
+                Song(
+                    id="song-1",
+                    title="Song 1",
+                    uploader="A",
+                    thumbnail="t",
+                    duration=100,
+                )
             ],
             recent_songs=[],
             last_playlist_id="playlist-1",
@@ -35,7 +41,13 @@ class TestUpsertPlaybackState:
         data1 = PlaybackState(
             last_song_id="song-1",
             current_queue=[
-                Song(id="song-1", title="Song 1", uploader="A", thumbnail="t", duration=100)
+                Song(
+                    id="song-1",
+                    title="Song 1",
+                    uploader="A",
+                    thumbnail="t",
+                    duration=100,
+                )
             ],
         )
         PlaybackService.upsert_playback_state(db, user_id="user-1", data=data1)
@@ -43,10 +55,22 @@ class TestUpsertPlaybackState:
         data2 = PlaybackState(
             last_song_id="song-2",
             current_queue=[
-                Song(id="song-2", title="Song 2", uploader="B", thumbnail="t", duration=200)
+                Song(
+                    id="song-2",
+                    title="Song 2",
+                    uploader="B",
+                    thumbnail="t",
+                    duration=200,
+                )
             ],
             recent_songs=[
-                Song(id="song-1", title="Song 1", uploader="A", thumbnail="t", duration=100)
+                Song(
+                    id="song-1",
+                    title="Song 1",
+                    uploader="A",
+                    thumbnail="t",
+                    duration=100,
+                )
             ],
         )
         PlaybackService.upsert_playback_state(db, user_id="user-1", data=data2)

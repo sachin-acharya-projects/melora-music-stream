@@ -32,7 +32,8 @@ class UserModel(BaseModel):
     oauth_id: Mapped[str | None] = mapped_column(String, nullable=True)
     favorite_genres: Mapped[list[str]] = mapped_column(JSON, default=list)
     privacy_settings: Mapped[dict[str, bool]] = mapped_column(
-        JSON, default=lambda: {"profile_public": True, "listening_history_visible": False}
+        JSON,
+        default=lambda: {"profile_public": True, "listening_history_visible": False},
     )
 
     playlists: Mapped[list[PlaylistModel]] = relationship(

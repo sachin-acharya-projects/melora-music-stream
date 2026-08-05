@@ -4,8 +4,8 @@ import { http } from "@/utils/api/http"
 
 export interface UserState {
     last_song_id: string | null
-    current_queue: string[]
-    recent_songs: string[]
+    current_queue: Song[]
+    recent_songs: Song[]
     last_playlist_id: string | null
 }
 
@@ -13,6 +13,13 @@ export const apiService = {
     search: async (q: string): Promise<Song[]> => {
         if (!q) return []
         const { data } = await http.get<Song[]>(ENDPOINTS.SEARCH, { params: { q } })
+        return data
+    },
+
+    getRelatedSongs: async (songId: string, limit = 6): Promise<Song[]> => {
+        const { data } = await http.get<Song[]>(ENDPOINTS.RELATED_SONGS(songId), {
+            params: { limit },
+        })
         return data
     },
 
