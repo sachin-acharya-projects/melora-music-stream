@@ -128,7 +128,8 @@ class LyricsService:
             if not browse_id:
                 return None
             lyrics = self._get_ytmusic().get_lyrics(browse_id, timestamps=True)
-        except (AttributeError, TypeError, ValueError, KeyError, IndexError):
+        except Exception:
+            # Any provider error degrades gracefully to "no lyrics".
             return None
         return LyricsService._ytmusic_to_response(lyrics)
 

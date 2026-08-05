@@ -101,3 +101,22 @@ class TestGetLyrics:
         result = lyrics.get_lyrics(title="Song", artist="Artist", duration=200)
 
         assert result.lines == []
+
+    def test_ytmusic_network_error_is_graceful(
+        self, lyrics: LyricsService, monkeypatch
+    ) -> None:
+        class FailingYTMusic:
+            def search(self, *args: object, **kwargs: object) -> None:
+                raise httpx.ConnectError("unreachable")
+
+            def get_lyrics(self, *args: object, **kwargs: object) -> None:
+                raise AssertionError
+
+        monkeypatch.setattr(
+            LyricsService, "fetch_lrclib", staticmethod(lambda *a, **k: None)
+        )
+        monkeypatch.setattr(lyrics, "_get_ytmusic", FailingYTMusic)
+
+        result = lyrics.get_lyrics(title="Song", artist="Artist", duration=200)
+
+        assert result.lines == []
