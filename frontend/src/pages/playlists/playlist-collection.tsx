@@ -2,10 +2,12 @@ import { PlaylistArt } from "@/components/playlist/playlist-art"
 import { SearchAddModal } from "@/components/playlist/search-add-modal"
 import ConfirmationDialog from "@/components/ui/confirmation-dialog/confirmation-dialog"
 import PlaylistSelector from "@/components/ui/playlist-selector/playlist-selector"
+import SortSelect, { type SortSelectOption } from "@/components/ui/sort-select/sort-select"
 import { usePlaylistMenu } from "@/hooks/usePlaylistMenu"
 import { usePlayerStore } from "@/hooks/usePlayer"
 import { usePlaylists } from "@/hooks/usePlaylists"
 import { formatDuration } from "@/lib/utils"
+import { type PlaylistSortOptions } from "@/services/playlist.service"
 import { type Playlist } from "@/types"
 import { AnimatePresence, motion } from "framer-motion"
 import {
@@ -25,7 +27,20 @@ import {
 import { useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 
-export function PlaylistCollection({ playlists }: { playlists: Playlist[] }) {
+const COLLECTION_SORT_OPTIONS: SortSelectOption[] = [
+    { value: "created_at:desc", label: "Recently added" },
+    { value: "created_at:asc", label: "Oldest first" },
+    { value: "name:asc", label: "Name A–Z" },
+    { value: "name:desc", label: "Name Z–A" },
+]
+
+interface PlaylistCollectionProps {
+    playlists: Playlist[]
+    sort: PlaylistSortOptions
+    onSortChange: (sort: PlaylistSortOptions) => void
+}
+
+export function PlaylistCollection({ playlists, sort, onSortChange }: PlaylistCollectionProps) {
     const navigate = useNavigate()
     const setPlaylist = usePlayerStore((s) => s.setPlaylist)
     const {
@@ -141,12 +156,25 @@ export function PlaylistCollection({ playlists }: { playlists: Playlist[] }) {
                         Your collections, all in one place
                     </p>
                 </div>
-                <button
-                    onClick={() => setIsSearchAddOpen(true)}
-                    className='dark:bg-card flex h-11 cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 text-sm font-medium transition-all hover:border-red-200 dark:border-white/10 dark:text-white'
-                >
-                    <Search className='h-4 w-4 text-red-500' /> Search & Add
-                </button>
+                <div className='flex items-center gap-3'>
+                    <SortSelect
+                        value={`${sort.sort_by ?? "created_at"}:${sort.order ?? "desc"}`}
+                        onChange={(value) => {
+                            const [sort_by, order] = value.split(":") as [
+                                "name" | "created_at",
+                                "asc" | "desc",
+                            ]
+                            onSortChange({ sort_by, order })
+                        }}
+                        options={COLLECTION_SORT_OPTIONS}
+                    />
+                    <button
+                        onClick={() => setIsSearchAddOpen(true)}
+                        className='dark:bg-card flex h-11 cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 text-sm font-medium transition-all hover:border-red-200 dark:border-white/10 dark:text-white'
+                    >
+                        <Search className='h-4 w-4 text-red-500' /> Search & Add
+                    </button>
+                </div>
             </div>
 
             {playlists.length === 0 ? (

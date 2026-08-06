@@ -21,14 +21,14 @@ class PlaylistService:
         order: str = "desc",
     ) -> list[dict[str, Any]]:
         """Get all playlists with their songs."""
-        sort_col = getattr(SongModel, sort_by, "title")
+        sort_col = getattr(PlaylistModel, sort_by, PlaylistModel.created_at)
         order_func = asc if order == "asc" else desc
 
         playlists = (
             db.query(PlaylistModel)
             .outerjoin(PlaylistModel.songs)
             .options(contains_eager(PlaylistModel.songs))
-            .order_by(PlaylistModel.id, order_func(sort_col))
+            .order_by(order_func(sort_col), PlaylistModel.id, SongModel.title)
             .all()
         )
 

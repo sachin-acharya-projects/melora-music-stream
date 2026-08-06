@@ -42,7 +42,9 @@ def get_playlist(
     playlist_id: str,
     db: SessionDep,
     q: Annotated[str | None, Query()] = None,
-    sort_by: Annotated[str, Query(pattern="^(title|created_at)$")] = "created_at",
+    sort_by: Annotated[
+        str, Query(pattern="^(title|uploader|duration|created_at)$")
+    ] = "created_at",
     order: Annotated[str, Query(pattern="^(asc|desc)$")] = "desc",
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=500)] = 50,

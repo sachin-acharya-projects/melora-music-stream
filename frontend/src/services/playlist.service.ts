@@ -3,7 +3,7 @@ import { ENDPOINTS } from "@/utils/api/endpoints"
 import { http } from "@/utils/api/http"
 
 export interface PlaylistSortOptions {
-    sort_by?: "name" | "created_at" | "title"
+    sort_by?: "name" | "created_at" | "title" | "uploader" | "duration"
     order?: "asc" | "desc"
     q?: string
     page?: number

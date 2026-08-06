@@ -1,3 +1,5 @@
+from datetime import UTC, datetime, timedelta
+
 import pytest
 from sqlalchemy.orm import Session
 
@@ -32,6 +34,46 @@ class TestGetAllPlaylists:
         assert len(result) == 1
         assert result[0]["name"] == "My Playlist"
 
+    def test_sorts_by_name_asc(self, db: Session) -> None:
+        db.add_all(
+            [
+                PlaylistModel(name="Zeta"),
+                PlaylistModel(name="Alpha"),
+                PlaylistModel(name="Mid"),
+            ]
+        )
+        db.commit()
+
+        result = PlaylistService.get_all_playlists(db, sort_by="name", order="asc")
+        assert [p["name"] for p in result] == ["Alpha", "Mid", "Zeta"]
+
+    def test_sorts_by_name_desc(self, db: Session) -> None:
+        db.add_all(
+            [
+                PlaylistModel(name="Alpha"),
+                PlaylistModel(name="Mid"),
+                PlaylistModel(name="Zeta"),
+            ]
+        )
+        db.commit()
+
+        result = PlaylistService.get_all_playlists(db, sort_by="name", order="desc")
+        assert [p["name"] for p in result] == ["Zeta", "Mid", "Alpha"]
+
+    def test_sorts_by_created_at_desc(self, db: Session) -> None:
+        base = datetime(2024, 1, 1, tzinfo=UTC)
+        older = PlaylistModel(name="Older")
+        newer = PlaylistModel(name="Newer")
+        older.created_at = base
+        newer.created_at = base + timedelta(days=1)
+        db.add_all([older, newer])
+        db.commit()
+
+        result = PlaylistService.get_all_playlists(
+            db, sort_by="created_at", order="desc"
+        )
+        assert [p["name"] for p in result] == ["Newer", "Older"]
+
 
 class TestGetPlaylistById:
     def test_not_found_raises(self, db: Session) -> None:
@@ -47,6 +89,77 @@ class TestGetPlaylistById:
         result = PlaylistService.get_playlist_by_id(db, playlist.id)
         assert result["name"] == "My Playlist"
         assert result["songs"] == []
+
+    def test_sorts_songs_by_title(self, db: Session) -> None:
+        playlist = PlaylistModel(name="Sorted")
+        db.add(playlist)
+        db.commit()
+        for title in ("Zulu", "Alpha", "Mike"):
+            PlaylistService.add_song_to_playlist(
+                db,
+                playlist_id_or_name=playlist.id,
+                song=Song(
+                    id=f"song-{title.lower()}",
+                    title=title,
+                    uploader="Artist",
+                    thumbnail="",
+                    duration=100,
+                ),
+            )
+
+        result = PlaylistService.get_playlist_by_id(
+            db, playlist.id, sort_by="title", order="asc"
+        )
+        assert [s["title"] for s in result["songs"]] == ["Alpha", "Mike", "Zulu"]
+
+        result = PlaylistService.get_playlist_by_id(
+            db, playlist.id, sort_by="title", order="desc"
+        )
+        assert [s["title"] for s in result["songs"]] == ["Zulu", "Mike", "Alpha"]
+
+    def test_sorts_songs_by_uploader(self, db: Session) -> None:
+        playlist = PlaylistModel(name="Sorted")
+        db.add(playlist)
+        db.commit()
+        for song_id, uploader in (("s1", "Bravo"), ("s2", "Alpha"), ("s3", "Charlie")):
+            PlaylistService.add_song_to_playlist(
+                db,
+                playlist_id_or_name=playlist.id,
+                song=Song(
+                    id=song_id,
+                    title="Song",
+                    uploader=uploader,
+                    thumbnail="",
+                    duration=100,
+                ),
+            )
+
+        result = PlaylistService.get_playlist_by_id(
+            db, playlist.id, sort_by="uploader", order="asc"
+        )
+        assert [s["uploader"] for s in result["songs"]] == ["Alpha", "Bravo", "Charlie"]
+
+    def test_sorts_songs_by_duration(self, db: Session) -> None:
+        playlist = PlaylistModel(name="Sorted")
+        db.add(playlist)
+        db.commit()
+        for song_id, duration in (("s1", 300), ("s2", 100), ("s3", 200)):
+            PlaylistService.add_song_to_playlist(
+                db,
+                playlist_id_or_name=playlist.id,
+                song=Song(
+                    id=song_id,
+                    title="Song",
+                    uploader="Artist",
+                    thumbnail="",
+                    duration=duration,
+                ),
+            )
+
+        result = PlaylistService.get_playlist_by_id(
+            db, playlist.id, sort_by="duration", order="asc"
+        )
+        assert [s["duration"] for s in result["songs"]] == [100, 200, 300]
 
 
 class TestCreatePlaylist:

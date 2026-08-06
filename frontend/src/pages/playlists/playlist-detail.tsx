@@ -3,6 +3,7 @@ import { SearchAddModal } from "@/components/playlist/search-add-modal"
 import BulkActionBar from "@/components/ui/bulk-action-bar/bulk-action-bar"
 import ConfirmationDialog from "@/components/ui/confirmation-dialog/confirmation-dialog"
 import ReorderItem from "@/components/ui/reorder-item/reorder-item"
+import SortSelect, { type SortSelectOption } from "@/components/ui/sort-select/sort-select"
 import ViewToggle from "@/components/ui/view-toggle/view-toggle"
 import { usePlayerStore } from "@/hooks/usePlayer"
 import { usePlaylistMenu } from "@/hooks/usePlaylistMenu"
@@ -40,6 +41,16 @@ import { toast } from "react-toastify"
 const ITEMS_PER_PAGE = 10
 const SEARCH_PAGE_SIZE = 500
 
+const SONG_SORT_OPTIONS: SortSelectOption[] = [
+    { value: "created_at:desc", label: "Recently added" },
+    { value: "title:asc", label: "Title A–Z" },
+    { value: "title:desc", label: "Title Z–A" },
+    { value: "uploader:asc", label: "Artist A–Z" },
+    { value: "uploader:desc", label: "Artist Z–A" },
+    { value: "duration:asc", label: "Duration ↑" },
+    { value: "duration:desc", label: "Duration ↓" },
+]
+
 export function PlaylistDetail({ playlistId }: { playlistId: string }) {
     const navigate = useNavigate()
     const queryClient = useQueryClient()
@@ -65,6 +76,7 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
     const [playlistSearch, setPlaylistSearch] = useState("")
     const [debouncedSearch, setDebouncedSearch] = useState("")
     const [isPaginated, setIsPaginated] = useState(true)
+    const [playlistSort, setPlaylistSort] = useState("created_at:desc")
     const [targetPlaylistId, setTargetPlaylistId] = useState("")
 
     const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false)
@@ -82,7 +94,16 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
         playlists,
     })
 
-    const detailOptions = { q: debouncedSearch || undefined, page_size: SEARCH_PAGE_SIZE }
+    const [playlistSortBy, playlistSortOrder] = playlistSort.split(":") as [
+        "title" | "uploader" | "duration" | "created_at",
+        "asc" | "desc",
+    ]
+    const detailOptions = {
+        q: debouncedSearch || undefined,
+        sort_by: playlistSortBy,
+        order: playlistSortOrder,
+        page_size: SEARCH_PAGE_SIZE,
+    }
     const playlistQuery = usePlaylist(playlistId, detailOptions)
     const playlist = playlistQuery.data
 
@@ -358,6 +379,14 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
                 </div>
 
                 <div className='flex items-center gap-3'>
+                    <SortSelect
+                        value={playlistSort}
+                        onChange={(value) => {
+                            setPlaylistSort(value)
+                            setCurrentPage(1)
+                        }}
+                        options={SONG_SORT_OPTIONS}
+                    />
                     <button
                         onClick={() => setIsPaginated(!isPaginated)}
                         className={`flex h-11 cursor-pointer items-center gap-2 rounded-xl border px-4 text-sm font-medium shadow-sm transition-all ${

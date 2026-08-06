@@ -35,6 +35,30 @@ class TestGetPlaylist:
         assert response.status_code == 200
         assert response.json()["name"] == "My Playlist"
 
+    def test_sorts_songs_by_duration(self, client, db: Session) -> None:
+        playlist = PlaylistModel(name="Sorted")
+        db.add(playlist)
+        db.commit()
+
+        for song_id, duration in (("s1", 300), ("s2", 100)):
+            client.post(
+                f"/api/v1/playlists/{playlist.id}/add",
+                json={
+                    "id": song_id,
+                    "title": f"Song {song_id}",
+                    "uploader": "Artist",
+                    "thumbnail": "http://example.com/t.jpg",
+                    "duration": duration,
+                },
+            )
+
+        response = client.get(
+            f"/api/v1/playlists/{playlist.id}",
+            params={"sort_by": "duration", "order": "asc"},
+        )
+        assert response.status_code == 200
+        assert [s["id"] for s in response.json()["songs"]] == ["s2", "s1"]
+
 
 class TestCreatePlaylist:
     def test_creates(self, client) -> None:
