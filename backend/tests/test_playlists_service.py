@@ -198,6 +198,15 @@ class TestToggleFollow:
             PlaylistService.toggle_follow(db, playlist_id=playlist.id, user=test_user)
         assert exc_info.value.status_code == 404
 
+    def test_cannot_follow_own_playlist(
+        self, db: Session, test_user: UserModel
+    ) -> None:
+        playlist = make_playlist(db, "Mine", test_user)
+
+        with pytest.raises(Exception) as exc_info:
+            PlaylistService.toggle_follow(db, playlist_id=playlist.id, user=test_user)
+        assert exc_info.value.status_code == 400
+
 
 class TestGetPlaylistById:
     def test_not_found_raises(self, db: Session) -> None:

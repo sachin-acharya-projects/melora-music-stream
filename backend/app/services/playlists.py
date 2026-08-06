@@ -259,6 +259,11 @@ class PlaylistService:
 
         PlaylistService._ensure_can_view(db_playlist, user)
 
+        if db_playlist.user_id == user.id:
+            raise HTTPException(
+                status_code=400, detail="You cannot follow your own playlist"
+            )
+
         is_following = user in db_playlist.followers
         if is_following:
             db_playlist.followers.remove(user)

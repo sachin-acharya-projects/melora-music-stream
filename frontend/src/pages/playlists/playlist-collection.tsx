@@ -224,27 +224,31 @@ export function PlaylistCollection({
                             ))}
                         </div>
                     )}
-                    {isOwnerView && (
-                        <>
-                            <SortSelect
-                                value={`${sort.sort_by ?? "created_at"}:${sort.order ?? "desc"}`}
-                                onChange={(value) => {
-                                    const [sort_by, order] = value.split(":") as [
-                                        "name" | "created_at",
-                                        "asc" | "desc",
-                                    ]
-                                    onSortChange({ sort_by, order })
-                                }}
-                                options={COLLECTION_SORT_OPTIONS}
-                            />
-                            <button
-                                onClick={() => setIsSearchAddOpen(true)}
-                                className='dark:bg-card flex h-11 cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 text-sm font-medium transition-all hover:border-red-200 dark:border-white/10 dark:text-white'
-                            >
-                                <Search className='h-4 w-4 text-red-500' /> Search & Add
-                            </button>
-                        </>
-                    )}
+                    <div
+                        className={`flex items-center gap-3 overflow-hidden whitespace-nowrap transition-all duration-300 ease-in-out ${
+                            isOwnerView
+                                ? "max-w-[400px] opacity-100"
+                                : "pointer-events-none -ml-3 max-w-0 opacity-0"
+                        }`}
+                    >
+                        <SortSelect
+                            value={`${sort.sort_by ?? "created_at"}:${sort.order ?? "desc"}`}
+                            onChange={(value) => {
+                                const [sort_by, order] = value.split(":") as [
+                                    "name" | "created_at",
+                                    "asc" | "desc",
+                                ]
+                                onSortChange({ sort_by, order })
+                            }}
+                            options={COLLECTION_SORT_OPTIONS}
+                        />
+                        <button
+                            onClick={() => setIsSearchAddOpen(true)}
+                            className='dark:bg-card flex h-11 cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 text-sm font-medium transition-all hover:border-red-200 dark:border-white/10 dark:text-white'
+                        >
+                            <Search className='h-4 w-4 text-red-500' /> Search & Add
+                        </button>
+                    </div>
                 </div>
             </div>
 

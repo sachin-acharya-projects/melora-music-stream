@@ -150,6 +150,20 @@ class TestFollow:
         )
         assert response.json() == {"is_following": False, "follower_count": 0}
 
+    def test_cannot_follow_own_playlist(
+        self,
+        client,
+        db: Session,
+        test_user: UserModel,
+        auth_headers: dict[str, str],
+    ) -> None:
+        playlist = make_playlist(db, "Mine", test_user)
+
+        response = client.post(
+            f"/api/v1/playlists/{playlist.id}/follow", headers=auth_headers
+        )
+        assert response.status_code == 400
+
 
 class TestGetPlaylist:
     def test_not_found(self, client, auth_headers: dict[str, str]) -> None:

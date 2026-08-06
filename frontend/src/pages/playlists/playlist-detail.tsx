@@ -298,7 +298,7 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
                 <div className='fixed inset-0 z-20' onClick={() => setIsManageOpen(false)} />
                 <div
                     onClick={(e) => e.stopPropagation()}
-                    className='dark:bg-card fixed z-40 w-48 overflow-hidden rounded-xl border bg-white p-1 shadow-xl dark:border-white/10'
+                    className='dark:bg-card fixed z-40 w-56 overflow-hidden rounded-xl border bg-white p-1 whitespace-nowrap shadow-xl dark:border-white/10'
                     style={{
                         top: rect.bottom + 4,
                         right: Math.max(8, window.innerWidth - rect.right),
@@ -415,7 +415,7 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
 
                 <div className='min-w-0 flex-1'>
                     <div className='flex flex-wrap items-center gap-2'>
-                        <h1 className='text-3xl font-bold capitalize dark:text-white'>
+                        <h1 className='m-0 text-3xl leading-none font-bold capitalize dark:text-white'>
                             {playlistName}
                         </h1>
                         {playlist?.visibility === "public" ? (

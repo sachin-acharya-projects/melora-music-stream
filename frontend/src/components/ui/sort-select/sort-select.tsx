@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion"
 import { Check, ChevronDown } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
+import { createPortal } from "react-dom"
 
 export interface SortSelectOption {
     value: string
@@ -17,13 +18,21 @@ interface SortSelectProps {
 export default function SortSelect({ value, onChange, options, className }: SortSelectProps) {
     const [isOpen, setIsOpen] = useState(false)
     const [openUpward, setOpenUpward] = useState(false)
+    const [rect, setRect] = useState<DOMRect | null>(null)
     const containerRef = useRef<HTMLDivElement>(null)
+    const dropdownRef = useRef<HTMLDivElement>(null)
 
     const selected = options.find((option) => option.value === value)
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+            const target = event.target as Node
+            if (
+                containerRef.current &&
+                !containerRef.current.contains(target) &&
+                dropdownRef.current &&
+                !dropdownRef.current.contains(target)
+            ) {
                 setIsOpen(false)
             }
         }
@@ -31,19 +40,20 @@ export default function SortSelect({ value, onChange, options, className }: Sort
         return () => document.removeEventListener("mousedown", handleClickOutside)
     }, [])
 
-    useEffect(() => {
-        if (isOpen && containerRef.current) {
-            const rect = containerRef.current.getBoundingClientRect()
-            const spaceBelow = window.innerHeight - rect.bottom
-            setOpenUpward(spaceBelow < 200)
+    const toggleOpen = () => {
+        if (containerRef.current) {
+            const r = containerRef.current.getBoundingClientRect()
+            setRect(r)
+            setOpenUpward(window.innerHeight - r.bottom < 200)
         }
-    }, [isOpen])
+        setIsOpen((prev) => !prev)
+    }
 
     return (
         <div className={`relative ${className}`} ref={containerRef}>
             <button
                 type='button'
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={toggleOpen}
                 aria-haspopup='listbox'
                 aria-expanded={isOpen}
                 className='dark:bg-card flex h-11 cursor-pointer items-center gap-2 rounded-xl border bg-white px-3 text-sm font-medium shadow-sm transition-all hover:border-red-200 dark:border-white/10 dark:text-white'
@@ -57,42 +67,51 @@ export default function SortSelect({ value, onChange, options, className }: Sort
             </button>
 
             <AnimatePresence>
-                {isOpen && (
-                    <motion.div
-                        role='listbox'
-                        initial={{ opacity: 0, y: openUpward ? -10 : 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: openUpward ? -10 : 10 }}
-                        transition={{ duration: 0.15 }}
-                        className={`absolute left-0 z-50 w-max min-w-full overflow-hidden rounded-xl border bg-white p-1 shadow-xl dark:border-white/10 dark:bg-black ${
-                            openUpward ? "bottom-full mb-2" : "top-full mt-2"
-                        }`}
-                    >
-                        {options.map((option) => {
-                            const isSelected = option.value === value
-                            return (
-                                <button
-                                    key={option.value}
-                                    type='button'
-                                    role='option'
-                                    aria-selected={isSelected}
-                                    onClick={() => {
-                                        onChange(option.value)
-                                        setIsOpen(false)
-                                    }}
-                                    className={`flex w-full cursor-pointer items-center justify-between gap-6 rounded-lg px-3 py-2 text-left text-sm whitespace-nowrap transition-colors ${
-                                        isSelected
-                                            ? "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400"
-                                            : "text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-white/5"
-                                    }`}
-                                >
-                                    {option.label}
-                                    {isSelected && <Check className='h-4 w-4 shrink-0' />}
-                                </button>
-                            )
-                        })}
-                    </motion.div>
-                )}
+                {isOpen &&
+                    rect &&
+                    createPortal(
+                        <motion.div
+                            role='listbox'
+                            ref={dropdownRef}
+                            initial={{ opacity: 0, y: openUpward ? -10 : 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: openUpward ? -10 : 10 }}
+                            transition={{ duration: 0.15 }}
+                            style={{
+                                position: "fixed",
+                                top: openUpward ? undefined : rect.bottom + 8,
+                                bottom: openUpward ? window.innerHeight - rect.top + 8 : undefined,
+                                left: rect.left,
+                                minWidth: rect.width,
+                            }}
+                            className='z-50 max-h-80 overflow-y-auto rounded-xl border bg-white p-1 shadow-xl dark:border-white/10 dark:bg-black'
+                        >
+                            {options.map((option) => {
+                                const isSelected = option.value === value
+                                return (
+                                    <button
+                                        key={option.value}
+                                        type='button'
+                                        role='option'
+                                        aria-selected={isSelected}
+                                        onClick={() => {
+                                            onChange(option.value)
+                                            setIsOpen(false)
+                                        }}
+                                        className={`flex w-full cursor-pointer items-center justify-between gap-6 rounded-lg px-3 py-2 text-left text-sm whitespace-nowrap transition-colors ${
+                                            isSelected
+                                                ? "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400"
+                                                : "text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-white/5"
+                                        }`}
+                                    >
+                                        {option.label}
+                                        {isSelected && <Check className='h-4 w-4 shrink-0' />}
+                                    </button>
+                                )
+                            })}
+                        </motion.div>,
+                        document.body,
+                    )}
             </AnimatePresence>
         </div>
     )
