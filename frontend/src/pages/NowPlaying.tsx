@@ -446,29 +446,31 @@ export default function NowPlaying() {
 
                 {/* Right side: Up Next / Lyrics */}
                 <div className='flex flex-col gap-6'>
-                    <div className='flex items-center gap-2 border-b pb-4 dark:border-white/10'>
-                        <button
-                            onClick={() => setRightTab("queue")}
-                            className={cn(
-                                "flex cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors",
-                                rightTab === "queue"
-                                    ? "bg-red-600 text-white"
-                                    : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/10",
-                            )}
-                        >
-                            <ListMusic className='h-4 w-4' /> Up Next
-                        </button>
-                        <button
-                            onClick={() => setRightTab("lyrics")}
-                            className={cn(
-                                "flex cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors",
-                                rightTab === "lyrics"
-                                    ? "bg-red-600 text-white"
-                                    : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/10",
-                            )}
-                        >
-                            <MicVocal className='h-4 w-4' /> Lyrics
-                        </button>
+                    <div className='flex items-center justify-between gap-2 border-b pb-4 dark:border-white/10'>
+                        <div className='flex items-center gap-1 rounded-xl bg-gray-100 p-1 dark:bg-white/10'>
+                            <button
+                                onClick={() => setRightTab("queue")}
+                                className={cn(
+                                    "flex cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-semibold transition-all",
+                                    rightTab === "queue"
+                                        ? "bg-red-600 text-white shadow-sm"
+                                        : "text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white",
+                                )}
+                            >
+                                <ListMusic className='h-4 w-4' /> Up Next
+                            </button>
+                            <button
+                                onClick={() => setRightTab("lyrics")}
+                                className={cn(
+                                    "flex cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-semibold transition-all",
+                                    rightTab === "lyrics"
+                                        ? "bg-red-600 text-white shadow-sm"
+                                        : "text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white",
+                                )}
+                            >
+                                <MicVocal className='h-4 w-4' /> Lyrics
+                            </button>
+                        </div>
                     </div>
 
                     {rightTab === "lyrics" ? (
