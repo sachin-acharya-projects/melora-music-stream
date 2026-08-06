@@ -14,6 +14,9 @@ import {
     Check,
     CheckSquare,
     Edit2,
+    Eye,
+    EyeOff,
+    Heart,
     Import,
     ListMusic,
     Loader2,
@@ -26,6 +29,7 @@ import {
 } from "lucide-react"
 import { useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { type PlaylistsTab } from "@/pages/Playlists"
 
 const COLLECTION_SORT_OPTIONS: SortSelectOption[] = [
     { value: "created_at:desc", label: "Recently added" },
@@ -34,13 +38,40 @@ const COLLECTION_SORT_OPTIONS: SortSelectOption[] = [
     { value: "name:desc", label: "Name Z–A" },
 ]
 
+const TAB_LABELS: Record<PlaylistsTab, { title: string; subtitle: string }> = {
+    mine: {
+        title: "My Playlists",
+        subtitle: "Your collections, all in one place",
+    },
+    discover: {
+        title: "Discover",
+        subtitle: "Trending public playlists from the community",
+    },
+    following: {
+        title: "Following",
+        subtitle: "Playlists you're following",
+    },
+}
+
 interface PlaylistCollectionProps {
     playlists: Playlist[]
     sort: PlaylistSortOptions
     onSortChange: (sort: PlaylistSortOptions) => void
+    view?: PlaylistsTab
+    onTabChange?: (tab: PlaylistsTab) => void
+    onFollow?: (playlistId: string) => Promise<{ is_following: boolean; follower_count: number }>
+    isFollowing?: boolean
 }
 
-export function PlaylistCollection({ playlists, sort, onSortChange }: PlaylistCollectionProps) {
+export function PlaylistCollection({
+    playlists,
+    sort,
+    onSortChange,
+    view = "mine",
+    onTabChange,
+    onFollow,
+    isFollowing,
+}: PlaylistCollectionProps) {
     const navigate = useNavigate()
     const setPlaylist = usePlayerStore((s) => s.setPlaylist)
     const {
@@ -53,10 +84,14 @@ export function PlaylistCollection({ playlists, sort, onSortChange }: PlaylistCo
         deletePlaylistsBulk,
     } = usePlaylists()
 
+    const isOwnerView = view === "mine"
+
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [modalMode, setModalMode] = useState<"create" | "import">("create")
     const [name, setName] = useState("")
     const [url, setUrl] = useState("")
+    const [description, setDescription] = useState("")
+    const [visibility, setVisibility] = useState<"private" | "public">("private")
     const [editingId, setEditingId] = useState<string | null>(null)
     const [newName, setNewName] = useState("")
     const [playlistToDelete, setPlaylistToDelete] = useState<Playlist | null>(null)
@@ -107,7 +142,15 @@ export function PlaylistCollection({ playlists, sort, onSortChange }: PlaylistCo
         setModalMode(mode)
         setName("")
         setUrl("")
+        setDescription("")
+        setVisibility("private")
         setIsModalOpen(true)
+    }
+
+    const toggleFollow = async (playlist: Playlist) => {
+        if (onFollow) {
+            await onFollow(playlist.id)
+        }
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -122,10 +165,11 @@ export function PlaylistCollection({ playlists, sort, onSortChange }: PlaylistCo
                     await importPlaylist({ url, name })
                 }
             } else {
-                await createPlaylist(name)
+                await createPlaylist({ name, description: description || undefined, visibility })
             }
             setName("")
             setUrl("")
+            setDescription("")
             setIsModalOpen(false)
         } catch {
             // Error toast is handled by the mutation's onError.
@@ -150,30 +194,56 @@ export function PlaylistCollection({ playlists, sort, onSortChange }: PlaylistCo
             <div className='mb-8 flex flex-wrap items-end justify-between gap-4'>
                 <div>
                     <h1 className='text-3xl font-bold dark:text-white'>
-                        My <span className='text-red-500'>Playlists</span>
+                        {TAB_LABELS[view].title.split(" ")[0]}{" "}
+                        <span className='text-red-500'>Playlists</span>
                     </h1>
                     <p className='mt-1 text-sm text-gray-500 dark:text-gray-400'>
-                        Your collections, all in one place
+                        {TAB_LABELS[view].subtitle}
                     </p>
                 </div>
                 <div className='flex items-center gap-3'>
-                    <SortSelect
-                        value={`${sort.sort_by ?? "created_at"}:${sort.order ?? "desc"}`}
-                        onChange={(value) => {
-                            const [sort_by, order] = value.split(":") as [
-                                "name" | "created_at",
-                                "asc" | "desc",
-                            ]
-                            onSortChange({ sort_by, order })
-                        }}
-                        options={COLLECTION_SORT_OPTIONS}
-                    />
-                    <button
-                        onClick={() => setIsSearchAddOpen(true)}
-                        className='dark:bg-card flex h-11 cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 text-sm font-medium transition-all hover:border-red-200 dark:border-white/10 dark:text-white'
-                    >
-                        <Search className='h-4 w-4 text-red-500' /> Search & Add
-                    </button>
+                    {onTabChange && (
+                        <div className='dark:bg-card flex items-center gap-1 rounded-xl border border-gray-200 bg-white p-1 dark:border-white/10'>
+                            {(Object.keys(TAB_LABELS) as PlaylistsTab[]).map((tab) => (
+                                <button
+                                    key={tab}
+                                    onClick={() => onTabChange(tab)}
+                                    className={`cursor-pointer rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+                                        view === tab
+                                            ? "bg-red-600 text-white"
+                                            : "text-gray-600 hover:text-red-500 dark:text-gray-300"
+                                    }`}
+                                >
+                                    {tab === "mine"
+                                        ? "My Playlists"
+                                        : tab === "discover"
+                                          ? "Discover"
+                                          : "Following"}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                    {isOwnerView && (
+                        <>
+                            <SortSelect
+                                value={`${sort.sort_by ?? "created_at"}:${sort.order ?? "desc"}`}
+                                onChange={(value) => {
+                                    const [sort_by, order] = value.split(":") as [
+                                        "name" | "created_at",
+                                        "asc" | "desc",
+                                    ]
+                                    onSortChange({ sort_by, order })
+                                }}
+                                options={COLLECTION_SORT_OPTIONS}
+                            />
+                            <button
+                                onClick={() => setIsSearchAddOpen(true)}
+                                className='dark:bg-card flex h-11 cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 text-sm font-medium transition-all hover:border-red-200 dark:border-white/10 dark:text-white'
+                            >
+                                <Search className='h-4 w-4 text-red-500' /> Search & Add
+                            </button>
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -183,17 +253,29 @@ export function PlaylistCollection({ playlists, sort, onSortChange }: PlaylistCo
                         <ListMusic className='h-9 w-9 text-red-500' />
                     </span>
                     <div className='flex flex-col gap-1'>
-                        <h2 className='text-lg font-semibold dark:text-white'>No playlists yet</h2>
+                        <h2 className='text-lg font-semibold dark:text-white'>
+                            {isOwnerView
+                                ? "No playlists yet"
+                                : view === "following"
+                                  ? "Not following anyone yet"
+                                  : "No public playlists yet"}
+                        </h2>
                         <p className='text-sm text-gray-500 dark:text-gray-400'>
-                            Create your first playlist to start organizing your music
+                            {isOwnerView
+                                ? "Create your first playlist to start organizing your music"
+                                : view === "following"
+                                  ? "Follow playlists from Discover to see them here"
+                                  : "When the community publishes playlists, they'll show up here"}
                         </p>
                     </div>
-                    <button
-                        onClick={() => openModal("create")}
-                        className='flex h-11 cursor-pointer items-center gap-2 rounded-xl bg-red-600 px-5 text-sm font-medium text-white transition-colors hover:bg-red-700'
-                    >
-                        <Plus className='h-4 w-4' /> Create Playlist
-                    </button>
+                    {isOwnerView && (
+                        <button
+                            onClick={() => openModal("create")}
+                            className='flex h-11 cursor-pointer items-center gap-2 rounded-xl bg-red-600 px-5 text-sm font-medium text-white transition-colors hover:bg-red-700'
+                        >
+                            <Plus className='h-4 w-4' /> Create Playlist
+                        </button>
+                    )}
                 </div>
             ) : (
                 <div className='grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'>
@@ -202,6 +284,8 @@ export function PlaylistCollection({ playlists, sort, onSortChange }: PlaylistCo
                             (acc, song) => acc + (song.duration || 0),
                             0,
                         )
+                        const isOwned = isOwnerView || playlist.is_owner
+                        const canFollow = !isOwned && !!onFollow
 
                         return (
                             <div
@@ -212,26 +296,28 @@ export function PlaylistCollection({ playlists, sort, onSortChange }: PlaylistCo
                                 <div className='relative aspect-square overflow-hidden rounded-t-2xl'>
                                     <PlaylistArt playlist={playlist} className='h-full w-full' />
 
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation()
-                                            togglePlaylistSelect(playlist.id)
-                                        }}
-                                        title={
-                                            selectedPlaylistIds.includes(playlist.id)
-                                                ? "Deselect"
-                                                : "Select"
-                                        }
-                                        className={`absolute top-2 left-2 z-10 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border-2 shadow-lg transition-all ${
-                                            selectedPlaylistIds.includes(playlist.id)
-                                                ? "border-red-600 bg-red-600 text-white opacity-100"
-                                                : "border-white/70 bg-black/40 text-white opacity-0 group-hover:opacity-100 hover:border-red-600 hover:bg-red-600"
-                                        }`}
-                                    >
-                                        {selectedPlaylistIds.includes(playlist.id) && (
-                                            <Check className='h-4 w-4' />
-                                        )}
-                                    </button>
+                                    {isOwned && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                togglePlaylistSelect(playlist.id)
+                                            }}
+                                            title={
+                                                selectedPlaylistIds.includes(playlist.id)
+                                                    ? "Deselect"
+                                                    : "Select"
+                                            }
+                                            className={`absolute top-2 left-2 z-10 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border-2 shadow-lg transition-all ${
+                                                selectedPlaylistIds.includes(playlist.id)
+                                                    ? "border-red-600 bg-red-600 text-white opacity-100"
+                                                    : "border-white/70 bg-black/40 text-white opacity-0 group-hover:opacity-100 hover:border-red-600 hover:bg-red-600"
+                                            }`}
+                                        >
+                                            {selectedPlaylistIds.includes(playlist.id) && (
+                                                <Check className='h-4 w-4' />
+                                            )}
+                                        </button>
+                                    )}
 
                                     <div className='absolute inset-0 flex items-center justify-center gap-2 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
                                         <button
@@ -244,42 +330,76 @@ export function PlaylistCollection({ playlists, sort, onSortChange }: PlaylistCo
                                         >
                                             <Play className='h-5 w-5 translate-x-0.5 fill-current' />
                                         </button>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation()
-                                                setEditingId(playlist.id)
-                                                setNewName(playlist.name)
-                                            }}
-                                            className='flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/20 text-white shadow-lg backdrop-blur-md transition-transform hover:scale-110'
-                                            title='Rename'
-                                        >
-                                            <Edit2 className='h-4 w-4' />
-                                        </button>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation()
-                                                setPlaylistToDelete(playlist)
-                                            }}
-                                            className='flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/20 text-white shadow-lg backdrop-blur-md transition-transform hover:scale-110'
-                                            title='Delete'
-                                        >
-                                            <Trash2 className='h-4 w-4' />
-                                        </button>
+                                        {isOwned && (
+                                            <>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        setEditingId(playlist.id)
+                                                        setNewName(playlist.name)
+                                                    }}
+                                                    className='flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/20 text-white shadow-lg backdrop-blur-md transition-transform hover:scale-110'
+                                                    title='Rename'
+                                                >
+                                                    <Edit2 className='h-4 w-4' />
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        setPlaylistToDelete(playlist)
+                                                    }}
+                                                    className='flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/20 text-white shadow-lg backdrop-blur-md transition-transform hover:scale-110'
+                                                    title='Delete'
+                                                >
+                                                    <Trash2 className='h-4 w-4' />
+                                                </button>
+                                            </>
+                                        )}
+                                        {canFollow && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    toggleFollow(playlist)
+                                                }}
+                                                disabled={isFollowing}
+                                                className='flex h-9 cursor-pointer items-center gap-1.5 rounded-full bg-white/20 px-3 text-sm font-medium text-white shadow-lg backdrop-blur-md transition-transform hover:scale-110 disabled:opacity-60'
+                                                title={
+                                                    playlist.is_following ? "Unfollow" : "Follow"
+                                                }
+                                            >
+                                                {isFollowing ? (
+                                                    <Loader2 className='h-4 w-4 animate-spin' />
+                                                ) : (
+                                                    <Heart
+                                                        className={`h-4 w-4 ${
+                                                            playlist.is_following
+                                                                ? "fill-red-500 text-red-500"
+                                                                : ""
+                                                        }`}
+                                                    />
+                                                )}
+                                                {playlist.is_following ? "Following" : "Follow"}
+                                            </button>
+                                        )}
                                     </div>
 
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation()
-                                            setMoreMenuFor(
-                                                moreMenuFor === playlist.id ? null : playlist.id,
-                                            )
-                                        }}
-                                        data-more-btn={playlist.id}
-                                        className='absolute top-2 right-2 z-10 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-black/50 text-white opacity-0 shadow-lg backdrop-blur-sm transition-all group-hover:opacity-100 hover:bg-black/70'
-                                        title='More options'
-                                    >
-                                        <MoreHorizontal className='h-4 w-4' />
-                                    </button>
+                                    {isOwned && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                setMoreMenuFor(
+                                                    moreMenuFor === playlist.id
+                                                        ? null
+                                                        : playlist.id,
+                                                )
+                                            }}
+                                            data-more-btn={playlist.id}
+                                            className='absolute top-2 right-2 z-10 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-black/50 text-white opacity-0 shadow-lg backdrop-blur-sm transition-all group-hover:opacity-100 hover:bg-black/70'
+                                            title='More options'
+                                        >
+                                            <MoreHorizontal className='h-4 w-4' />
+                                        </button>
+                                    )}
                                 </div>
 
                                 <div className='p-3'>
@@ -312,14 +432,45 @@ export function PlaylistCollection({ playlists, sort, onSortChange }: PlaylistCo
                                         </form>
                                     ) : (
                                         <>
-                                            <h3 className='truncate text-sm font-semibold capitalize dark:text-white'>
-                                                {playlist.name}
-                                            </h3>
+                                            <div className='flex items-center gap-1.5'>
+                                                <h3 className='truncate text-sm font-semibold capitalize dark:text-white'>
+                                                    {playlist.name}
+                                                </h3>
+                                                {playlist.visibility === "public" ? (
+                                                    <span
+                                                        className='flex shrink-0 items-center gap-1 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400'
+                                                        title='Public playlist'
+                                                    >
+                                                        <Eye className='h-3 w-3' />
+                                                    </span>
+                                                ) : (
+                                                    <span
+                                                        className='flex shrink-0 items-center gap-1 rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500 dark:bg-white/10 dark:text-gray-400'
+                                                        title='Private playlist'
+                                                    >
+                                                        <EyeOff className='h-3 w-3' />
+                                                    </span>
+                                                )}
+                                                {(playlist.follower_count ?? 0) > 0 && (
+                                                    <span
+                                                        className='flex shrink-0 items-center gap-1 text-[10px] font-medium text-gray-400'
+                                                        title='Followers'
+                                                    >
+                                                        <Heart className='h-3 w-3' />
+                                                        {playlist.follower_count}
+                                                    </span>
+                                                )}
+                                            </div>
                                             <p className='mt-0.5 text-xs text-gray-500 dark:text-gray-400'>
                                                 {playlist.songs.length}{" "}
                                                 {playlist.songs.length === 1 ? "song" : "songs"} ·{" "}
                                                 {formatDuration(totalDuration)}
                                             </p>
+                                            {playlist.description && (
+                                                <p className='mt-1 line-clamp-1 text-xs text-gray-400 dark:text-gray-500'>
+                                                    {playlist.description}
+                                                </p>
+                                            )}
                                         </>
                                     )}
                                 </div>
@@ -327,13 +478,15 @@ export function PlaylistCollection({ playlists, sort, onSortChange }: PlaylistCo
                         )
                     })}
 
-                    <button
-                        onClick={() => openModal("create")}
-                        className='flex aspect-square cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-300 text-gray-400 transition-colors hover:border-red-500 hover:text-red-500 dark:border-white/10'
-                    >
-                        <Plus className='h-8 w-8' />
-                        <span className='text-sm font-medium'>New Playlist</span>
-                    </button>
+                    {isOwnerView && (
+                        <button
+                            onClick={() => openModal("create")}
+                            className='flex aspect-square cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-300 text-gray-400 transition-colors hover:border-red-500 hover:text-red-500 dark:border-white/10'
+                        >
+                            <Plus className='h-8 w-8' />
+                            <span className='text-sm font-medium'>New Playlist</span>
+                        </button>
+                    )}
                 </div>
             )}
 
@@ -487,6 +640,59 @@ export function PlaylistCollection({ playlists, sort, onSortChange }: PlaylistCo
                                             className='h-11 w-full rounded-lg border bg-gray-50 px-3 text-sm dark:border-white/5 dark:bg-black dark:text-white'
                                         />
                                     </div>
+                                )}
+
+                                {modalMode === "create" && (
+                                    <>
+                                        <div className='flex flex-col gap-1.5'>
+                                            <label className='text-sm font-medium text-gray-700 dark:text-gray-300'>
+                                                Description (optional)
+                                            </label>
+                                            <textarea
+                                                value={description}
+                                                onChange={(e) => setDescription(e.target.value)}
+                                                placeholder="What's this playlist about?"
+                                                rows={2}
+                                                className='w-full rounded-lg border bg-gray-50 px-3 py-2 text-sm dark:border-white/5 dark:bg-black dark:text-white'
+                                            />
+                                        </div>
+                                        <div className='flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 dark:border-white/5 dark:bg-black'>
+                                            <div className='flex flex-col gap-0.5'>
+                                                <span className='text-sm font-medium dark:text-white'>
+                                                    {visibility === "public" ? "Public" : "Private"}
+                                                </span>
+                                                <span className='text-xs text-gray-500 dark:text-gray-400'>
+                                                    {visibility === "public"
+                                                        ? "Anyone can discover and follow this playlist"
+                                                        : "Only you can see this playlist"}
+                                                </span>
+                                            </div>
+                                            <button
+                                                type='button'
+                                                onClick={() =>
+                                                    setVisibility(
+                                                        visibility === "public"
+                                                            ? "private"
+                                                            : "public",
+                                                    )
+                                                }
+                                                className={`relative h-6 w-11 cursor-pointer rounded-full transition-colors ${
+                                                    visibility === "public"
+                                                        ? "bg-emerald-500"
+                                                        : "bg-gray-300 dark:bg-white/10"
+                                                }`}
+                                                title='Toggle visibility'
+                                            >
+                                                <span
+                                                    className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${
+                                                        visibility === "public"
+                                                            ? "left-[22px]"
+                                                            : "left-0.5"
+                                                    }`}
+                                                />
+                                            </button>
+                                        </div>
+                                    </>
                                 )}
 
                                 {modalMode === "create" && (

@@ -7,11 +7,19 @@ export interface Song {
     created_at: string
 }
 
+export type PlaylistVisibility = "public" | "private"
+
 export interface Playlist {
     id: string
     name: string
     created_at: string
     songs: Song[]
+    visibility?: PlaylistVisibility
+    description?: string | null
+    cover_image_url?: string | null
+    follower_count?: number
+    is_owner?: boolean
+    is_following?: boolean
 }
 
 export interface PlaylistDetail extends Playlist {

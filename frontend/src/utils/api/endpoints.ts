@@ -8,6 +8,9 @@ export const ENDPOINTS = {
     PLAYLISTS: {
         BASE: "/playlists/",
         BY_ID: (id: string) => `/playlists/${id}`,
+        DISCOVER: "/playlists/discover",
+        FOLLOWING: "/playlists/following",
+        FOLLOW: (id: string) => `/playlists/${id}/follow`,
         ADD_SONG: (playlistIdOrName: string) =>
             `/playlists/${encodeURIComponent(playlistIdOrName)}/add`,
         ADD_SONGS_BULK: (playlistIdOrName: string) =>

@@ -16,7 +16,7 @@ export function AddToPlaylistModal({ song, onClose }: { song: PlaylistItem; onCl
             const existing = playlists.find((p) => p.name?.toLowerCase() === name.toLowerCase())
             let playlistId = existing?.id
             if (!playlistId) {
-                const created = await createPlaylist(name)
+                const created = await createPlaylist({ name })
                 playlistId = created.id
             }
             await addSongsBulk({ playlistId: playlistId!, songs: [song] })

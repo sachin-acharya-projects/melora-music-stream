@@ -42,7 +42,7 @@ export default function Queue() {
             let playlistId = existing?.id
 
             if (!playlistId) {
-                const newPlaylist = await createPlaylist(playlistInput)
+                const newPlaylist = await createPlaylist({ name: playlistInput })
                 playlistId = newPlaylist.id
             }
 

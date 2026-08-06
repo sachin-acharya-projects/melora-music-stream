@@ -1,4 +1,8 @@
-import { playlistService, type PlaylistSortOptions } from "@/services/playlist.service"
+import {
+    playlistService,
+    type PlaylistSortOptions,
+    type PlaylistUpdatePayload,
+} from "@/services/playlist.service"
 import { type Song } from "@/types"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "react-toastify"
@@ -12,7 +16,15 @@ export function usePlaylists(options: PlaylistSortOptions = {}) {
     })
 
     const createPlaylistMutation = useMutation({
-        mutationFn: playlistService.create,
+        mutationFn: ({
+            name,
+            description,
+            visibility,
+        }: {
+            name: string
+            description?: string
+            visibility?: "private" | "public"
+        }) => playlistService.create(name, description, visibility),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["playlists"] })
         },
@@ -82,6 +94,17 @@ export function usePlaylists(options: PlaylistSortOptions = {}) {
         onError: () => toast.error("Failed to delete some playlists"),
     })
 
+    const updatePlaylistMutation = useMutation({
+        mutationFn: ({ id, payload }: { id: string; payload: PlaylistUpdatePayload }) =>
+            playlistService.update(id, payload),
+        onSuccess: (_data, { id }) => {
+            queryClient.invalidateQueries({ queryKey: ["playlists"] })
+            queryClient.invalidateQueries({ queryKey: ["playlist", id] })
+            toast.success("Playlist updated")
+        },
+        onError: () => toast.error("Failed to update playlist"),
+    })
+
     const removeSongsMutation = useMutation({
         mutationFn: async ({ playlistId, songIds }: { playlistId: string; songIds: string[] }) => {
             for (const id of songIds) {
@@ -114,6 +137,8 @@ export function usePlaylists(options: PlaylistSortOptions = {}) {
         isDeleting: deletePlaylistMutation.isPending,
         deletePlaylistsBulk: deletePlaylistsBulkMutation.mutateAsync,
         isDeletingBulk: deletePlaylistsBulkMutation.isPending,
+        updatePlaylist: updatePlaylistMutation.mutate,
+        isUpdating: updatePlaylistMutation.isPending,
         removeSongs: removeSongsMutation.mutate,
         isRemoving: removeSongsMutation.isPending,
     }
@@ -124,5 +149,33 @@ export function usePlaylist(id: string | null, options: PlaylistSortOptions = {}
         queryKey: ["playlist", id, options],
         queryFn: () => (id ? playlistService.getById(id, options) : null),
         enabled: !!id,
+    })
+}
+
+export function useDiscoverPlaylists(limit = 50) {
+    return useQuery({
+        queryKey: ["playlists", "discover"],
+        queryFn: () => playlistService.getDiscover(limit),
+    })
+}
+
+export function useFollowingPlaylists() {
+    return useQuery({
+        queryKey: ["playlists", "following"],
+        queryFn: () => playlistService.getFollowing(),
+    })
+}
+
+export function useFollowPlaylist() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: playlistService.toggleFollow,
+        onSuccess: (result, playlistId) => {
+            queryClient.invalidateQueries({ queryKey: ["playlists"] })
+            queryClient.invalidateQueries({ queryKey: ["playlist", playlistId] })
+            toast.success(result.is_following ? "Following playlist" : "Unfollowed playlist")
+        },
+        onError: () => toast.error("Failed to update follow"),
     })
 }

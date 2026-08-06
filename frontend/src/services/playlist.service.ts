@@ -1,4 +1,4 @@
-import { type Playlist, type PlaylistDetail, type Song } from "@/types"
+import { type Playlist, type PlaylistDetail, type PlaylistVisibility, type Song } from "@/types"
 import { ENDPOINTS } from "@/utils/api/endpoints"
 import { http } from "@/utils/api/http"
 
@@ -10,9 +10,27 @@ export interface PlaylistSortOptions {
     page_size?: number
 }
 
+export interface PlaylistUpdatePayload {
+    name?: string
+    description?: string | null
+    visibility?: PlaylistVisibility
+}
+
 export const playlistService = {
     getAll: async (options: PlaylistSortOptions = {}): Promise<Playlist[]> => {
         const { data } = await http.get<Playlist[]>(ENDPOINTS.PLAYLISTS.BASE, { params: options })
+        return data
+    },
+
+    getDiscover: async (limit = 50): Promise<Playlist[]> => {
+        const { data } = await http.get<Playlist[]>(ENDPOINTS.PLAYLISTS.DISCOVER, {
+            params: { limit },
+        })
+        return data
+    },
+
+    getFollowing: async (): Promise<Playlist[]> => {
+        const { data } = await http.get<Playlist[]>(ENDPOINTS.PLAYLISTS.FOLLOWING)
         return data
     },
 
@@ -23,13 +41,35 @@ export const playlistService = {
         return data
     },
 
-    create: async (name: string): Promise<Playlist> => {
-        const { data } = await http.post(ENDPOINTS.PLAYLISTS.BASE, { name })
+    create: async (
+        name: string,
+        description?: string,
+        visibility?: PlaylistVisibility,
+    ): Promise<Playlist> => {
+        const { data } = await http.post(ENDPOINTS.PLAYLISTS.BASE, {
+            name,
+            description,
+            visibility,
+        })
         return data
     },
 
     rename: async (id: string, name: string): Promise<Playlist> => {
         const { data } = await http.patch(ENDPOINTS.PLAYLISTS.BY_ID(id), { name })
+        return data
+    },
+
+    update: async (id: string, payload: PlaylistUpdatePayload): Promise<Playlist> => {
+        const { data } = await http.patch(ENDPOINTS.PLAYLISTS.BY_ID(id), payload)
+        return data
+    },
+
+    toggleFollow: async (
+        id: string,
+    ): Promise<{ is_following: boolean; follower_count: number }> => {
+        const { data } = await http.post<{ is_following: boolean; follower_count: number }>(
+            ENDPOINTS.PLAYLISTS.FOLLOW(id),
+        )
         return data
     },
 

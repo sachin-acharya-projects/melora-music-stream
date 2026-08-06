@@ -7,7 +7,7 @@ import SortSelect, { type SortSelectOption } from "@/components/ui/sort-select/s
 import ViewToggle from "@/components/ui/view-toggle/view-toggle"
 import { usePlayerStore } from "@/hooks/usePlayer"
 import { usePlaylistMenu } from "@/hooks/usePlaylistMenu"
-import { usePlaylist, usePlaylists } from "@/hooks/usePlaylists"
+import { useFollowPlaylist, usePlaylist, usePlaylists } from "@/hooks/usePlaylists"
 import { useQueueStore } from "@/hooks/useQueue"
 import { useSongSelection } from "@/hooks/useSongSelection"
 import { useThemeStore } from "@/hooks/useTheme"
@@ -22,6 +22,9 @@ import {
     ChevronRight,
     Download,
     Edit2,
+    Eye,
+    EyeOff,
+    Heart,
     Import,
     LayoutList,
     ListMusic,
@@ -69,7 +72,10 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
         createPlaylist,
         renamePlaylist,
         deletePlaylist,
+        updatePlaylist,
+        isUpdating,
     } = usePlaylists()
+    const followPlaylist = useFollowPlaylist()
     const { selectedSongIds, toggleSelect, toggleSelectAll, clearSelection, getSelectedSongs } =
         useSongSelection()
 
@@ -106,6 +112,8 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
     }
     const playlistQuery = usePlaylist(playlistId, detailOptions)
     const playlist = playlistQuery.data
+    const isOwner = playlist?.is_owner ?? false
+    const canEdit = isOwner
 
     useEffect(() => {
         const timer = setTimeout(() => setDebouncedSearch(playlistSearch), 250)
@@ -176,7 +184,7 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
             let playlistIdForBulk = existing?.id
 
             if (!playlistIdForBulk) {
-                const newPlaylist = await createPlaylist(targetPlaylistId)
+                const newPlaylist = await createPlaylist({ name: targetPlaylistId })
                 playlistIdForBulk = newPlaylist.id
             }
 
@@ -243,7 +251,21 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
         navigate("/playlists")
     }
 
-    const isReorderEnabled = viewMode === "list"
+    const handleToggleVisibility = () => {
+        if (!playlist) return
+        updatePlaylist({
+            id: playlistId,
+            payload: {
+                visibility: playlist.visibility === "public" ? "private" : "public",
+            },
+        })
+    }
+
+    const handleFollow = async () => {
+        await followPlaylist.mutateAsync(playlistId)
+    }
+
+    const isReorderEnabled = canEdit && viewMode === "list"
     const isBulkActionLoading = isAddingBulk || isRemoving
 
     if (playlistQuery.isLoading && !playlist) {
@@ -277,13 +299,35 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
                 </div>
 
                 <div className='min-w-0 flex-1'>
-                    <h1 className='text-3xl font-bold capitalize dark:text-white'>
-                        {playlistName}
-                    </h1>
+                    <div className='flex flex-wrap items-center gap-2'>
+                        <h1 className='text-3xl font-bold capitalize dark:text-white'>
+                            {playlistName}
+                        </h1>
+                        {playlist?.visibility === "public" ? (
+                            <span className='flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400'>
+                                <Eye className='h-3.5 w-3.5' /> Public
+                            </span>
+                        ) : (
+                            <span className='flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500 dark:bg-white/10 dark:text-gray-400'>
+                                <EyeOff className='h-3.5 w-3.5' /> Private
+                            </span>
+                        )}
+                    </div>
                     <p className='mt-1 text-sm text-gray-500 dark:text-gray-400'>
                         {totalSongs} {totalSongs === 1 ? "song" : "songs"} ·{" "}
                         {formatDuration(totalDuration)}
+                        {(playlist?.follower_count ?? 0) > 0 && (
+                            <span className='ml-2 inline-flex items-center gap-1'>
+                                <Heart className='h-3.5 w-3.5' /> {playlist?.follower_count}{" "}
+                                {playlist?.follower_count === 1 ? "follower" : "followers"}
+                            </span>
+                        )}
                     </p>
+                    {playlist?.description && (
+                        <p className='mt-2 max-w-xl text-sm text-gray-500 dark:text-gray-400'>
+                            {playlist.description}
+                        </p>
+                    )}
 
                     <div className='mt-4 flex flex-wrap items-center gap-2'>
                         <button
@@ -300,65 +344,114 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
                         >
                             <Shuffle className='h-4 w-4' /> Shuffle
                         </button>
-                        <button
-                            onClick={() => setIsSearchAddOpen(true)}
-                            className='dark:bg-card flex h-10 cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 text-sm font-medium transition-all hover:border-red-200 dark:border-white/10 dark:text-white'
-                        >
-                            <Plus className='h-4 w-4' /> Add Songs
-                        </button>
-
-                        {isRenameOpen ? (
-                            <form onSubmit={handleRename} className='flex items-center gap-1'>
-                                <input
-                                    type='text'
-                                    value={newName}
-                                    onChange={(e) => setNewName(e.target.value)}
-                                    autoFocus
-                                    className='h-10 w-48 rounded-xl border px-3 text-sm dark:border-white/10 dark:bg-black dark:text-white'
-                                />
-                                <button
-                                    type='submit'
-                                    className='cursor-pointer p-2 text-emerald-500'
-                                >
-                                    <Check className='h-5 w-5' />
-                                </button>
-                                <button
-                                    type='button'
-                                    onClick={() => setIsRenameOpen(false)}
-                                    className='cursor-pointer p-2 text-red-500'
-                                >
-                                    <X className='h-5 w-5' />
-                                </button>
-                            </form>
-                        ) : (
+                        {canEdit && (
                             <button
-                                onClick={() => {
-                                    setNewName(playlistName)
-                                    setIsRenameOpen(true)
-                                }}
+                                onClick={() => setIsSearchAddOpen(true)}
                                 className='dark:bg-card flex h-10 cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 text-sm font-medium transition-all hover:border-red-200 dark:border-white/10 dark:text-white'
                             >
-                                <Edit2 className='h-4 w-4' /> Rename
+                                <Plus className='h-4 w-4' /> Add Songs
                             </button>
                         )}
 
-                        <button
-                            onClick={() => setIsDeleteDialogOpen(true)}
-                            className='flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-medium text-red-600 transition-colors hover:bg-red-100 dark:border-red-900 dark:bg-red-950 dark:text-red-400'
-                        >
-                            <Trash2 className='h-4 w-4' /> Delete
-                        </button>
+                        {!canEdit && playlist?.is_following !== undefined && (
+                            <button
+                                onClick={handleFollow}
+                                disabled={followPlaylist.isPending}
+                                className={`flex h-10 cursor-pointer items-center gap-2 rounded-xl border px-4 text-sm font-medium transition-all disabled:cursor-not-allowed disabled:opacity-50 ${
+                                    playlist.is_following
+                                        ? "border-red-200 bg-red-50 text-red-600 hover:bg-red-100 dark:border-red-900 dark:bg-red-950 dark:text-red-400"
+                                        : "dark:bg-card border-gray-200 bg-white hover:border-red-200 dark:border-white/10 dark:text-white"
+                                }`}
+                            >
+                                {followPlaylist.isPending ? (
+                                    <Loader2 className='h-4 w-4 animate-spin' />
+                                ) : (
+                                    <Heart
+                                        className={`h-4 w-4 ${
+                                            playlist.is_following ? "fill-red-500 text-red-500" : ""
+                                        }`}
+                                    />
+                                )}
+                                {playlist.is_following ? "Following" : "Follow"}
+                            </button>
+                        )}
 
-                        <button
-                            onClick={() =>
-                                setMoreMenuFor(moreMenuFor === playlistId ? null : playlistId)
-                            }
-                            data-more-btn={playlistId}
-                            className='dark:bg-card flex h-10 cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 text-sm font-medium transition-all hover:border-red-200 dark:border-white/10 dark:text-white'
-                            title='More options'
-                        >
-                            <MoreHorizontal className='h-4 w-4' /> More
-                        </button>
+                        {canEdit && playlist && (
+                            <button
+                                onClick={handleToggleVisibility}
+                                disabled={isUpdating}
+                                className='dark:bg-card flex h-10 cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 text-sm font-medium transition-all hover:border-red-200 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:text-white'
+                            >
+                                {playlist.visibility === "public" ? (
+                                    <EyeOff className='h-4 w-4' />
+                                ) : (
+                                    <Eye className='h-4 w-4' />
+                                )}
+                                {isUpdating
+                                    ? "Saving..."
+                                    : playlist.visibility === "public"
+                                      ? "Make Private"
+                                      : "Make Public"}
+                            </button>
+                        )}
+
+                        {canEdit &&
+                            (isRenameOpen ? (
+                                <form onSubmit={handleRename} className='flex items-center gap-1'>
+                                    <input
+                                        type='text'
+                                        value={newName}
+                                        onChange={(e) => setNewName(e.target.value)}
+                                        autoFocus
+                                        className='h-10 w-48 rounded-xl border px-3 text-sm dark:border-white/10 dark:bg-black dark:text-white'
+                                    />
+                                    <button
+                                        type='submit'
+                                        className='cursor-pointer p-2 text-emerald-500'
+                                    >
+                                        <Check className='h-5 w-5' />
+                                    </button>
+                                    <button
+                                        type='button'
+                                        onClick={() => setIsRenameOpen(false)}
+                                        className='cursor-pointer p-2 text-red-500'
+                                    >
+                                        <X className='h-5 w-5' />
+                                    </button>
+                                </form>
+                            ) : (
+                                <button
+                                    onClick={() => {
+                                        setNewName(playlistName)
+                                        setIsRenameOpen(true)
+                                    }}
+                                    className='dark:bg-card flex h-10 cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 text-sm font-medium transition-all hover:border-red-200 dark:border-white/10 dark:text-white'
+                                >
+                                    <Edit2 className='h-4 w-4' /> Rename
+                                </button>
+                            ))}
+
+                        {canEdit && (
+                            <button
+                                onClick={() => setIsDeleteDialogOpen(true)}
+                                className='flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-medium text-red-600 transition-colors hover:bg-red-100 dark:border-red-900 dark:bg-red-950 dark:text-red-400'
+                            >
+                                <Trash2 className='h-4 w-4' /> Delete
+                            </button>
+                        )}
+
+                        {canEdit && (
+                            <button
+                                onClick={() =>
+                                    setMoreMenuFor(moreMenuFor === playlistId ? null : playlistId)
+                                }
+                                data-more-btn={playlistId}
+                                className='dark:bg-card flex h-10 cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 text-sm font-medium transition-all hover:border-red-200 dark:border-white/10 dark:text-white'
+                                title='More options'
+                            >
+                                <MoreHorizontal className='h-4 w-4' /> More
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
@@ -632,7 +725,7 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
             )}
 
             <BulkActionBar
-                isVisible={selectedSongIds.length > 0}
+                isVisible={canEdit && selectedSongIds.length > 0}
                 selectedCount={selectedSongIds.length}
                 totalCount={localSongs.length}
                 onSelectAll={() => toggleSelectAll(localSongs.map((s) => s.id))}
