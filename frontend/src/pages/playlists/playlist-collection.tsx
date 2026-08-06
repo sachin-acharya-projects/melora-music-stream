@@ -108,7 +108,7 @@ export function PlaylistCollection({
         [playlists, selectedPlaylistIds],
     )
 
-    const openPlaylist = (id: string) => navigate(`/playlists?playlist=${id}`)
+    const openPlaylist = (id: string) => navigate(`/playlists?view=${view}&playlist=${id}`)
 
     const clearSelection = () => setSelectedPlaylistIds([])
 
@@ -187,7 +187,7 @@ export function PlaylistCollection({
 
     const handlePlayAll = (playlist: Playlist) => {
         setPlaylist(playlist.songs, 0, playlist.id)
-        navigate(`/playlists?playlist=${playlist.id}`)
+        navigate(`/playlists?view=${view}&playlist=${playlist.id}`)
     }
 
     return (

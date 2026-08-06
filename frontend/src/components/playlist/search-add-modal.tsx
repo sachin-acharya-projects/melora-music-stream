@@ -1,9 +1,10 @@
+import PlaylistSelector from "@/components/ui/playlist-selector/playlist-selector"
 import { usePlaylists } from "@/hooks/usePlaylists"
 import { formatDuration } from "@/lib/utils"
 import { apiService } from "@/services/api.service"
 import { type Playlist, type Song } from "@/types"
 import { motion } from "framer-motion"
-import { Check, ChevronDown, Import, Loader2, Plus, Search, X } from "lucide-react"
+import { Check, Import, Loader2, Plus, Search, X } from "lucide-react"
 import { useState } from "react"
 import { toast } from "react-toastify"
 
@@ -18,13 +19,30 @@ export function SearchAddModal({
     onClose: () => void
     onSwitchToImport?: () => void
 }) {
-    const { addSongsBulk, isAddingBulk } = usePlaylists()
-    const [targetId, setTargetId] = useState(lockedTargetId ?? playlists[0]?.id ?? "")
+    const { addSongsBulk, isAddingBulk, createPlaylist, isCreating } = usePlaylists()
+    const lockedPlaylist = lockedTargetId
+        ? playlists.find((p) => p.id === lockedTargetId)
+        : undefined
+    const [targetName, setTargetName] = useState(lockedPlaylist?.name ?? "")
     const [query, setQuery] = useState("")
     const [results, setResults] = useState<Song[]>([])
     const [isSearching, setIsSearching] = useState(false)
     const [searchError, setSearchError] = useState(false)
     const [addedIds, setAddedIds] = useState<Set<string>>(new Set())
+
+    const hasTarget = !!lockedTargetId || targetName.trim().length > 0
+
+    const resolveTarget = async (): Promise<{ id: string; name: string } | null> => {
+        if (lockedTargetId) {
+            return { id: lockedTargetId, name: lockedPlaylist?.name ?? "playlist" }
+        }
+        const trimmed = targetName.trim()
+        if (!trimmed) return null
+        const existing = playlists.find((p) => p.name.toLowerCase() === trimmed.toLowerCase())
+        if (existing) return { id: existing.id, name: existing.name }
+        const created = await createPlaylist({ name: trimmed })
+        return { id: created.id, name: created.name }
+    }
 
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -43,20 +61,22 @@ export function SearchAddModal({
     }
 
     const handleAdd = async (song: Song) => {
-        if (!targetId) return
+        const target = await resolveTarget()
+        if (!target) return
         try {
-            await addSongsBulk({ playlistId: targetId, songs: [song] })
+            await addSongsBulk({ playlistId: target.id, songs: [song] })
             setAddedIds((prev) => new Set(prev).add(song.id))
-            toast.success(`Added to ${playlists.find((p) => p.id === targetId)?.name}`)
+            toast.success(`Added to ${target.name}`)
         } catch {
             toast.error("Failed to add song")
         }
     }
 
     const handleAddAll = async () => {
-        if (!targetId || results.length === 0) return
+        const target = await resolveTarget()
+        if (!target || results.length === 0) return
         try {
-            await addSongsBulk({ playlistId: targetId, songs: results })
+            await addSongsBulk({ playlistId: target.id, songs: results })
             setAddedIds(new Set(results.map((r) => r.id)))
             toast.success(`Added ${results.length} songs`)
         } catch {
@@ -89,21 +109,27 @@ export function SearchAddModal({
                     <label className='text-sm font-medium text-gray-700 dark:text-gray-300'>
                         {lockedTargetId ? "Adding to" : "Add to playlist"}
                     </label>
-                    <div className='relative'>
-                        <select
-                            value={targetId}
-                            onChange={(e) => setTargetId(e.target.value)}
-                            disabled={!!lockedTargetId}
-                            className='h-11 w-full cursor-pointer appearance-none rounded-lg border bg-gray-50 px-3 pr-10 text-sm disabled:cursor-default disabled:opacity-60 dark:border-white/5 dark:bg-black dark:text-white'
-                        >
-                            {playlists.map((p) => (
-                                <option key={p.id} value={p.id} className='capitalize'>
-                                    {p.name}
-                                </option>
-                            ))}
-                        </select>
-                        <ChevronDown className='pointer-events-none absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 text-gray-400' />
-                    </div>
+                    {lockedTargetId ? (
+                        <input
+                            type='text'
+                            value={lockedPlaylist?.name ?? ""}
+                            disabled
+                            className='h-11 w-full cursor-default rounded-lg border bg-gray-50 px-3 text-sm opacity-60 dark:border-white/5 dark:bg-black dark:text-white'
+                        />
+                    ) : (
+                        <PlaylistSelector
+                            playlists={playlists}
+                            value={targetName}
+                            onChange={setTargetName}
+                            placeholder='Select or type a playlist name...'
+                            className='w-full'
+                        />
+                    )}
+                    {!lockedTargetId && isCreating && (
+                        <p className='flex items-center gap-1.5 text-xs text-gray-500'>
+                            <Loader2 className='h-3 w-3 animate-spin' /> Creating a new playlist…
+                        </p>
+                    )}
                 </div>
 
                 <form onSubmit={handleSearch} className='mb-4 flex gap-2'>
@@ -151,8 +177,8 @@ export function SearchAddModal({
                                 </p>
                                 <button
                                     onClick={handleAddAll}
-                                    disabled={isAddingBulk}
-                                    className='flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 dark:hover:bg-red-950'
+                                    disabled={isAddingBulk || !hasTarget}
+                                    className='flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-red-950'
                                 >
                                     <Plus className='h-3.5 w-3.5' /> Add all
                                 </button>
@@ -186,7 +212,7 @@ export function SearchAddModal({
                                         ) : (
                                             <button
                                                 onClick={() => handleAdd(song)}
-                                                disabled={isAddingBulk}
+                                                disabled={isAddingBulk || isCreating || !hasTarget}
                                                 className='flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-red-950'
                                                 title='Add to playlist'
                                             >

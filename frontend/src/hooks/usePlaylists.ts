@@ -152,17 +152,19 @@ export function usePlaylist(id: string | null, options: PlaylistSortOptions = {}
     })
 }
 
-export function useDiscoverPlaylists(limit = 50) {
+export function useDiscoverPlaylists(limit = 50, enabled = true) {
     return useQuery({
         queryKey: ["playlists", "discover"],
         queryFn: () => playlistService.getDiscover(limit),
+        enabled,
     })
 }
 
-export function useFollowingPlaylists() {
+export function useFollowingPlaylists(enabled = true) {
     return useQuery({
         queryKey: ["playlists", "following"],
         queryFn: () => playlistService.getFollowing(),
+        enabled,
     })
 }
 

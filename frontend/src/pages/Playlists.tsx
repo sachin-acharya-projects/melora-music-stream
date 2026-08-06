@@ -14,17 +14,33 @@ import { PlaylistDetail } from "./playlists/playlist-detail"
 
 export type PlaylistsTab = "mine" | "discover" | "following"
 
+const VALID_TABS: PlaylistsTab[] = ["mine", "discover", "following"]
+
 export default function Playlists() {
-    useTitle("My Playlists")
-    const [searchParams] = useSearchParams()
+    const [searchParams, setSearchParams] = useSearchParams()
     const [playlistSort, setPlaylistSort] = useState<PlaylistSortOptions>({
         sort_by: "created_at",
         order: "desc",
     })
-    const [tab, setTab] = useState<PlaylistsTab>("mine")
+    const rawTab = searchParams.get("view")
+    const tab: PlaylistsTab = VALID_TABS.includes(rawTab as PlaylistsTab)
+        ? (rawTab as PlaylistsTab)
+        : "mine"
+    const setTab = (next: PlaylistsTab) => {
+        setSearchParams(
+            (prev) => {
+                const params = new URLSearchParams(prev)
+                if (next === "mine") params.delete("view")
+                else params.set("view", next)
+                return params
+            },
+            { replace: true },
+        )
+    }
+    useTitle(tab === "mine" ? "My Playlists" : tab === "discover" ? "Discover" : "Following")
     const { playlists, isLoading } = usePlaylists(playlistSort)
-    const discover = useDiscoverPlaylists()
-    const following = useFollowingPlaylists()
+    const discover = useDiscoverPlaylists(50, tab === "discover")
+    const following = useFollowingPlaylists(tab === "following")
     const followPlaylist = useFollowPlaylist()
 
     const activePlaylistId = searchParams.get("playlist")

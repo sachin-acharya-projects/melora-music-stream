@@ -23,7 +23,6 @@ import { type PlaylistDetail, type Song } from "@/types"
 import { useQueryClient } from "@tanstack/react-query"
 import { motion, Reorder } from "framer-motion"
 import {
-    Check,
     ChevronLeft,
     ChevronRight,
     Download,
@@ -39,12 +38,14 @@ import {
     Play,
     Plus,
     Search,
+    Settings,
     Shuffle,
     Trash2,
     Users,
     X,
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
+import { createPortal } from "react-dom"
 import { useNavigate } from "react-router-dom"
 import { toast } from "react-toastify"
 
@@ -105,6 +106,7 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
     const [importUrl, setImportUrl] = useState("")
     const [isSearchAddOpen, setIsSearchAddOpen] = useState(false)
     const [isCollaboratorsOpen, setIsCollaboratorsOpen] = useState(false)
+    const [isManageOpen, setIsManageOpen] = useState(false)
     const { moreMenuFor, setMoreMenuFor, renderMoreMenu, renderDialogs } = usePlaylistMenu({
         playlists,
     })
@@ -128,6 +130,17 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
         const timer = setTimeout(() => setDebouncedSearch(playlistSearch), 250)
         return () => clearTimeout(timer)
     }, [playlistSearch])
+
+    useEffect(() => {
+        if (!isManageOpen) return
+        const close = () => setIsManageOpen(false)
+        window.addEventListener("scroll", close, true)
+        window.addEventListener("resize", close)
+        return () => {
+            window.removeEventListener("scroll", close, true)
+            window.removeEventListener("resize", close)
+        }
+    }, [isManageOpen])
 
     const serverSongs = useMemo(() => playlist?.songs ?? [], [playlist?.songs])
     const totalSongs = playlist?.total_songs ?? serverSongs.length
@@ -274,6 +287,99 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
         await followPlaylist.mutateAsync(playlistId)
     }
 
+    const renderManageMenu = () => {
+        if (!isManageOpen || !playlist) return null
+        const btn = document.querySelector<HTMLElement>(`[data-manage-btn="${playlist.id}"]`)
+        if (!btn) return null
+        const rect = btn.getBoundingClientRect()
+
+        return createPortal(
+            <>
+                <div className='fixed inset-0 z-20' onClick={() => setIsManageOpen(false)} />
+                <div
+                    onClick={(e) => e.stopPropagation()}
+                    className='dark:bg-card fixed z-40 w-48 overflow-hidden rounded-xl border bg-white p-1 shadow-xl dark:border-white/10'
+                    style={{
+                        top: rect.bottom + 4,
+                        right: Math.max(8, window.innerWidth - rect.right),
+                    }}
+                >
+                    {isOwner && (
+                        <button
+                            onClick={() => {
+                                handleToggleVisibility()
+                                setIsManageOpen(false)
+                            }}
+                            disabled={isUpdating}
+                            className='flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50 dark:text-white dark:hover:bg-white/5'
+                        >
+                            {playlist.visibility === "public" ? (
+                                <EyeOff className='h-4 w-4 text-red-500' />
+                            ) : (
+                                <Eye className='h-4 w-4 text-red-500' />
+                            )}
+                            {isUpdating
+                                ? "Saving..."
+                                : playlist.visibility === "public"
+                                  ? "Make Private"
+                                  : "Make Public"}
+                        </button>
+                    )}
+                    {isOwner && (
+                        <button
+                            onClick={() => {
+                                setNewName(playlistName)
+                                setIsRenameOpen(true)
+                                setIsManageOpen(false)
+                            }}
+                            className='flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-black/5 dark:text-white dark:hover:bg-white/5'
+                        >
+                            <Edit2 className='h-4 w-4 text-red-500' /> Rename
+                        </button>
+                    )}
+                    {isOwner && (
+                        <button
+                            onClick={() => {
+                                toggleCollaborative.mutate(playlistId)
+                                setIsManageOpen(false)
+                            }}
+                            disabled={toggleCollaborative.isPending}
+                            className='flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50 dark:text-white dark:hover:bg-white/5'
+                        >
+                            <Users className='h-4 w-4 text-red-500' />
+                            {toggleCollaborative.isPending
+                                ? "Saving..."
+                                : playlist.is_collaborative
+                                  ? "Disable Collaboration"
+                                  : "Enable Collaboration"}
+                        </button>
+                    )}
+                    <button
+                        onClick={() => {
+                            setIsCollaboratorsOpen(true)
+                            setIsManageOpen(false)
+                        }}
+                        className='flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-black/5 dark:text-white dark:hover:bg-white/5'
+                    >
+                        <Users className='h-4 w-4 text-red-500' /> Manage Collaborators
+                    </button>
+                    {isOwner && (
+                        <button
+                            onClick={() => {
+                                setIsDeleteDialogOpen(true)
+                                setIsManageOpen(false)
+                            }}
+                            className='flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-red-50 dark:text-white dark:hover:bg-red-950'
+                        >
+                            <Trash2 className='h-4 w-4 text-red-500' /> Delete Playlist
+                        </button>
+                    )}
+                </div>
+            </>,
+            document.body,
+        )
+    }
+
     const isReorderEnabled = canEdit && viewMode === "list"
     const isBulkActionLoading = isAddingBulk || isRemoving
 
@@ -390,67 +496,14 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
                             </button>
                         )}
 
-                        {isOwner && playlist && (
+                        {canEdit && (
                             <button
-                                onClick={handleToggleVisibility}
-                                disabled={isUpdating}
-                                className='dark:bg-card flex h-10 cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 text-sm font-medium transition-all hover:border-red-200 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:text-white'
+                                onClick={() => setIsManageOpen(!isManageOpen)}
+                                data-manage-btn={playlistId}
+                                className='dark:bg-card flex h-10 cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 text-sm font-medium transition-all hover:border-red-200 dark:border-white/10 dark:text-white'
+                                title='Manage playlist'
                             >
-                                {playlist.visibility === "public" ? (
-                                    <EyeOff className='h-4 w-4' />
-                                ) : (
-                                    <Eye className='h-4 w-4' />
-                                )}
-                                {isUpdating
-                                    ? "Saving..."
-                                    : playlist.visibility === "public"
-                                      ? "Make Private"
-                                      : "Make Public"}
-                            </button>
-                        )}
-
-                        {isOwner &&
-                            (isRenameOpen ? (
-                                <form onSubmit={handleRename} className='flex items-center gap-1'>
-                                    <input
-                                        type='text'
-                                        value={newName}
-                                        onChange={(e) => setNewName(e.target.value)}
-                                        autoFocus
-                                        className='h-10 w-48 rounded-xl border px-3 text-sm dark:border-white/10 dark:bg-black dark:text-white'
-                                    />
-                                    <button
-                                        type='submit'
-                                        className='cursor-pointer p-2 text-emerald-500'
-                                    >
-                                        <Check className='h-5 w-5' />
-                                    </button>
-                                    <button
-                                        type='button'
-                                        onClick={() => setIsRenameOpen(false)}
-                                        className='cursor-pointer p-2 text-red-500'
-                                    >
-                                        <X className='h-5 w-5' />
-                                    </button>
-                                </form>
-                            ) : (
-                                <button
-                                    onClick={() => {
-                                        setNewName(playlistName)
-                                        setIsRenameOpen(true)
-                                    }}
-                                    className='dark:bg-card flex h-10 cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 text-sm font-medium transition-all hover:border-red-200 dark:border-white/10 dark:text-white'
-                                >
-                                    <Edit2 className='h-4 w-4' /> Rename
-                                </button>
-                            ))}
-
-                        {isOwner && (
-                            <button
-                                onClick={() => setIsDeleteDialogOpen(true)}
-                                className='flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-medium text-red-600 transition-colors hover:bg-red-100 dark:border-red-900 dark:bg-red-950 dark:text-red-400'
-                            >
-                                <Trash2 className='h-4 w-4' /> Delete
+                                <Settings className='h-4 w-4' /> Manage
                             </button>
                         )}
 
@@ -464,31 +517,6 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
                                 title='More options'
                             >
                                 <MoreHorizontal className='h-4 w-4' /> More
-                            </button>
-                        )}
-
-                        {canEdit && (
-                            <button
-                                onClick={() => setIsCollaboratorsOpen(true)}
-                                className='dark:bg-card flex h-10 cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 text-sm font-medium transition-all hover:border-red-200 dark:border-white/10 dark:text-white'
-                                title='Manage collaborators'
-                            >
-                                <Users className='h-4 w-4' /> Collaborators
-                            </button>
-                        )}
-
-                        {isOwner && playlist && (
-                            <button
-                                onClick={() => toggleCollaborative.mutate(playlistId)}
-                                disabled={toggleCollaborative.isPending}
-                                className='dark:bg-card flex h-10 cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 text-sm font-medium transition-all hover:border-red-200 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:text-white'
-                            >
-                                <Users className='h-4 w-4' />
-                                {toggleCollaborative.isPending
-                                    ? "Saving..."
-                                    : playlist.is_collaborative
-                                      ? "Disable Collaboration"
-                                      : "Enable Collaboration"}
                             </button>
                         )}
                     </div>
@@ -901,8 +929,58 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
                 </div>
             )}
 
+            {renderManageMenu()}
             {renderMoreMenu()}
             {renderDialogs()}
+
+            {isRenameOpen && (
+                <div
+                    className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4'
+                    onClick={() => setIsRenameOpen(false)}
+                >
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className='dark:bg-card w-full max-w-sm rounded-2xl border bg-white p-6 shadow-xl dark:border-white/10'
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className='mb-4 flex items-center justify-between'>
+                            <h2 className='text-lg font-bold dark:text-white'>Rename Playlist</h2>
+                            <button
+                                onClick={() => setIsRenameOpen(false)}
+                                className='cursor-pointer text-gray-400 transition-colors hover:text-red-500'
+                            >
+                                <X className='h-5 w-5' />
+                            </button>
+                        </div>
+                        <form onSubmit={handleRename} className='flex flex-col gap-4'>
+                            <input
+                                type='text'
+                                value={newName}
+                                onChange={(e) => setNewName(e.target.value)}
+                                autoFocus
+                                className='h-11 w-full rounded-lg border bg-gray-50 px-3 text-sm dark:border-white/5 dark:bg-black dark:text-white'
+                            />
+                            <div className='flex justify-end gap-2'>
+                                <button
+                                    type='button'
+                                    onClick={() => setIsRenameOpen(false)}
+                                    className='cursor-pointer rounded-lg px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-black/5 dark:text-gray-300 dark:hover:bg-white/5'
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type='submit'
+                                    disabled={!newName.trim()}
+                                    className='cursor-pointer rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50'
+                                >
+                                    Save
+                                </button>
+                            </div>
+                        </form>
+                    </motion.div>
+                </div>
+            )}
 
             {isCollaboratorsOpen && (
                 <CollaboratorsModal
