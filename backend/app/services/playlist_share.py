@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.db.models.playlist import PlaylistModel
 from app.db.models.playlist_share import PlaylistShareModel
 from app.db.models.song import SongModel
+from app.db.models.user import UserModel
 from app.services.songs import SongService
 
 
@@ -14,17 +15,20 @@ class PlaylistShareService:
     """Manage revocable share links for playlists."""
 
     @staticmethod
-    def create_share_link(db: Session, *, playlist_id: str) -> str:
+    def create_share_link(db: Session, *, playlist_id: str, user: UserModel) -> str:
         """Create a share token for a playlist, or return the existing one.
 
         Controlled sharing: only playlists with an explicit, revocable token can be
-        accessed via the public share endpoint. Raises HTTPException if not found.
+        accessed via the public share endpoint. Owner or admin only. Raises
+        HTTPException if not found.
         """
         db_playlist = (
             db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id).first()
         )
         if db_playlist is None:
             raise HTTPException(status_code=404, detail="Playlist not found")
+
+        PlaylistShareService._ensure_owner(db_playlist, user)
 
         if db_playlist.share is not None:
             return db_playlist.share.token
@@ -38,13 +42,17 @@ class PlaylistShareService:
         return db_share.token
 
     @staticmethod
-    def revoke_share_link(db: Session, *, playlist_id: str) -> dict[str, str]:
-        """Revoke all share tokens for a playlist. Idempotent."""
+    def revoke_share_link(
+        db: Session, *, playlist_id: str, user: UserModel
+    ) -> dict[str, str]:
+        """Revoke all share tokens for a playlist. Owner or admin only. Idempotent."""
         db_playlist = (
             db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id).first()
         )
         if db_playlist is None:
             raise HTTPException(status_code=404, detail="Playlist not found")
+
+        PlaylistShareService._ensure_owner(db_playlist, user)
 
         for db_share in db.query(PlaylistShareModel).filter(
             PlaylistShareModel.playlist_id == playlist_id
@@ -92,3 +100,14 @@ class PlaylistShareService:
             else None,
             "songs": [SongService.serialize(song) for song in songs],
         }
+
+    @staticmethod
+    def _ensure_owner(playlist: PlaylistModel, user: UserModel) -> None:
+        """Ensure a user is the playlist owner or an admin."""
+        if user.role == "admin":
+            return
+        if playlist.user_id is None or playlist.user_id != user.id:
+            raise HTTPException(
+                status_code=403,
+                detail="You do not have permission to modify this playlist",
+            )

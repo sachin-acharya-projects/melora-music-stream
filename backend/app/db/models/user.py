@@ -41,3 +41,10 @@ class UserModel(BaseModel):
         back_populates="owner",
         lazy="selectin",
     )
+
+    followed_playlists: Mapped[list[PlaylistModel]] = relationship(
+        "PlaylistModel",
+        secondary="playlist_follows",
+        back_populates="followers",
+        lazy="selectin",
+    )

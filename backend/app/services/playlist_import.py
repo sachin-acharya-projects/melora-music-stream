@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.db.models.playlist import PlaylistModel
 from app.db.models.song import SongModel
+from app.db.models.user import UserModel
 from app.schemas.song import PlaylistImport, Song
 from app.services.youtube import youtube_service
 
@@ -13,9 +14,13 @@ class PlaylistImportService:
     """Import playlists from YouTube into a Melora playlist."""
 
     @staticmethod
-    def import_playlist(db: Session, data: PlaylistImport) -> dict[str, Any]:
+    def import_playlist(
+        db: Session, data: PlaylistImport, user: UserModel
+    ) -> dict[str, Any]:
         """Import a playlist from YouTube. Raises HTTPException on failure."""
-        db_playlist = PlaylistImportService._get_or_create_playlist_for_import(db, data)
+        db_playlist = PlaylistImportService._get_or_create_playlist_for_import(
+            db, data, user
+        )
 
         songs_data = youtube_service.extract_playlist_info(data.url)
         # De-duplicate by video id (YouTube playlists may repeat videos) and skip
@@ -70,9 +75,9 @@ class PlaylistImportService:
 
     @staticmethod
     def _get_or_create_playlist_for_import(
-        db: Session, data: PlaylistImport
+        db: Session, data: PlaylistImport, user: UserModel
     ) -> PlaylistModel:
-        """Get or create a playlist for import. Raises HTTPException on failure."""
+        """Get or create a playlist for import. Owner or admin for existing. Raises HTTPException on failure."""
         if data.id:
             db_playlist = (
                 db.query(PlaylistModel).filter(PlaylistModel.id == data.id).first()
@@ -81,6 +86,7 @@ class PlaylistImportService:
                 raise HTTPException(
                     status_code=404, detail="Playlist with provided ID not found"
                 )
+            PlaylistImportService._ensure_owner(db_playlist, user)
             return db_playlist
 
         if data.name:
@@ -88,12 +94,25 @@ class PlaylistImportService:
                 db.query(PlaylistModel).filter(PlaylistModel.name == data.name).first()
             )
             if db_playlist is None:
-                db_playlist = PlaylistModel(name=data.name)
+                db_playlist = PlaylistModel(name=data.name, user_id=user.id)
                 db.add(db_playlist)
                 db.commit()
                 db.refresh(db_playlist)
+            else:
+                PlaylistImportService._ensure_owner(db_playlist, user)
             return db_playlist
 
         raise HTTPException(
             status_code=400, detail="Either playlist 'id' or 'name' must be provided"
         )
+
+    @staticmethod
+    def _ensure_owner(playlist: PlaylistModel, user: UserModel) -> None:
+        """Ensure a user is the playlist owner or an admin."""
+        if user.role == "admin":
+            return
+        if playlist.user_id is None or playlist.user_id != user.id:
+            raise HTTPException(
+                status_code=403,
+                detail="You do not have permission to modify this playlist",
+            )

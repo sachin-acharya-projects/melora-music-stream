@@ -44,3 +44,26 @@ user_follows = Table(
         default=lambda: datetime.now(UTC),
     ),
 )
+
+# Association table for users following playlists
+playlist_follows = Table(
+    "playlist_follows",
+    Base.metadata,
+    Column(
+        "user_id",
+        String,
+        ForeignKey("users.id"),
+        primary_key=True,
+    ),
+    Column(
+        "playlist_id",
+        String,
+        ForeignKey("playlists.id"),
+        primary_key=True,
+    ),
+    Column(
+        "created_at",
+        DateTime,
+        default=lambda: datetime.now(UTC),
+    ),
+)

@@ -1,5 +1,7 @@
 from pydantic import BaseModel
 
+from app.db.models.playlist import PlaylistVisibility
+
 
 class Song(BaseModel):
     id: str
@@ -11,6 +13,14 @@ class Song(BaseModel):
 
 class PlaylistCreate(BaseModel):
     name: str
+    description: str | None = None
+    visibility: PlaylistVisibility = PlaylistVisibility.PRIVATE
+
+
+class PlaylistUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    visibility: PlaylistVisibility | None = None
 
 
 class PlaylistImport(BaseModel):
