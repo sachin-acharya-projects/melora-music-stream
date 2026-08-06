@@ -135,6 +135,15 @@ class TestDiscoverPlaylists:
         result = PlaylistService.get_discover_playlists(db, test_user)
         assert [p["name"] for p in result] == ["Popular", "Niche"]
 
+    def test_excludes_own_playlists(
+        self, db: Session, test_user: UserModel, admin_user: UserModel
+    ) -> None:
+        make_playlist(db, "Mine", test_user, visibility=PlaylistVisibility.PUBLIC)
+        make_playlist(db, "Theirs", admin_user, visibility=PlaylistVisibility.PUBLIC)
+
+        result = PlaylistService.get_discover_playlists(db, test_user)
+        assert [p["name"] for p in result] == ["Theirs"]
+
     def test_respects_limit(
         self, db: Session, test_user: UserModel, admin_user: UserModel
     ) -> None:

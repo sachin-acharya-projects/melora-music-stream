@@ -88,6 +88,21 @@ class TestDiscover:
         assert response.status_code == 200
         assert [p["name"] for p in response.json()] == ["Public One"]
 
+    def test_excludes_own_public_playlists(
+        self,
+        client,
+        db: Session,
+        test_user: UserModel,
+        admin_user: UserModel,
+        auth_headers: dict[str, str],
+    ) -> None:
+        make_playlist(db, "Mine", test_user, visibility=PlaylistVisibility.PUBLIC)
+        make_playlist(db, "Theirs", admin_user, visibility=PlaylistVisibility.PUBLIC)
+
+        response = client.get("/api/v1/playlists/discover", headers=auth_headers)
+        assert response.status_code == 200
+        assert [p["name"] for p in response.json()] == ["Theirs"]
+
 
 class TestFollowing:
     def test_empty(self, client, auth_headers: dict[str, str]) -> None:

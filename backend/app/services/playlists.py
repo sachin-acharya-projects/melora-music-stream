@@ -52,10 +52,13 @@ class PlaylistService:
     def get_discover_playlists(
         db: Session, user: UserModel, *, limit: int = 50
     ) -> list[dict[str, Any]]:
-        """Get public playlists ordered by popularity (follower count)."""
+        """Get public playlists from other users ordered by popularity (follower count)."""
         playlists = (
             db.query(PlaylistModel)
-            .filter(PlaylistModel.visibility == PlaylistVisibility.PUBLIC)
+            .filter(
+                PlaylistModel.visibility == PlaylistVisibility.PUBLIC,
+                PlaylistModel.user_id != user.id,
+            )
             .order_by(PlaylistModel.follower_count.desc(), PlaylistModel.id)
             .limit(limit)
             .all()
