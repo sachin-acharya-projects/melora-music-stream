@@ -25,6 +25,7 @@ import {
     Plus,
     Search,
     Trash2,
+    Users,
     X,
 } from "lucide-react"
 import { useMemo, useState } from "react"
@@ -458,6 +459,14 @@ export function PlaylistCollection({
                                                     >
                                                         <Heart className='h-3 w-3' />
                                                         {playlist.follower_count}
+                                                    </span>
+                                                )}
+                                                {playlist.is_collaborative && (
+                                                    <span
+                                                        className='flex shrink-0 items-center gap-1 rounded-full bg-purple-100 px-1.5 py-0.5 text-[10px] font-medium text-purple-700 dark:bg-purple-950 dark:text-purple-400'
+                                                        title='Collaborative playlist'
+                                                    >
+                                                        <Users className='h-3 w-3' />
                                                     </span>
                                                 )}
                                             </div>

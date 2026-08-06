@@ -179,3 +179,68 @@ export function useFollowPlaylist() {
         onError: () => toast.error("Failed to update follow"),
     })
 }
+
+export function useCollaborators(playlistId: string | null) {
+    const queryClient = useQueryClient()
+
+    const collaboratorsQuery = useQuery({
+        queryKey: ["collaborators", playlistId],
+        queryFn: () => (playlistId ? playlistService.getCollaborators(playlistId) : []),
+        enabled: !!playlistId,
+    })
+
+    const invalidate = (id: string) => {
+        queryClient.invalidateQueries({ queryKey: ["collaborators", id] })
+        queryClient.invalidateQueries({ queryKey: ["playlist", id] })
+        queryClient.invalidateQueries({ queryKey: ["playlists"] })
+    }
+
+    const addCollaboratorMutation = useMutation({
+        mutationFn: ({ userId, role }: { userId: string; role: "viewer" | "editor" }) => {
+            if (!playlistId) throw new Error("No playlist")
+            return playlistService.addCollaborator(playlistId, userId, role)
+        },
+        onSuccess: () => {
+            if (playlistId) invalidate(playlistId)
+            toast.success("Collaborator added")
+        },
+        onError: () => toast.error("Failed to add collaborator"),
+    })
+
+    const removeCollaboratorMutation = useMutation({
+        mutationFn: (userId: string) => {
+            if (!playlistId) throw new Error("No playlist")
+            return playlistService.removeCollaborator(playlistId, userId)
+        },
+        onSuccess: () => {
+            if (playlistId) invalidate(playlistId)
+            toast.success("Collaborator removed")
+        },
+        onError: () => toast.error("Failed to remove collaborator"),
+    })
+
+    return {
+        collaborators: collaboratorsQuery.data || [],
+        isLoading: collaboratorsQuery.isLoading,
+        addCollaborator: addCollaboratorMutation.mutateAsync,
+        isAdding: addCollaboratorMutation.isPending,
+        removeCollaborator: removeCollaboratorMutation.mutate,
+        isRemoving: removeCollaboratorMutation.isPending,
+    }
+}
+
+export function useToggleCollaborative() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: playlistService.toggleCollaborative,
+        onSuccess: (result, playlistId) => {
+            queryClient.invalidateQueries({ queryKey: ["playlists"] })
+            queryClient.invalidateQueries({ queryKey: ["playlist", playlistId] })
+            toast.success(
+                result.is_collaborative ? "Collaboration enabled" : "Collaboration disabled",
+            )
+        },
+        onError: () => toast.error("Failed to update collaboration"),
+    })
+}

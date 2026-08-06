@@ -1,4 +1,5 @@
 import { PlaylistArt } from "@/components/playlist/playlist-art"
+import { CollaboratorsModal } from "@/components/playlist/collaborators-modal"
 import { SearchAddModal } from "@/components/playlist/search-add-modal"
 import BulkActionBar from "@/components/ui/bulk-action-bar/bulk-action-bar"
 import ConfirmationDialog from "@/components/ui/confirmation-dialog/confirmation-dialog"
@@ -7,7 +8,12 @@ import SortSelect, { type SortSelectOption } from "@/components/ui/sort-select/s
 import ViewToggle from "@/components/ui/view-toggle/view-toggle"
 import { usePlayerStore } from "@/hooks/usePlayer"
 import { usePlaylistMenu } from "@/hooks/usePlaylistMenu"
-import { useFollowPlaylist, usePlaylist, usePlaylists } from "@/hooks/usePlaylists"
+import {
+    useFollowPlaylist,
+    usePlaylist,
+    usePlaylists,
+    useToggleCollaborative,
+} from "@/hooks/usePlaylists"
 import { useQueueStore } from "@/hooks/useQueue"
 import { useSongSelection } from "@/hooks/useSongSelection"
 import { useThemeStore } from "@/hooks/useTheme"
@@ -35,6 +41,7 @@ import {
     Search,
     Shuffle,
     Trash2,
+    Users,
     X,
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
@@ -76,6 +83,7 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
         isUpdating,
     } = usePlaylists()
     const followPlaylist = useFollowPlaylist()
+    const toggleCollaborative = useToggleCollaborative()
     const { selectedSongIds, toggleSelect, toggleSelectAll, clearSelection, getSelectedSongs } =
         useSongSelection()
 
@@ -96,6 +104,7 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
     const [isImportModalOpen, setIsImportModalOpen] = useState(false)
     const [importUrl, setImportUrl] = useState("")
     const [isSearchAddOpen, setIsSearchAddOpen] = useState(false)
+    const [isCollaboratorsOpen, setIsCollaboratorsOpen] = useState(false)
     const { moreMenuFor, setMoreMenuFor, renderMoreMenu, renderDialogs } = usePlaylistMenu({
         playlists,
     })
@@ -113,7 +122,7 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
     const playlistQuery = usePlaylist(playlistId, detailOptions)
     const playlist = playlistQuery.data
     const isOwner = playlist?.is_owner ?? false
-    const canEdit = isOwner
+    const canEdit = isOwner || (playlist?.is_editor ?? false)
 
     useEffect(() => {
         const timer = setTimeout(() => setDebouncedSearch(playlistSearch), 250)
@@ -312,6 +321,11 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
                                 <EyeOff className='h-3.5 w-3.5' /> Private
                             </span>
                         )}
+                        {playlist?.is_collaborative && (
+                            <span className='flex items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-950 dark:text-purple-400'>
+                                <Users className='h-3.5 w-3.5' /> Collaborative
+                            </span>
+                        )}
                     </div>
                     <p className='mt-1 text-sm text-gray-500 dark:text-gray-400'>
                         {totalSongs} {totalSongs === 1 ? "song" : "songs"} ·{" "}
@@ -353,7 +367,7 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
                             </button>
                         )}
 
-                        {!canEdit && playlist?.is_following !== undefined && (
+                        {!isOwner && playlist?.is_following !== undefined && (
                             <button
                                 onClick={handleFollow}
                                 disabled={followPlaylist.isPending}
@@ -376,7 +390,7 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
                             </button>
                         )}
 
-                        {canEdit && playlist && (
+                        {isOwner && playlist && (
                             <button
                                 onClick={handleToggleVisibility}
                                 disabled={isUpdating}
@@ -395,7 +409,7 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
                             </button>
                         )}
 
-                        {canEdit &&
+                        {isOwner &&
                             (isRenameOpen ? (
                                 <form onSubmit={handleRename} className='flex items-center gap-1'>
                                     <input
@@ -431,7 +445,7 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
                                 </button>
                             ))}
 
-                        {canEdit && (
+                        {isOwner && (
                             <button
                                 onClick={() => setIsDeleteDialogOpen(true)}
                                 className='flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-medium text-red-600 transition-colors hover:bg-red-100 dark:border-red-900 dark:bg-red-950 dark:text-red-400'
@@ -440,7 +454,7 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
                             </button>
                         )}
 
-                        {canEdit && (
+                        {isOwner && (
                             <button
                                 onClick={() =>
                                     setMoreMenuFor(moreMenuFor === playlistId ? null : playlistId)
@@ -450,6 +464,31 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
                                 title='More options'
                             >
                                 <MoreHorizontal className='h-4 w-4' /> More
+                            </button>
+                        )}
+
+                        {canEdit && (
+                            <button
+                                onClick={() => setIsCollaboratorsOpen(true)}
+                                className='dark:bg-card flex h-10 cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 text-sm font-medium transition-all hover:border-red-200 dark:border-white/10 dark:text-white'
+                                title='Manage collaborators'
+                            >
+                                <Users className='h-4 w-4' /> Collaborators
+                            </button>
+                        )}
+
+                        {isOwner && playlist && (
+                            <button
+                                onClick={() => toggleCollaborative.mutate(playlistId)}
+                                disabled={toggleCollaborative.isPending}
+                                className='dark:bg-card flex h-10 cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 text-sm font-medium transition-all hover:border-red-200 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:text-white'
+                            >
+                                <Users className='h-4 w-4' />
+                                {toggleCollaborative.isPending
+                                    ? "Saving..."
+                                    : playlist.is_collaborative
+                                      ? "Disable Collaboration"
+                                      : "Enable Collaboration"}
                             </button>
                         )}
                     </div>
@@ -864,6 +903,14 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
 
             {renderMoreMenu()}
             {renderDialogs()}
+
+            {isCollaboratorsOpen && (
+                <CollaboratorsModal
+                    playlistId={playlistId}
+                    canManage={isOwner}
+                    onClose={() => setIsCollaboratorsOpen(false)}
+                />
+            )}
 
             {isSearchAddOpen && (
                 <SearchAddModal

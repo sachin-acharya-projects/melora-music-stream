@@ -1,4 +1,12 @@
-import { type Playlist, type PlaylistDetail, type PlaylistVisibility, type Song } from "@/types"
+import {
+    type CollaboratorRole,
+    type Playlist,
+    type PlaylistCollaborator,
+    type PlaylistDetail,
+    type PlaylistVisibility,
+    type Song,
+    type UserSearchResult,
+} from "@/types"
 import { ENDPOINTS } from "@/utils/api/endpoints"
 import { http } from "@/utils/api/http"
 
@@ -70,6 +78,33 @@ export const playlistService = {
         const { data } = await http.post<{ is_following: boolean; follower_count: number }>(
             ENDPOINTS.PLAYLISTS.FOLLOW(id),
         )
+        return data
+    },
+
+    toggleCollaborative: async (id: string): Promise<{ is_collaborative: boolean }> => {
+        const { data } = await http.post<{ is_collaborative: boolean }>(
+            ENDPOINTS.PLAYLISTS.COLLABORATIVE(id),
+        )
+        return data
+    },
+
+    getCollaborators: async (id: string): Promise<PlaylistCollaborator[]> => {
+        const { data } = await http.get<PlaylistCollaborator[]>(
+            ENDPOINTS.PLAYLISTS.COLLABORATORS(id),
+        )
+        return data
+    },
+
+    addCollaborator: async (id: string, userId: string, role: CollaboratorRole): Promise<void> => {
+        await http.post(ENDPOINTS.PLAYLISTS.COLLABORATORS(id), { user_id: userId, role })
+    },
+
+    removeCollaborator: async (id: string, userId: string): Promise<void> => {
+        await http.delete(ENDPOINTS.PLAYLISTS.COLLABORATOR(id, userId))
+    },
+
+    searchUsers: async (query: string): Promise<UserSearchResult[]> => {
+        const { data } = await http.get<UserSearchResult[]>(ENDPOINTS.USERS.SEARCH(query))
         return data
     },
 

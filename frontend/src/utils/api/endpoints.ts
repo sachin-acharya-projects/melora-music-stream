@@ -11,6 +11,9 @@ export const ENDPOINTS = {
         DISCOVER: "/playlists/discover",
         FOLLOWING: "/playlists/following",
         FOLLOW: (id: string) => `/playlists/${id}/follow`,
+        COLLABORATIVE: (id: string) => `/playlists/${id}/collaborative`,
+        COLLABORATORS: (id: string) => `/playlists/${id}/collaborators`,
+        COLLABORATOR: (id: string, userId: string) => `/playlists/${id}/collaborators/${userId}`,
         ADD_SONG: (playlistIdOrName: string) =>
             `/playlists/${encodeURIComponent(playlistIdOrName)}/add`,
         ADD_SONGS_BULK: (playlistIdOrName: string) =>
@@ -20,6 +23,10 @@ export const ENDPOINTS = {
         IMPORT: "/playlists/import",
         SHARE: (playlistId: string) => `/playlists/${playlistId}/share`,
         SHARED_BY_TOKEN: (token: string) => `/playlists/shared/${token}`,
+    },
+    USERS: {
+        SEARCH: (q: string, limit?: number) =>
+            `/users/search?q=${encodeURIComponent(q)}${limit ? `&limit=${limit}` : ""}`,
     },
     AUTH: {
         LOGIN: "/auth/login",
