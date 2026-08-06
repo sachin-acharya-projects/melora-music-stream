@@ -1,3 +1,7 @@
+import { AnimatePresence, motion } from "framer-motion"
+import { Check, ChevronDown } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
+
 export interface SortSelectOption {
     value: string
     label: string
@@ -11,18 +15,85 @@ interface SortSelectProps {
 }
 
 export default function SortSelect({ value, onChange, options, className }: SortSelectProps) {
+    const [isOpen, setIsOpen] = useState(false)
+    const [openUpward, setOpenUpward] = useState(false)
+    const containerRef = useRef<HTMLDivElement>(null)
+
+    const selected = options.find((option) => option.value === value)
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+                setIsOpen(false)
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside)
+        return () => document.removeEventListener("mousedown", handleClickOutside)
+    }, [])
+
+    useEffect(() => {
+        if (isOpen && containerRef.current) {
+            const rect = containerRef.current.getBoundingClientRect()
+            const spaceBelow = window.innerHeight - rect.bottom
+            setOpenUpward(spaceBelow < 200)
+        }
+    }, [isOpen])
+
     return (
-        <select
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            aria-label='Sort'
-            className={`dark:bg-card flex h-11 cursor-pointer items-center rounded-xl border bg-white px-3 text-sm font-medium shadow-sm transition-all hover:border-red-200 dark:border-white/10 dark:text-white ${className ?? ""}`}
-        >
-            {options.map((option) => (
-                <option key={option.value} value={option.value}>
-                    {option.label}
-                </option>
-            ))}
-        </select>
+        <div className={`relative ${className}`} ref={containerRef}>
+            <button
+                type='button'
+                onClick={() => setIsOpen(!isOpen)}
+                aria-haspopup='listbox'
+                aria-expanded={isOpen}
+                className='dark:bg-card flex h-11 cursor-pointer items-center gap-2 rounded-xl border bg-white px-3 text-sm font-medium shadow-sm transition-all hover:border-red-200 dark:border-white/10 dark:text-white'
+            >
+                <span className='truncate'>{selected?.label ?? options[0]?.label}</span>
+                <ChevronDown
+                    className={`h-4 w-4 shrink-0 text-gray-400 transition-transform ${
+                        isOpen ? "rotate-180" : ""
+                    }`}
+                />
+            </button>
+
+            <AnimatePresence>
+                {isOpen && (
+                    <motion.div
+                        role='listbox'
+                        initial={{ opacity: 0, y: openUpward ? -10 : 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: openUpward ? -10 : 10 }}
+                        transition={{ duration: 0.15 }}
+                        className={`absolute left-0 z-50 w-max min-w-full overflow-hidden rounded-xl border bg-white p-1 shadow-xl dark:border-white/10 dark:bg-black ${
+                            openUpward ? "bottom-full mb-2" : "top-full mt-2"
+                        }`}
+                    >
+                        {options.map((option) => {
+                            const isSelected = option.value === value
+                            return (
+                                <button
+                                    key={option.value}
+                                    type='button'
+                                    role='option'
+                                    aria-selected={isSelected}
+                                    onClick={() => {
+                                        onChange(option.value)
+                                        setIsOpen(false)
+                                    }}
+                                    className={`flex w-full cursor-pointer items-center justify-between gap-6 rounded-lg px-3 py-2 text-left text-sm whitespace-nowrap transition-colors ${
+                                        isSelected
+                                            ? "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400"
+                                            : "text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-white/5"
+                                    }`}
+                                >
+                                    {option.label}
+                                    {isSelected && <Check className='h-4 w-4 shrink-0' />}
+                                </button>
+                            )
+                        })}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
     )
 }
