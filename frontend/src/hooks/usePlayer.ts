@@ -12,6 +12,18 @@ const addRecentSong = (recentSongs: Song[], song: Song): Song[] => {
     return [song, ...filteredRecent].slice(0, MAX_RECENT)
 }
 
+const mergeRecentSongs = (local: Song[], server: Song[]): Song[] => {
+    const seen = new Set<string>()
+    const merged: Song[] = []
+    for (const song of [...server, ...local]) {
+        if (song && song.id && !seen.has(song.id)) {
+            seen.add(song.id)
+            merged.push(song)
+        }
+    }
+    return merged.slice(0, MAX_RECENT)
+}
+
 export const usePlayerStore = create<PlayerStore>()(
     persist(
         (set, get) => ({
@@ -226,11 +238,37 @@ export const usePlayerStore = create<PlayerStore>()(
             initialize: async () => {
                 try {
                     const restored = await restorePlayerState()
-                    set({ ...restored, isInitialized: true })
+                    set((state) => ({
+                        ...restored,
+                        recentSongs: mergeRecentSongs(
+                            state.recentSongs,
+                            restored.recentSongs ?? [],
+                        ),
+                        isInitialized: true,
+                    }))
                 } catch (error) {
                     console.error("Failed to initialize player state from backend", error)
                     set({ isInitialized: true })
                 }
+            },
+
+            reset: () => {
+                usePlayerStore.persist.clearStorage()
+                set({
+                    currentSong: null,
+                    playlist: [],
+                    currentIndex: -1,
+                    isPlaying: false,
+                    repeatMode: "none",
+                    progress: 0,
+                    duration: 0,
+                    seekTime: null,
+                    lastPlaylistId: null,
+                    recentSongs: [],
+                    isInitialized: false,
+                    shuffle: false,
+                    unshuffledPlaylist: null,
+                })
             },
         }),
         {

@@ -1,6 +1,7 @@
 import { createContext, useEffect, useState, type ReactNode } from "react"
 import { useNavigate } from "react-router-dom"
 import { toast } from "react-toastify"
+import { usePlayerStore } from "@/hooks/usePlayer"
 import { authService, type User } from "@/services/auth.service"
 
 interface AuthContextType {
@@ -56,6 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const logout = () => {
         authService.logout()
+        usePlayerStore.getState().reset()
         setUser(null)
         navigate("/")
         toast.info("Logged out")

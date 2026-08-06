@@ -42,4 +42,5 @@ export interface PlayerStore extends PlayerState {
     // Sync logic
     syncWithBackend: () => Promise<void>
     initialize: () => Promise<void>
+    reset: () => void
 }
