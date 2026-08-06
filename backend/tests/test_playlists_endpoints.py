@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 
 from app.db.models.playlist import PlaylistModel, PlaylistVisibility
 from app.db.models.user import UserModel
+from app.services.auth import AuthService
 
 
 def make_playlist(
@@ -15,6 +16,20 @@ def make_playlist(
     db.add(playlist)
     db.commit()
     return playlist
+
+
+def make_user(db: Session, user_id: str, username: str) -> UserModel:
+    user = UserModel(
+        id=user_id,
+        email=f"{username}@example.com",
+        username=username,
+        display_name=username.title(),
+        role="user",
+        is_active=True,
+    )
+    db.add(user)
+    db.commit()
+    return user
 
 
 class TestGetPlaylists:
@@ -377,3 +392,136 @@ class TestRemoveSongFromPlaylist:
             "/api/v1/playlists/nonexistent/songs/song-1", headers=auth_headers
         )
         assert response.status_code == 404
+
+
+class TestToggleCollaborative:
+    def test_toggles(
+        self,
+        client,
+        db: Session,
+        test_user: UserModel,
+        auth_headers: dict[str, str],
+    ) -> None:
+        playlist = make_playlist(db, "Collab", test_user)
+
+        response = client.post(
+            f"/api/v1/playlists/{playlist.id}/collaborative", headers=auth_headers
+        )
+        assert response.status_code == 200
+        assert response.json() == {"is_collaborative": True}
+
+        response = client.post(
+            f"/api/v1/playlists/{playlist.id}/collaborative", headers=auth_headers
+        )
+        assert response.json() == {"is_collaborative": False}
+
+    def test_non_owner_forbidden(
+        self,
+        client,
+        db: Session,
+        test_user: UserModel,
+        admin_user: UserModel,
+        admin_headers: dict[str, str],
+    ) -> None:
+        playlist = make_playlist(db, "Collab", test_user)
+
+        response = client.post(
+            f"/api/v1/playlists/{playlist.id}/collaborative", headers=admin_headers
+        )
+        assert response.status_code == 200
+
+    def test_requires_auth(self, client) -> None:
+        response = client.post("/api/v1/playlists/anything/collaborative")
+        assert response.status_code == 401
+
+
+class TestCollaborators:
+    def test_add_list_remove(
+        self,
+        client,
+        db: Session,
+        test_user: UserModel,
+        auth_headers: dict[str, str],
+    ) -> None:
+        playlist = make_playlist(db, "Collab", test_user)
+        other = make_user(db, "other-id", "other")
+
+        response = client.post(
+            f"/api/v1/playlists/{playlist.id}/collaborators",
+            json={"user_id": other.id, "role": "editor"},
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        assert response.json()["message"] == "Collaborator added"
+
+        response = client.get(
+            f"/api/v1/playlists/{playlist.id}/collaborators", headers=auth_headers
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["user_id"] == other.id
+        assert data[0]["role"] == "editor"
+
+        response = client.delete(
+            f"/api/v1/playlists/{playlist.id}/collaborators/{other.id}",
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+
+    def test_add_owner_rejected(
+        self,
+        client,
+        db: Session,
+        test_user: UserModel,
+        auth_headers: dict[str, str],
+    ) -> None:
+        playlist = make_playlist(db, "Collab", test_user)
+
+        response = client.post(
+            f"/api/v1/playlists/{playlist.id}/collaborators",
+            json={"user_id": test_user.id, "role": "editor"},
+            headers=auth_headers,
+        )
+        assert response.status_code == 400
+
+    def test_non_owner_forbidden(
+        self,
+        client,
+        db: Session,
+        test_user: UserModel,
+        auth_headers: dict[str, str],
+    ) -> None:
+        playlist = make_playlist(db, "Collab", test_user)
+        other = make_user(db, "other-id", "other")
+
+        intruder = make_user(db, "intruder-id", "intruder")
+        tokens = AuthService.create_tokens_for_user(intruder)
+        headers = {"Authorization": f"Bearer {tokens['access_token']}"}
+
+        response = client.post(
+            f"/api/v1/playlists/{playlist.id}/collaborators",
+            json={"user_id": other.id, "role": "editor"},
+            headers=headers,
+        )
+        assert response.status_code == 403
+
+
+class TestUserSearch:
+    def test_search_users(
+        self,
+        client,
+        db: Session,
+        test_user: UserModel,
+        auth_headers: dict[str, str],
+    ) -> None:
+        make_user(db, "alice-id", "alice")
+
+        response = client.get("/api/v1/users/search?q=alic", headers=auth_headers)
+        assert response.status_code == 200
+        data = response.json()
+        assert any(u["username"] == "alice" for u in data)
+
+    def test_requires_auth(self, client) -> None:
+        response = client.get("/api/v1/users/search?q=a")
+        assert response.status_code == 401

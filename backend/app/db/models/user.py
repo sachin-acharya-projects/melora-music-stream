@@ -9,7 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import BaseModel
 
 if TYPE_CHECKING:
-    from app.db.models.playlist import PlaylistModel
+    from app.db.models.playlist import PlaylistCollaboratorModel, PlaylistModel
 
 
 class UserRole(StrEnum):
@@ -47,4 +47,10 @@ class UserModel(BaseModel):
         secondary="playlist_follows",
         back_populates="followers",
         lazy="selectin",
+    )
+
+    collaborations: Mapped[list[PlaylistCollaboratorModel]] = relationship(
+        "PlaylistCollaboratorModel",
+        lazy="selectin",
+        overlaps="user",
     )

@@ -572,3 +572,322 @@ class TestRelatedSongs:
 
     def test_unknown_song_returns_empty(self, db: Session) -> None:
         assert SongService.get_related_songs(db, "nonexistent") == []
+
+
+def make_user(db: Session, user_id: str, username: str) -> UserModel:
+    user = UserModel(
+        id=user_id,
+        email=f"{username}@example.com",
+        username=username,
+        display_name=username.title(),
+        role="user",
+        is_active=True,
+    )
+    db.add(user)
+    db.commit()
+    return user
+
+
+class TestToggleCollaborative:
+    def test_toggles(self, db: Session, test_user: UserModel) -> None:
+        playlist = make_playlist(db, "Collab", test_user)
+        assert playlist.is_collaborative is False
+
+        result = PlaylistService.toggle_collaborative(
+            db, playlist_id=playlist.id, user=test_user
+        )
+        assert result["is_collaborative"] is True
+
+        result = PlaylistService.toggle_collaborative(
+            db, playlist_id=playlist.id, user=test_user
+        )
+        assert result["is_collaborative"] is False
+
+    def test_not_found_raises(self, db: Session, test_user: UserModel) -> None:
+        with pytest.raises(Exception) as exc_info:
+            PlaylistService.toggle_collaborative(
+                db, playlist_id="missing", user=test_user
+            )
+        assert exc_info.value.status_code == 404
+
+    def test_non_owner_raises(
+        self, db: Session, test_user: UserModel, admin_user: UserModel
+    ) -> None:
+        playlist = make_playlist(db, "Mine", test_user)
+        intruder = make_user(db, "intruder-id", "intruder")
+
+        with pytest.raises(Exception) as exc_info:
+            PlaylistService.toggle_collaborative(
+                db, playlist_id=playlist.id, user=intruder
+            )
+        assert exc_info.value.status_code == 403
+
+        result = PlaylistService.toggle_collaborative(
+            db, playlist_id=playlist.id, user=admin_user
+        )
+        assert result["is_collaborative"] is True
+
+
+class TestAddCollaborator:
+    def test_adds(self, db: Session, test_user: UserModel) -> None:
+        playlist = make_playlist(db, "Collab", test_user)
+        other = make_user(db, "other-id", "other")
+
+        result = PlaylistService.add_collaborator(
+            db,
+            playlist_id=playlist.id,
+            user_id=other.id,
+            role="editor",
+            user=test_user,
+        )
+        assert result["message"] == "Collaborator added"
+
+        collabs = PlaylistService.get_collaborators(
+            db, playlist_id=playlist.id, user=test_user
+        )
+        assert len(collabs) == 1
+        assert collabs[0]["user_id"] == other.id
+        assert collabs[0]["role"] == "editor"
+
+    def test_upserts_existing_role(self, db: Session, test_user: UserModel) -> None:
+        playlist = make_playlist(db, "Collab", test_user)
+        other = make_user(db, "other-id", "other")
+        PlaylistService.add_collaborator(
+            db,
+            playlist_id=playlist.id,
+            user_id=other.id,
+            role="editor",
+            user=test_user,
+        )
+
+        result = PlaylistService.add_collaborator(
+            db,
+            playlist_id=playlist.id,
+            user_id=other.id,
+            role="viewer",
+            user=test_user,
+        )
+        assert result["message"] == "Collaborator updated"
+        collabs = PlaylistService.get_collaborators(
+            db, playlist_id=playlist.id, user=test_user
+        )
+        assert collabs[0]["role"] == "viewer"
+
+    def test_owner_cannot_be_added(self, db: Session, test_user: UserModel) -> None:
+        playlist = make_playlist(db, "Collab", test_user)
+
+        with pytest.raises(Exception) as exc_info:
+            PlaylistService.add_collaborator(
+                db,
+                playlist_id=playlist.id,
+                user_id=test_user.id,
+                role="editor",
+                user=test_user,
+            )
+        assert exc_info.value.status_code == 400
+
+    def test_unknown_user_raises(self, db: Session, test_user: UserModel) -> None:
+        playlist = make_playlist(db, "Collab", test_user)
+
+        with pytest.raises(Exception) as exc_info:
+            PlaylistService.add_collaborator(
+                db,
+                playlist_id=playlist.id,
+                user_id="missing-user",
+                role="editor",
+                user=test_user,
+            )
+        assert exc_info.value.status_code == 404
+
+    def test_non_owner_raises(self, db: Session, test_user: UserModel) -> None:
+        playlist = make_playlist(db, "Collab", test_user)
+        intruder = make_user(db, "intruder-id", "intruder")
+        other = make_user(db, "other-id", "other")
+
+        with pytest.raises(Exception) as exc_info:
+            PlaylistService.add_collaborator(
+                db,
+                playlist_id=playlist.id,
+                user_id=other.id,
+                role="editor",
+                user=intruder,
+            )
+        assert exc_info.value.status_code == 403
+
+
+class TestRemoveCollaborator:
+    def test_removes(self, db: Session, test_user: UserModel) -> None:
+        playlist = make_playlist(db, "Collab", test_user)
+        other = make_user(db, "other-id", "other")
+        PlaylistService.add_collaborator(
+            db,
+            playlist_id=playlist.id,
+            user_id=other.id,
+            role="editor",
+            user=test_user,
+        )
+
+        result = PlaylistService.remove_collaborator(
+            db, playlist_id=playlist.id, user_id=other.id, user=test_user
+        )
+        assert result["message"] == "Collaborator removed"
+        assert (
+            PlaylistService.get_collaborators(
+                db, playlist_id=playlist.id, user=test_user
+            )
+            == []
+        )
+
+    def test_unknown_collaborator_raises(
+        self, db: Session, test_user: UserModel
+    ) -> None:
+        playlist = make_playlist(db, "Collab", test_user)
+        other = make_user(db, "other-id", "other")
+
+        with pytest.raises(Exception) as exc_info:
+            PlaylistService.remove_collaborator(
+                db, playlist_id=playlist.id, user_id=other.id, user=test_user
+            )
+        assert exc_info.value.status_code == 404
+
+    def test_non_owner_raises(self, db: Session, test_user: UserModel) -> None:
+        playlist = make_playlist(db, "Collab", test_user)
+        other = make_user(db, "other-id", "other")
+        intruder = make_user(db, "intruder-id", "intruder")
+
+        with pytest.raises(Exception) as exc_info:
+            PlaylistService.remove_collaborator(
+                db, playlist_id=playlist.id, user_id=other.id, user=intruder
+            )
+        assert exc_info.value.status_code == 403
+
+
+class TestGetCollaborators:
+    def test_requires_owner_or_editor(self, db: Session, test_user: UserModel) -> None:
+        playlist = make_playlist(
+            db, "Collab", test_user, visibility=PlaylistVisibility.PUBLIC
+        )
+        other = make_user(db, "other-id", "other")
+
+        with pytest.raises(Exception) as exc_info:
+            PlaylistService.get_collaborators(db, playlist_id=playlist.id, user=other)
+        assert exc_info.value.status_code == 403
+
+    def test_private_playlist_hidden_from_non_owner(
+        self, db: Session, test_user: UserModel
+    ) -> None:
+        playlist = make_playlist(db, "Private Collab", test_user)
+        other = make_user(db, "other-id", "other")
+
+        with pytest.raises(Exception) as exc_info:
+            PlaylistService.get_collaborators(db, playlist_id=playlist.id, user=other)
+        assert exc_info.value.status_code in (403, 404)
+
+    def test_editor_can_list(self, db: Session, test_user: UserModel) -> None:
+        playlist = make_playlist(db, "Collab", test_user)
+        playlist.is_collaborative = True
+        db.commit()
+        other = make_user(db, "other-id", "other")
+        PlaylistService.add_collaborator(
+            db,
+            playlist_id=playlist.id,
+            user_id=other.id,
+            role="editor",
+            user=test_user,
+        )
+
+        collabs = PlaylistService.get_collaborators(
+            db, playlist_id=playlist.id, user=other
+        )
+        assert len(collabs) == 1
+
+
+class TestCollaborativeEditing:
+    def test_editor_can_add_song(
+        self, db: Session, test_user: UserModel, sample_song: Song
+    ) -> None:
+        playlist = make_playlist(db, "Collab", test_user)
+        playlist.is_collaborative = True
+        db.commit()
+        other = make_user(db, "other-id", "other")
+        PlaylistService.add_collaborator(
+            db,
+            playlist_id=playlist.id,
+            user_id=other.id,
+            role="editor",
+            user=test_user,
+        )
+
+        result = PlaylistService.add_song_to_playlist(
+            db, playlist_id_or_name=playlist.id, song=sample_song, user=other
+        )
+        assert result["message"] == "Song added"
+
+    def test_viewer_cannot_add_song(
+        self, db: Session, test_user: UserModel, sample_song: Song
+    ) -> None:
+        playlist = make_playlist(db, "Collab", test_user)
+        playlist.is_collaborative = True
+        db.commit()
+        other = make_user(db, "other-id", "other")
+        PlaylistService.add_collaborator(
+            db,
+            playlist_id=playlist.id,
+            user_id=other.id,
+            role="viewer",
+            user=test_user,
+        )
+
+        with pytest.raises(Exception) as exc_info:
+            PlaylistService.add_song_to_playlist(
+                db, playlist_id_or_name=playlist.id, song=sample_song, user=other
+            )
+        assert exc_info.value.status_code == 403
+
+    def test_editor_can_remove_song(
+        self, db: Session, test_user: UserModel, sample_song: Song
+    ) -> None:
+        playlist = make_playlist(db, "Collab", test_user)
+        playlist.is_collaborative = True
+        db.commit()
+        other = make_user(db, "other-id", "other")
+        PlaylistService.add_collaborator(
+            db,
+            playlist_id=playlist.id,
+            user_id=other.id,
+            role="editor",
+            user=test_user,
+        )
+        PlaylistService.add_song_to_playlist(
+            db, playlist_id_or_name=playlist.id, song=sample_song, user=test_user
+        )
+
+        result = PlaylistService.remove_song_from_playlist(
+            db, playlist_id=playlist.id, song_id=sample_song.id, user=other
+        )
+        assert result["message"] == "Song removed from playlist"
+
+    def test_non_collaborator_raises(
+        self, db: Session, test_user: UserModel, sample_song: Song
+    ) -> None:
+        playlist = make_playlist(db, "Collab", test_user)
+        playlist.is_collaborative = True
+        db.commit()
+        other = make_user(db, "other-id", "other")
+
+        with pytest.raises(Exception) as exc_info:
+            PlaylistService.add_song_to_playlist(
+                db, playlist_id_or_name=playlist.id, song=sample_song, user=other
+            )
+        assert exc_info.value.status_code == 403
+
+    def test_serialize_exposes_collaboration_fields(
+        self, db: Session, test_user: UserModel
+    ) -> None:
+        playlist = make_playlist(db, "Collab", test_user)
+        playlist.is_collaborative = True
+        db.commit()
+
+        result = PlaylistService.get_playlist_by_id(db, playlist.id, test_user)
+        assert result["is_collaborative"] is True
+        assert result["is_editor"] is True

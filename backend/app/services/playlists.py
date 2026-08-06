@@ -4,7 +4,12 @@ from fastapi import HTTPException
 from sqlalchemy import asc, desc, func
 from sqlalchemy.orm import Session, contains_eager
 
-from app.db.models.playlist import PlaylistModel, PlaylistVisibility
+from app.db.models.playlist import (
+    CollaboratorRole,
+    PlaylistCollaboratorModel,
+    PlaylistModel,
+    PlaylistVisibility,
+)
 from app.db.models.song import SongModel
 from app.db.models.user import UserModel
 from app.schemas.song import PlaylistUpdate, Song
@@ -208,6 +213,8 @@ class PlaylistService:
             db_playlist.description = data.description
         if data.visibility is not None:
             db_playlist.visibility = data.visibility
+        if data.is_collaborative is not None:
+            db_playlist.is_collaborative = data.is_collaborative
 
         db.commit()
         return {
@@ -216,6 +223,7 @@ class PlaylistService:
             "name": db_playlist.name,
             "visibility": db_playlist.visibility,
             "description": db_playlist.description,
+            "is_collaborative": db_playlist.is_collaborative,
         }
 
     @staticmethod
@@ -261,6 +269,131 @@ class PlaylistService:
             "is_following": not is_following,
             "follower_count": db_playlist.follower_count,
         }
+
+    @staticmethod
+    def toggle_collaborative(
+        db: Session, *, playlist_id: str, user: UserModel
+    ) -> dict[str, Any]:
+        """Enable or disable collaboration on a playlist. Owner or admin only."""
+        db_playlist = (
+            db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id).first()
+        )
+        if db_playlist is None:
+            raise HTTPException(status_code=404, detail="Playlist not found")
+
+        PlaylistService._ensure_owner(db_playlist, user)
+
+        db_playlist.is_collaborative = not db_playlist.is_collaborative
+        db.commit()
+        return {
+            "is_collaborative": db_playlist.is_collaborative,
+        }
+
+    @staticmethod
+    def get_collaborators(
+        db: Session, *, playlist_id: str, user: UserModel
+    ) -> list[dict[str, Any]]:
+        """List a playlist's collaborators. Owner, admin, or collaborators."""
+        db_playlist = (
+            db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id).first()
+        )
+        if db_playlist is None:
+            raise HTTPException(status_code=404, detail="Playlist not found")
+
+        PlaylistService._ensure_can_view(db_playlist, user)
+        if not (
+            PlaylistService._is_owner(db_playlist, user)
+            or PlaylistService._is_editor(db_playlist, user)
+        ):
+            raise HTTPException(
+                status_code=403, detail="Not allowed to view collaborators"
+            )
+
+        return [
+            {
+                "user_id": collab.user_id,
+                "role": collab.role,
+                "username": collab.user.username if collab.user else None,
+                "display_name": collab.user.display_name if collab.user else None,
+                "avatar_url": collab.user.avatar_url if collab.user else None,
+            }
+            for collab in db_playlist.collaborators
+        ]
+
+    @staticmethod
+    def add_collaborator(
+        db: Session,
+        *,
+        playlist_id: str,
+        user_id: str,
+        role: str,
+        user: UserModel,
+    ) -> dict[str, Any]:
+        """Add a collaborator to a playlist. Owner or admin only."""
+        db_playlist = (
+            db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id).first()
+        )
+        if db_playlist is None:
+            raise HTTPException(status_code=404, detail="Playlist not found")
+
+        PlaylistService._ensure_owner(db_playlist, user)
+
+        if user_id == db_playlist.user_id:
+            raise HTTPException(
+                status_code=400, detail="The owner is already a collaborator"
+            )
+
+        db_user = db.query(UserModel).filter(UserModel.id == user_id).first()
+        if db_user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        existing = (
+            db.query(PlaylistCollaboratorModel)
+            .filter(
+                PlaylistCollaboratorModel.playlist_id == playlist_id,
+                PlaylistCollaboratorModel.user_id == user_id,
+            )
+            .first()
+        )
+        if existing is not None:
+            existing.role = role
+            db.commit()
+            return {"message": "Collaborator updated", "user_id": user_id, "role": role}
+
+        db_collab = PlaylistCollaboratorModel(
+            playlist_id=playlist_id, user_id=user_id, role=role
+        )
+        db.add(db_collab)
+        db.commit()
+        return {"message": "Collaborator added", "user_id": user_id, "role": role}
+
+    @staticmethod
+    def remove_collaborator(
+        db: Session, *, playlist_id: str, user_id: str, user: UserModel
+    ) -> dict[str, str]:
+        """Remove a collaborator from a playlist. Owner or admin only."""
+        db_playlist = (
+            db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id).first()
+        )
+        if db_playlist is None:
+            raise HTTPException(status_code=404, detail="Playlist not found")
+
+        PlaylistService._ensure_owner(db_playlist, user)
+
+        db_collab = (
+            db.query(PlaylistCollaboratorModel)
+            .filter(
+                PlaylistCollaboratorModel.playlist_id == playlist_id,
+                PlaylistCollaboratorModel.user_id == user_id,
+            )
+            .first()
+        )
+        if db_collab is None:
+            raise HTTPException(status_code=404, detail="Collaborator not found")
+
+        db.delete(db_collab)
+        db.commit()
+        return {"message": "Collaborator removed"}
 
     @staticmethod
     def add_song_to_playlist(
@@ -318,14 +451,14 @@ class PlaylistService:
     def remove_song_from_playlist(
         db: Session, *, playlist_id: str, song_id: str, user: UserModel
     ) -> dict[str, str]:
-        """Remove a song from a playlist. Owner or admin only."""
+        """Remove a song from a playlist. Owner, admin, or editor collaborator."""
         db_playlist = (
             db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id).first()
         )
         if db_playlist is None:
             raise HTTPException(status_code=404, detail="Playlist not found")
 
-        PlaylistService._ensure_owner(db_playlist, user)
+        PlaylistService._ensure_can_edit(db_playlist, user)
 
         db_song = db.query(SongModel).filter(SongModel.id == song_id).first()
         if db_song is None or str(db_song.id) not in [
@@ -360,16 +493,19 @@ class PlaylistService:
             db.commit()
             db.refresh(db_playlist)
         else:
-            PlaylistService._ensure_owner(db_playlist, user)
+            PlaylistService._ensure_can_edit(db_playlist, user)
 
         return db_playlist
 
     @staticmethod
     def _ensure_can_view(playlist: PlaylistModel, user: UserModel | None) -> None:
-        """Ensure a user can view a playlist. Private playlists are owner/admin only."""
+        """Ensure a user can view a playlist. Private playlists are owner/collaborator only."""
         if playlist.visibility == PlaylistVisibility.PUBLIC:
             return
-        if user is not None and PlaylistService._is_owner(playlist, user):
+        if user is not None and (
+            PlaylistService._is_owner(playlist, user)
+            or PlaylistService._is_collaborator(playlist, user)
+        ):
             return
         raise HTTPException(status_code=404, detail="Playlist not found")
 
@@ -383,10 +519,37 @@ class PlaylistService:
             )
 
     @staticmethod
+    def _ensure_can_edit(playlist: PlaylistModel, user: UserModel) -> None:
+        """Ensure a user may modify a playlist: owner, admin, or editor collaborator."""
+        if PlaylistService._is_owner(playlist, user):
+            return
+        if PlaylistService._is_editor(playlist, user):
+            return
+        raise HTTPException(
+            status_code=403,
+            detail="You do not have permission to modify this playlist",
+        )
+
+    @staticmethod
     def _is_owner(playlist: PlaylistModel, user: UserModel) -> bool:
         if user.role == "admin":
             return True
         return playlist.user_id is not None and playlist.user_id == user.id
+
+    @staticmethod
+    def _is_editor(playlist: PlaylistModel, user: UserModel) -> bool:
+        if not playlist.is_collaborative:
+            return False
+        return any(
+            c.user_id == user.id and c.role == CollaboratorRole.EDITOR
+            for c in playlist.collaborators
+        )
+
+    @staticmethod
+    def _is_collaborator(playlist: PlaylistModel, user: UserModel) -> bool:
+        if not playlist.is_collaborative:
+            return False
+        return any(c.user_id == user.id for c in playlist.collaborators)
 
     @staticmethod
     def _serialize(
@@ -394,6 +557,14 @@ class PlaylistService:
     ) -> dict[str, Any]:
         """Serialize a playlist for API responses."""
         is_owner = current_user_id is not None and playlist.user_id == current_user_id
+        is_editor = is_owner or (
+            current_user_id is not None
+            and playlist.is_collaborative
+            and any(
+                c.user_id == current_user_id and c.role == CollaboratorRole.EDITOR
+                for c in playlist.collaborators
+            )
+        )
         return {
             "id": playlist.id,
             "name": playlist.name,
@@ -404,7 +575,9 @@ class PlaylistService:
             "description": playlist.description,
             "cover_image_url": playlist.cover_image_url,
             "follower_count": playlist.follower_count or 0,
+            "is_collaborative": playlist.is_collaborative or False,
             "is_owner": is_owner,
+            "is_editor": is_editor,
             "is_following": current_user_id is not None
             and any(f.id == current_user_id for f in playlist.followers),
             "songs": [SongService.serialize(song) for song in playlist.songs],

@@ -3,7 +3,13 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Query
 
 from app.api.deps import CurrentUser, OptionalUser, SessionDep
-from app.schemas.song import PlaylistCreate, PlaylistImport, PlaylistUpdate, Song
+from app.schemas.song import (
+    CollaboratorCreate,
+    PlaylistCreate,
+    PlaylistImport,
+    PlaylistUpdate,
+    Song,
+)
 from app.services.playlist_import import PlaylistImportService
 from app.services.playlist_share import PlaylistShareService
 from app.services.playlists import PlaylistService
@@ -90,6 +96,42 @@ def toggle_follow(
     playlist_id: str, db: SessionDep, user: CurrentUser
 ) -> dict[str, Any]:
     return PlaylistService.toggle_follow(db, playlist_id=playlist_id, user=user)
+
+
+@router.post("/{playlist_id}/collaborative")
+def toggle_collaborative(
+    playlist_id: str, db: SessionDep, user: CurrentUser
+) -> dict[str, Any]:
+    return PlaylistService.toggle_collaborative(db, playlist_id=playlist_id, user=user)
+
+
+@router.get("/{playlist_id}/collaborators")
+def get_collaborators(
+    playlist_id: str, db: SessionDep, user: CurrentUser
+) -> list[dict[str, Any]]:
+    return PlaylistService.get_collaborators(db, playlist_id=playlist_id, user=user)
+
+
+@router.post("/{playlist_id}/collaborators")
+def add_collaborator(
+    playlist_id: str, data: CollaboratorCreate, db: SessionDep, user: CurrentUser
+) -> dict[str, Any]:
+    return PlaylistService.add_collaborator(
+        db,
+        playlist_id=playlist_id,
+        user_id=data.user_id,
+        role=data.role,
+        user=user,
+    )
+
+
+@router.delete("/{playlist_id}/collaborators/{user_id}")
+def remove_collaborator(
+    playlist_id: str, user_id: str, db: SessionDep, user: CurrentUser
+) -> dict[str, str]:
+    return PlaylistService.remove_collaborator(
+        db, playlist_id=playlist_id, user_id=user_id, user=user
+    )
 
 
 @router.post("/")

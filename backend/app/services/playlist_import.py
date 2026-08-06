@@ -108,10 +108,13 @@ class PlaylistImportService:
 
     @staticmethod
     def _ensure_owner(playlist: PlaylistModel, user: UserModel) -> None:
-        """Ensure a user is the playlist owner or an admin."""
+        """Ensure a user is the playlist owner, an admin, or an editor collaborator."""
         if user.role == "admin":
             return
-        if playlist.user_id is None or playlist.user_id != user.id:
+        is_editor = playlist.is_collaborative and any(
+            c.user_id == user.id and c.role == "editor" for c in playlist.collaborators
+        )
+        if playlist.user_id is None or (playlist.user_id != user.id and not is_editor):
             raise HTTPException(
                 status_code=403,
                 detail="You do not have permission to modify this playlist",
