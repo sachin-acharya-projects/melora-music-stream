@@ -62,7 +62,7 @@ export function QueueItemMenu({
                         <div className='fixed inset-0 z-30' onClick={onClose} />
                         <div
                             onClick={(e) => e.stopPropagation()}
-                            className='dark:bg-card fixed z-40 w-44 overflow-hidden rounded-xl border bg-white p-1 shadow-xl dark:border-white/10'
+                            className='dark:bg-card fixed z-40 w-52 overflow-hidden rounded-xl border bg-white p-1 shadow-xl dark:border-white/10'
                             style={{
                                 top: anchorRect.bottom + 4,
                                 right: Math.max(8, window.innerWidth - anchorRect.right),
