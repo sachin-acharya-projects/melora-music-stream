@@ -1,6 +1,7 @@
 import pytest
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.db.models.user import UserModel, UserRole
 from app.services.auth import AuthService
 
@@ -112,6 +113,58 @@ class TestCreateTokensForUser:
         assert "refresh_token" in tokens
         assert len(tokens["access_token"]) > 0
         assert len(tokens["refresh_token"]) > 0
+
+
+class TestSaveAvatar:
+    def _point_media_at(self, monkeypatch, tmp_path) -> None:
+        monkeypatch.setattr(
+            type(settings), "media_path", property(lambda self: tmp_path)
+        )
+
+    def test_saves_under_media(self, tmp_path, monkeypatch) -> None:
+        class FakeResponse:
+            def raise_for_status(self) -> None:
+                return None
+
+            content: bytes = b"fake-image-bytes"
+
+        monkeypatch.setattr(
+            "app.services.auth.httpx.get", lambda *args, **kwargs: FakeResponse()
+        )
+        self._point_media_at(monkeypatch, tmp_path)
+
+        result = AuthService.save_avatar("123", "http://example.com/pic.jpg")
+
+        assert result == "/media/avatars/google_123.jpg"
+        saved = tmp_path / "avatars" / "google_123.jpg"
+        assert saved.exists()
+        assert saved.read_bytes() == b"fake-image-bytes"
+
+    def test_returns_existing_without_download(self, tmp_path, monkeypatch) -> None:
+        self._point_media_at(monkeypatch, tmp_path)
+        avatar_dir = tmp_path / "avatars"
+        avatar_dir.mkdir(parents=True)
+        (avatar_dir / "google_123.jpg").write_bytes(b"existing")
+
+        def fail(*args, **kwargs):
+            raise AssertionError()
+
+        monkeypatch.setattr("app.services.auth.httpx.get", fail)
+
+        result = AuthService.save_avatar("123", "http://example.com/pic.jpg")
+
+        assert result == "/media/avatars/google_123.jpg"
+
+    def test_returns_none_on_download_failure(self, tmp_path, monkeypatch) -> None:
+        def raise_error(*args, **kwargs):
+            raise OSError()
+
+        monkeypatch.setattr("app.services.auth.httpx.get", raise_error)
+        self._point_media_at(monkeypatch, tmp_path)
+
+        result = AuthService.save_avatar("123", "http://example.com/pic.jpg")
+
+        assert result is None
 
 
 class TestUpsertGoogleUser:

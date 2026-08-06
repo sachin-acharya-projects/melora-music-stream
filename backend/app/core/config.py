@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     PLAYLIST_FILE: str = "playlists.json"
     DOWNLOADS_DIR: str = "downloads"
     CACHE_DIR: str = "cache"
+    MEDIA_DIR: str = "media"
     AVATARS_DIR: str = "avatars"
     MAX_CACHE_SIZE_GB: int = 10
     CACHE_TTL_HOURS: int = 72
@@ -42,6 +43,21 @@ class Settings(BaseSettings):
     # Frontend
     FRONTEND_URL: str = "http://localhost:5173"
 
+    @property
+    def media_path(self) -> Path:
+        """Filesystem path of the media root directory."""
+        return Path(self.MEDIA_DIR)
+
+    @property
+    def avatars_dir_path(self) -> Path:
+        """Filesystem path of the avatars directory, implicitly under the media root."""
+        return self.media_path / self.AVATARS_DIR
+
+    @property
+    def avatars_url_prefix(self) -> str:
+        """URL prefix for avatars, implicitly under the /media mount."""
+        return f"/{self.MEDIA_DIR}/{self.AVATARS_DIR}"
+
     model_config = {
         "case_sensitive": True,
         "env_file": ".env",
@@ -54,4 +70,5 @@ settings = Settings()
 # Ensure directories exist
 Path(settings.DOWNLOADS_DIR).mkdir(parents=True, exist_ok=True)
 Path(settings.CACHE_DIR).mkdir(parents=True, exist_ok=True)
-Path(settings.AVATARS_DIR).mkdir(parents=True, exist_ok=True)
+settings.media_path.mkdir(parents=True, exist_ok=True)
+settings.avatars_dir_path.mkdir(parents=True, exist_ok=True)

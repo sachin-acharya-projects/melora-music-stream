@@ -120,18 +120,19 @@ class AuthService:
         try:
             ext = Path(avatar_url.split("?", maxsplit=1)[0]).suffix or ".jpg"
             filename = f"google_{google_id}{ext}"
-            local_path = Path(settings.AVATARS_DIR) / filename
+            local_path = settings.avatars_dir_path / filename
 
             if local_path.exists():
-                return f"/{settings.AVATARS_DIR}/{filename}"
+                return f"{settings.avatars_url_prefix}/{filename}"
 
             response = httpx.get(avatar_url, follow_redirects=True, timeout=10)
             response.raise_for_status()
+            settings.avatars_dir_path.mkdir(parents=True, exist_ok=True)
             local_path.write_bytes(response.content)
         except Exception:
             return None
         else:
-            return f"/{settings.AVATARS_DIR}/{filename}"
+            return f"{settings.avatars_url_prefix}/{filename}"
 
     @staticmethod
     def upsert_google_user(
