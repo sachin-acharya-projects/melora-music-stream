@@ -8,6 +8,8 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from ytmusicapi import YTMusic
 
+from app.core.config import settings
+from app.core.messages import Messages
 from app.core.redis import get_redis
 from app.db.models.song import SongModel
 from app.schemas.lyrics import LyricLine, LyricsResponse
@@ -21,10 +23,6 @@ _CAPTION_LANG_PRIORITY = ("ne", "en", "en-US", "en-GB", "en-orig")
 class LyricsService:
     """Fetch lyrics from LRCLIB, falling back to YouTube Music."""
 
-    LRCLIB_URL = "https://lrclib.net/api/get"
-    CACHE_TTL = 60 * 60 * 24 * 7  # 7 days
-    MISS_TTL = 60 * 60  # 1 hour for negative results
-
     def __init__(self) -> None:
         self._ytmusic: Any | None = None
 
@@ -37,7 +35,7 @@ class LyricsService:
         """Return lyrics for a stored song, raising 404 if it is unknown."""
         song = db.query(SongModel).filter(SongModel.id == song_id).first()
         if song is None:
-            raise HTTPException(status_code=404, detail="Song not found")
+            raise HTTPException(status_code=404, detail=Messages.SONG_NOT_FOUND)
         return self.get_lyrics(
             title=song.title or song_id,
             artist=song.uploader or "Unknown Artist",
@@ -68,7 +66,11 @@ class LyricsService:
         if result is None:
             result = LyricsResponse(synced=False, lines=[])
 
-        ttl = self.CACHE_TTL if result.lines else self.MISS_TTL
+        ttl = (
+            settings.LYRICS_CACHE_TTL_SECONDS
+            if result.lines
+            else settings.LYRICS_MISS_TTL_SECONDS
+        )
         cache.set(cache_key, result.model_dump(), ttl)
         return result
 
@@ -85,7 +87,7 @@ class LyricsService:
         if duration:
             params["duration"] = duration
         try:
-            response = httpx.get(LyricsService.LRCLIB_URL, params=params, timeout=10)
+            response = httpx.get(settings.LRCLIB_URL, params=params, timeout=10)
             response.raise_for_status()
             data = response.json()
         except (httpx.HTTPError, ValueError):

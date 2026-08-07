@@ -9,6 +9,7 @@ from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.messages import Messages
 from app.db.models.user import UserModel, UserRole
 
 
@@ -77,19 +78,21 @@ class AuthService:
         """Validate refresh token and return payload. Raises HTTPException on failure."""
         if not refresh_token_str:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Refresh token required"
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=Messages.REFRESH_TOKEN_REQUIRED,
             )
 
         payload = AuthService.decode_token(refresh_token_str)
         if not payload or payload.get("type") != "refresh":
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=Messages.INVALID_REFRESH_TOKEN,
             )
 
         user_id = payload.get("sub")
         if not user_id:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload"
+                status_code=status.HTTP_401_UNAUTHORIZED, detail=Messages.INVALID_TOKEN_PAYLOAD
             )
 
         return payload
@@ -101,7 +104,7 @@ class AuthService:
         if not user or not user.is_active:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="User not found or inactive",
+                detail=Messages.USER_NOT_FOUND_OR_INACTIVE,
             )
         return user
 
@@ -205,11 +208,11 @@ class AuthService:
         user = db.query(UserModel).filter(UserModel.email == email).first()
         if not user or not user.password_hash:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
+                status_code=status.HTTP_401_UNAUTHORIZED, detail=Messages.INVALID_CREDENTIALS
             )
         if not AuthService.verify_password(password, user.password_hash):
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
+                status_code=status.HTTP_401_UNAUTHORIZED, detail=Messages.INVALID_CREDENTIALS
             )
         return user
 
@@ -225,7 +228,7 @@ class AuthService:
         if not token:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Not authenticated",
+                detail=Messages.NOT_AUTHENTICATED,
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
@@ -233,7 +236,7 @@ class AuthService:
         if not payload or payload.get("type") != "access":
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid or expired token",
+                detail=Messages.INVALID_OR_EXPIRED_TOKEN,
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
@@ -241,7 +244,7 @@ class AuthService:
         if not user_id:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token payload",
+                detail=Messages.INVALID_TOKEN_PAYLOAD,
             )
 
         if db is not None:
@@ -249,7 +252,7 @@ class AuthService:
             if not user or not user.is_active:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="User not found or inactive",
+                    detail=Messages.USER_NOT_FOUND_OR_INACTIVE,
                 )
             return user
 
@@ -285,7 +288,7 @@ class AuthService:
         if user.role not in [r.value for r in roles]:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Insufficient permissions",
+                detail=Messages.INSUFFICIENT_PERMISSIONS,
             )
 
     @staticmethod
@@ -293,7 +296,7 @@ class AuthService:
         """Validate and extract fields from Google OAuth userinfo response. Raises HTTPException on failure."""
         if not user_info:
             raise HTTPException(
-                status_code=400, detail="No user info received from Google"
+                status_code=400, detail=Messages.NO_USER_INFO_FROM_GOOGLE
             )
 
         google_id = user_info.get("sub")
@@ -301,7 +304,7 @@ class AuthService:
 
         if not google_id or not email:
             raise HTTPException(
-                status_code=400, detail="Missing required user info from Google"
+                status_code=400, detail=Messages.MISSING_REQUIRED_GOOGLE_USER_INFO
             )
 
         return {
@@ -317,14 +320,14 @@ class AuthService:
         if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
             raise HTTPException(
                 status_code=500,
-                detail="Google OAuth is not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.",
+                detail=Messages.GOOGLE_OAUTH_NOT_CONFIGURED,
             )
 
     @staticmethod
     def handle_oauth_error(e: Exception) -> NoReturn:
         """Wrap OAuth provider errors into HTTPException."""
         raise HTTPException(
-            status_code=400, detail=f"OAuth authentication failed: {e}"
+            status_code=400, detail=Messages.OAUTH_AUTH_FAILED.format(error=e)
         ) from e
 
     @staticmethod

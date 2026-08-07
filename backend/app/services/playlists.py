@@ -2,8 +2,9 @@ from typing import Any
 
 from fastapi import HTTPException
 from sqlalchemy import asc, desc, func
-from sqlalchemy.orm import Session, contains_eager
+from sqlalchemy.orm import Query, Session, contains_eager
 
+from app.core.messages import Messages
 from app.db.models.playlist import (
     CollaboratorRole,
     PlaylistCollaboratorModel,
@@ -20,18 +21,26 @@ class PlaylistService:
     """Playlist CRUD operations."""
 
     @staticmethod
+    def _apply_search_filter(query: Query[Any], search: str | None) -> Query[Any]:
+        """Filter a playlist query by name when a search term is provided."""
+        if search:
+            query = query.filter(PlaylistModel.name.ilike(f"%{search}%"))
+        return query
+
+    @staticmethod
     def get_all_playlists(
         db: Session,
         user: UserModel,
         *,
         sort_by: str = "created_at",
         order: str = "desc",
+        search: str | None = None,
     ) -> list[dict[str, Any]]:
         """Get the user's playlists plus public playlists from other users."""
         sort_col = getattr(PlaylistModel, sort_by, PlaylistModel.created_at)
         order_func = asc if order == "asc" else desc
 
-        playlists = (
+        query = (
             db.query(PlaylistModel)
             .outerjoin(PlaylistModel.songs)
             .options(contains_eager(PlaylistModel.songs))
@@ -39,9 +48,12 @@ class PlaylistService:
                 (PlaylistModel.user_id == user.id)
                 | (PlaylistModel.visibility == PlaylistVisibility.PUBLIC)
             )
-            .order_by(order_func(sort_col), PlaylistModel.id, SongModel.title)
-            .all()
         )
+        query = PlaylistService._apply_search_filter(query, search)
+
+        playlists = query.order_by(
+            order_func(sort_col), PlaylistModel.id, SongModel.title
+        ).all()
 
         return [
             PlaylistService._serialize(playlist, current_user_id=user.id)
@@ -50,16 +62,21 @@ class PlaylistService:
 
     @staticmethod
     def get_discover_playlists(
-        db: Session, user: UserModel, *, limit: int = 50
+        db: Session,
+        user: UserModel,
+        *,
+        limit: int = 50,
+        search: str | None = None,
     ) -> list[dict[str, Any]]:
         """Get public playlists from other users ordered by popularity (follower count)."""
+        query = db.query(PlaylistModel).filter(
+            PlaylistModel.visibility == PlaylistVisibility.PUBLIC,
+            PlaylistModel.user_id != user.id,
+        )
+        query = PlaylistService._apply_search_filter(query, search)
+
         playlists = (
-            db.query(PlaylistModel)
-            .filter(
-                PlaylistModel.visibility == PlaylistVisibility.PUBLIC,
-                PlaylistModel.user_id != user.id,
-            )
-            .order_by(PlaylistModel.follower_count.desc(), PlaylistModel.id)
+            query.order_by(PlaylistModel.follower_count.desc(), PlaylistModel.id)
             .limit(limit)
             .all()
         )
@@ -69,15 +86,20 @@ class PlaylistService:
         ]
 
     @staticmethod
-    def get_following_playlists(db: Session, user: UserModel) -> list[dict[str, Any]]:
+    def get_following_playlists(
+        db: Session, user: UserModel, *, search: str | None = None
+    ) -> list[dict[str, Any]]:
         """Get the playlists a user follows."""
-        playlists = (
+        query = (
             db.query(PlaylistModel)
             .join(PlaylistModel.followers)
             .filter(UserModel.id == user.id)
-            .order_by(PlaylistModel.created_at.desc(), PlaylistModel.id)
-            .all()
         )
+        query = PlaylistService._apply_search_filter(query, search)
+
+        playlists = query.order_by(
+            PlaylistModel.created_at.desc(), PlaylistModel.id
+        ).all()
         return [
             PlaylistService._serialize(playlist, current_user_id=user.id)
             for playlist in playlists
@@ -100,7 +122,7 @@ class PlaylistService:
             db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id).first()
         )
         if db_playlist is None:
-            raise HTTPException(status_code=404, detail="Playlist not found")
+            raise HTTPException(status_code=404, detail=Messages.PLAYLIST_NOT_FOUND)
 
         PlaylistService._ensure_can_view(db_playlist, user)
 
@@ -196,7 +218,7 @@ class PlaylistService:
             db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id).first()
         )
         if db_playlist is None:
-            raise HTTPException(status_code=404, detail="Playlist not found")
+            raise HTTPException(status_code=404, detail=Messages.PLAYLIST_NOT_FOUND)
 
         PlaylistService._ensure_owner(db_playlist, user)
 
@@ -209,7 +231,7 @@ class PlaylistService:
             )
             if existing is not None and existing.id != playlist_id:
                 raise HTTPException(
-                    status_code=400, detail="Playlist name already exists"
+                    status_code=400, detail=Messages.PLAYLIST_NAME_ALREADY_EXISTS
                 )
             db_playlist.name = data.name
         if data.description is not None:
@@ -238,7 +260,7 @@ class PlaylistService:
             db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id).first()
         )
         if db_playlist is None:
-            raise HTTPException(status_code=404, detail="Playlist not found")
+            raise HTTPException(status_code=404, detail=Messages.PLAYLIST_NOT_FOUND)
 
         PlaylistService._ensure_owner(db_playlist, user)
 
@@ -255,13 +277,13 @@ class PlaylistService:
             db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id).first()
         )
         if db_playlist is None:
-            raise HTTPException(status_code=404, detail="Playlist not found")
+            raise HTTPException(status_code=404, detail=Messages.PLAYLIST_NOT_FOUND)
 
         PlaylistService._ensure_can_view(db_playlist, user)
 
         if db_playlist.user_id == user.id:
             raise HTTPException(
-                status_code=400, detail="You cannot follow your own playlist"
+                status_code=400, detail=Messages.CANNOT_FOLLOW_OWN_PLAYLIST
             )
 
         is_following = user in db_playlist.followers
@@ -287,7 +309,7 @@ class PlaylistService:
             db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id).first()
         )
         if db_playlist is None:
-            raise HTTPException(status_code=404, detail="Playlist not found")
+            raise HTTPException(status_code=404, detail=Messages.PLAYLIST_NOT_FOUND)
 
         PlaylistService._ensure_owner(db_playlist, user)
 
@@ -306,7 +328,7 @@ class PlaylistService:
             db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id).first()
         )
         if db_playlist is None:
-            raise HTTPException(status_code=404, detail="Playlist not found")
+            raise HTTPException(status_code=404, detail=Messages.PLAYLIST_NOT_FOUND)
 
         PlaylistService._ensure_can_view(db_playlist, user)
         if not (
@@ -314,7 +336,7 @@ class PlaylistService:
             or PlaylistService._is_editor(db_playlist, user)
         ):
             raise HTTPException(
-                status_code=403, detail="Not allowed to view collaborators"
+                status_code=403, detail=Messages.COLLABORATORS_NOT_VIEWABLE
             )
 
         return [
@@ -342,18 +364,18 @@ class PlaylistService:
             db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id).first()
         )
         if db_playlist is None:
-            raise HTTPException(status_code=404, detail="Playlist not found")
+            raise HTTPException(status_code=404, detail=Messages.PLAYLIST_NOT_FOUND)
 
         PlaylistService._ensure_owner(db_playlist, user)
 
         if user_id == db_playlist.user_id:
             raise HTTPException(
-                status_code=400, detail="The owner is already a collaborator"
+                status_code=400, detail=Messages.OWNER_ALREADY_COLLABORATOR
             )
 
         db_user = db.query(UserModel).filter(UserModel.id == user_id).first()
         if db_user is None:
-            raise HTTPException(status_code=404, detail="User not found")
+            raise HTTPException(status_code=404, detail=Messages.USER_NOT_FOUND)
 
         existing = (
             db.query(PlaylistCollaboratorModel)
@@ -384,7 +406,7 @@ class PlaylistService:
             db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id).first()
         )
         if db_playlist is None:
-            raise HTTPException(status_code=404, detail="Playlist not found")
+            raise HTTPException(status_code=404, detail=Messages.PLAYLIST_NOT_FOUND)
 
         PlaylistService._ensure_owner(db_playlist, user)
 
@@ -397,7 +419,7 @@ class PlaylistService:
             .first()
         )
         if db_collab is None:
-            raise HTTPException(status_code=404, detail="Collaborator not found")
+            raise HTTPException(status_code=404, detail=Messages.COLLABORATOR_NOT_FOUND)
 
         db.delete(db_collab)
         db.commit()
@@ -464,7 +486,7 @@ class PlaylistService:
             db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id).first()
         )
         if db_playlist is None:
-            raise HTTPException(status_code=404, detail="Playlist not found")
+            raise HTTPException(status_code=404, detail=Messages.PLAYLIST_NOT_FOUND)
 
         PlaylistService._ensure_can_edit(db_playlist, user)
 
@@ -472,7 +494,7 @@ class PlaylistService:
         if db_song is None or str(db_song.id) not in [
             str(s.id) for s in db_playlist.songs
         ]:
-            raise HTTPException(status_code=404, detail="Song not found in playlist")
+            raise HTTPException(status_code=404, detail=Messages.SONG_NOT_FOUND_IN_PLAYLIST)
 
         db_playlist.songs.remove(db_song)
         db.commit()
@@ -515,7 +537,7 @@ class PlaylistService:
             or PlaylistService._is_collaborator(playlist, user)
         ):
             return
-        raise HTTPException(status_code=404, detail="Playlist not found")
+        raise HTTPException(status_code=404, detail=Messages.PLAYLIST_NOT_FOUND)
 
     @staticmethod
     def _ensure_owner(playlist: PlaylistModel, user: UserModel) -> None:
@@ -523,7 +545,7 @@ class PlaylistService:
         if not PlaylistService._is_owner(playlist, user):
             raise HTTPException(
                 status_code=403,
-                detail="You do not have permission to modify this playlist",
+                detail=Messages.NO_PERMISSION_TO_MODIFY_PLAYLIST,
             )
 
     @staticmethod
@@ -535,7 +557,7 @@ class PlaylistService:
             return
         raise HTTPException(
             status_code=403,
-            detail="You do not have permission to modify this playlist",
+            detail=Messages.NO_PERMISSION_TO_MODIFY_PLAYLIST,
         )
 
     @staticmethod

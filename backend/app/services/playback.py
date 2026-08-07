@@ -97,7 +97,11 @@ class PlaybackService:
 
     @staticmethod
     def _upsert_song_if_needed(db: Session, song: Song) -> None:
-        """Create a song record if it doesn't already exist."""
+        """Create a song record if it doesn't already exist.
+
+        Note: artists are intentionally not synced here. Playing from a search
+        queue must not register every channel that merely appears in results.
+        """
         db_song = db.query(SongModel).filter(SongModel.id == song.id).first()
         if db_song is None:
             db_song = SongModel(

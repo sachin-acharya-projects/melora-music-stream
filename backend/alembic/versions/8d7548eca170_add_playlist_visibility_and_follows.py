@@ -5,11 +5,12 @@ Revises: eb3e15bcc3d0
 Create Date: 2026-08-06 21:09:56.425395
 
 """
+
 from typing import Sequence, Union
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "8d7548eca170"
@@ -21,16 +22,10 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     """Upgrade schema."""
     with op.batch_alter_table("playlists") as batch_op:
-        batch_op.add_column(
-            sa.Column("visibility", sa.String(), nullable=True)
-        )
+        batch_op.add_column(sa.Column("visibility", sa.String(), nullable=True))
         batch_op.add_column(sa.Column("description", sa.Text(), nullable=True))
-        batch_op.add_column(
-            sa.Column("cover_image_url", sa.String(), nullable=True)
-        )
-        batch_op.add_column(
-            sa.Column("follower_count", sa.Integer(), nullable=True)
-        )
+        batch_op.add_column(sa.Column("cover_image_url", sa.String(), nullable=True))
+        batch_op.add_column(sa.Column("follower_count", sa.Integer(), nullable=True))
 
     op.execute("UPDATE playlists SET visibility = 'private' WHERE visibility IS NULL")
     op.execute("UPDATE playlists SET follower_count = 0 WHERE follower_count IS NULL")

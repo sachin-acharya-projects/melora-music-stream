@@ -9,6 +9,13 @@ import Playlists from "@/pages/Playlists"
 import Profile from "@/pages/Profile"
 import Queue from "@/pages/Queue"
 import SharedPlaylist from "@/pages/SharedPlaylist"
+import Artists from "@/pages/Artists"
+import ArtistAlbum from "@/pages/ArtistAlbum"
+import ArtistProfile from "@/pages/ArtistProfile"
+import ArtistRecentlyPlayed from "@/pages/ArtistRecentlyPlayed"
+import ArtistsSuggested from "@/pages/ArtistsSuggested"
+import History from "@/pages/History"
+import Stats from "@/pages/Stats"
 import { useEffect } from "react"
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom"
 import { ToastContainer } from "react-toastify"
@@ -31,6 +38,24 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
     if (!isAuthenticated) {
         return <Navigate to='/login' replace />
+    }
+
+    return <>{children}</>
+}
+
+function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
+    const { isAuthenticated, isLoading } = useAuth()
+
+    if (isLoading) {
+        return (
+            <div className='flex min-h-screen items-center justify-center'>
+                <Loader2 className='h-8 w-8 animate-spin text-red-500' />
+            </div>
+        )
+    }
+
+    if (isAuthenticated) {
+        return <Navigate to='/' replace />
     }
 
     return <>{children}</>
@@ -60,7 +85,14 @@ function AppContent() {
             <Background />
             <main className={isAuthenticated ? "pt-22" : ""}>
                 <Routes>
-                    <Route path='/login' element={<Login />} />
+                    <Route
+                        path='/login'
+                        element={
+                            <PublicOnlyRoute>
+                                <Login />
+                            </PublicOnlyRoute>
+                        }
+                    />
                     <Route path='/auth/callback' element={<AuthCallback />} />
                     <Route path='/s/:token' element={<SharedPlaylist />} />
                     <Route
@@ -76,6 +108,62 @@ function AppContent() {
                         element={
                             <ProtectedRoute>
                                 <Playlists />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path='/artists'
+                        element={
+                            <ProtectedRoute>
+                                <Artists />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path='/artists/suggested'
+                        element={
+                            <ProtectedRoute>
+                                <ArtistsSuggested />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path='/artists/:slug'
+                        element={
+                            <ProtectedRoute>
+                                <ArtistProfile />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path='/artists/:slug/recently-played'
+                        element={
+                            <ProtectedRoute>
+                                <ArtistRecentlyPlayed />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path='/artists/:slug/album/:albumKey'
+                        element={
+                            <ProtectedRoute>
+                                <ArtistAlbum />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path='/history'
+                        element={
+                            <ProtectedRoute>
+                                <History />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path='/stats'
+                        element={
+                            <ProtectedRoute>
+                                <Stats />
                             </ProtectedRoute>
                         }
                     />

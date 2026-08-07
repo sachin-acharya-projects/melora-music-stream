@@ -1,4 +1,6 @@
+import { API_BASE_URL } from "@/config"
 import { http, refreshHttp } from "@/utils/api/http"
+import { ENDPOINTS } from "@/utils/api/endpoints"
 
 export interface User {
     id: string
@@ -45,19 +47,19 @@ export const authService = {
     },
 
     loginWithGoogle: () => {
-        window.location.href = `${import.meta.env.VITE_BASE_URL}/api/v1/auth/login`
+        window.location.href = `${API_BASE_URL}${ENDPOINTS.AUTH.LOGIN}`
     },
 
     logout: async () => {
         try {
-            await http.post("/auth/logout")
+            await http.post(ENDPOINTS.AUTH.LOGOUT)
         } finally {
             authService.clearTokens()
         }
     },
 
     getCurrentUser: async (): Promise<User> => {
-        const { data } = await http.get<User>("/auth/me")
+        const { data } = await http.get<User>(ENDPOINTS.AUTH.ME)
         return data
     },
 
@@ -67,7 +69,7 @@ export const authService = {
             throw new Error("No refresh token")
         }
 
-        const { data } = await refreshHttp.post<TokenResponse>("/auth/refresh", {
+        const { data } = await refreshHttp.post<TokenResponse>(ENDPOINTS.AUTH.REFRESH, {
             refresh_token: refreshToken,
         })
 

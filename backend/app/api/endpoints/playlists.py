@@ -23,8 +23,11 @@ def get_playlists(
     user: CurrentUser,
     sort_by: Annotated[str, Query(pattern="^(name|created_at)$")] = "created_at",
     order: Annotated[str, Query(pattern="^(asc|desc)$")] = "desc",
+    q: Annotated[str | None, Query(max_length=100)] = None,
 ) -> list[dict[str, Any]]:
-    return PlaylistService.get_all_playlists(db, user, sort_by=sort_by, order=order)
+    return PlaylistService.get_all_playlists(
+        db, user, sort_by=sort_by, order=order, search=q
+    )
 
 
 @router.get("/discover")
@@ -32,13 +35,18 @@ def get_discover_playlists(
     db: SessionDep,
     user: CurrentUser,
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    q: Annotated[str | None, Query(max_length=100)] = None,
 ) -> list[dict[str, Any]]:
-    return PlaylistService.get_discover_playlists(db, user, limit=limit)
+    return PlaylistService.get_discover_playlists(db, user, limit=limit, search=q)
 
 
 @router.get("/following")
-def get_following_playlists(db: SessionDep, user: CurrentUser) -> list[dict[str, Any]]:
-    return PlaylistService.get_following_playlists(db, user)
+def get_following_playlists(
+    db: SessionDep,
+    user: CurrentUser,
+    q: Annotated[str | None, Query(max_length=100)] = None,
+) -> list[dict[str, Any]]:
+    return PlaylistService.get_following_playlists(db, user, search=q)
 
 
 @router.get("/shared/{token}")

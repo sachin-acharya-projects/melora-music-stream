@@ -70,6 +70,36 @@ class TestGetPlaylists:
         assert response.status_code == 200
         assert response.json()[0]["name"] == "Other Public"
 
+    def test_search_filters_by_name(
+        self,
+        client,
+        db: Session,
+        test_user: UserModel,
+        admin_user: UserModel,
+        auth_headers: dict[str, str],
+    ) -> None:
+        make_playlist(db, "My Chill Mix", test_user)
+        make_playlist(
+            db, "Workout Hits", admin_user, visibility=PlaylistVisibility.PUBLIC
+        )
+
+        response = client.get("/api/v1/playlists/?q=chill", headers=auth_headers)
+        assert response.status_code == 200
+        assert [p["name"] for p in response.json()] == ["My Chill Mix"]
+
+    def test_search_returns_empty_when_no_match(
+        self,
+        client,
+        db: Session,
+        test_user: UserModel,
+        auth_headers: dict[str, str],
+    ) -> None:
+        make_playlist(db, "My Chill Mix", test_user)
+
+        response = client.get("/api/v1/playlists/?q=zzz", headers=auth_headers)
+        assert response.status_code == 200
+        assert response.json() == []
+
 
 class TestDiscover:
     def test_returns_public_playlists(
@@ -103,6 +133,24 @@ class TestDiscover:
         assert response.status_code == 200
         assert [p["name"] for p in response.json()] == ["Theirs"]
 
+    def test_search_filters_discover(
+        self,
+        client,
+        db: Session,
+        admin_user: UserModel,
+        auth_headers: dict[str, str],
+    ) -> None:
+        make_playlist(
+            db, "Chill Beats", admin_user, visibility=PlaylistVisibility.PUBLIC
+        )
+        make_playlist(db, "Gym Mix", admin_user, visibility=PlaylistVisibility.PUBLIC)
+
+        response = client.get(
+            "/api/v1/playlists/discover?q=chill", headers=auth_headers
+        )
+        assert response.status_code == 200
+        assert [p["name"] for p in response.json()] == ["Chill Beats"]
+
 
 class TestFollowing:
     def test_empty(self, client, auth_headers: dict[str, str]) -> None:
@@ -125,6 +173,28 @@ class TestFollowing:
 
         response = client.get("/api/v1/playlists/following", headers=auth_headers)
         assert [p["name"] for p in response.json()] == ["Followed"]
+
+    def test_search_filters_following(
+        self,
+        client,
+        db: Session,
+        admin_user: UserModel,
+        auth_headers: dict[str, str],
+    ) -> None:
+        followed = make_playlist(
+            db, "Liked Chill", admin_user, visibility=PlaylistVisibility.PUBLIC
+        )
+        other = make_playlist(
+            db, "Workout Mix", admin_user, visibility=PlaylistVisibility.PUBLIC
+        )
+        client.post(f"/api/v1/playlists/{followed.id}/follow", headers=auth_headers)
+        client.post(f"/api/v1/playlists/{other.id}/follow", headers=auth_headers)
+
+        response = client.get(
+            "/api/v1/playlists/following?q=chill", headers=auth_headers
+        )
+        assert response.status_code == 200
+        assert [p["name"] for p in response.json()] == ["Liked Chill"]
 
 
 class TestFollow:

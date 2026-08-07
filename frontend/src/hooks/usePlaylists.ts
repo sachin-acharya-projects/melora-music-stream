@@ -4,6 +4,8 @@ import {
     type PlaylistUpdatePayload,
 } from "@/services/playlist.service"
 import { type Song } from "@/types"
+import { API_LIMITS } from "@/utils/constants"
+import { MESSAGES } from "@/utils/messages"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "react-toastify"
 
@@ -13,6 +15,7 @@ export function usePlaylists(options: PlaylistSortOptions = {}) {
     const playlistsQuery = useQuery({
         queryKey: ["playlists", options],
         queryFn: () => playlistService.getAll(options),
+        placeholderData: (previousData) => previousData,
     })
 
     const createPlaylistMutation = useMutation({
@@ -152,19 +155,25 @@ export function usePlaylist(id: string | null, options: PlaylistSortOptions = {}
     })
 }
 
-export function useDiscoverPlaylists(limit = 50, enabled = true) {
+export function useDiscoverPlaylists(
+    limit: number = API_LIMITS.DISCOVER_PLAYLISTS,
+    enabled = true,
+    q?: string,
+) {
     return useQuery({
-        queryKey: ["playlists", "discover"],
-        queryFn: () => playlistService.getDiscover(limit),
+        queryKey: ["playlists", "discover", q],
+        queryFn: () => playlistService.getDiscover(limit, q),
         enabled,
+        placeholderData: (previousData) => previousData,
     })
 }
 
-export function useFollowingPlaylists(enabled = true) {
+export function useFollowingPlaylists(enabled = true, q?: string) {
     return useQuery({
-        queryKey: ["playlists", "following"],
-        queryFn: () => playlistService.getFollowing(),
+        queryKey: ["playlists", "following", q],
+        queryFn: () => playlistService.getFollowing(q),
         enabled,
+        placeholderData: (previousData) => previousData,
     })
 }
 
@@ -178,7 +187,7 @@ export function useFollowPlaylist() {
             queryClient.invalidateQueries({ queryKey: ["playlist", playlistId] })
             toast.success(result.is_following ? "Following playlist" : "Unfollowed playlist")
         },
-        onError: () => toast.error("Failed to update follow"),
+        onError: () => toast.error(MESSAGES.FOLLOW_UPDATE_FAILED),
     })
 }
 

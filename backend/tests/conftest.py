@@ -11,6 +11,7 @@ from sqlalchemy.pool import StaticPool
 from app.db.base import Base, get_db
 from app.db.models.user import UserModel, UserRole
 from app.main import app
+from app.services.artist import _SUGGESTIONS_CACHE, ArtistService
 from app.services.auth import AuthService
 
 
@@ -94,6 +95,23 @@ def auth_headers(test_user: UserModel) -> dict[str, str]:
     """Create auth headers for the test user."""
     tokens = AuthService.create_tokens_for_user(test_user)
     return {"Authorization": f"Bearer {tokens['access_token']}"}
+
+
+@pytest.fixture(autouse=True)
+def clear_artist_suggestions_cache() -> None:
+    """Reset the per-user suggestion cache between tests."""
+    _SUGGESTIONS_CACHE.clear()
+
+
+@pytest.fixture(autouse=True)
+def offline_artist_discovery(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Disable network discovery so featured suggestions fall back to the
+    deterministic genre-based path during tests."""
+    monkeypatch.setattr(
+        ArtistService,
+        "_discover_related_artists",
+        lambda db, user_id: [],
+    )
 
 
 @pytest.fixture(name="admin_headers")

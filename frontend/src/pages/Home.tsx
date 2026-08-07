@@ -11,6 +11,7 @@ import { useThemeStore } from "@/hooks/useTheme"
 import { useTitle } from "@/hooks/useTitle"
 import { formatDuration } from "@/lib/utils"
 import { openDownload, openDownloads } from "@/utils/download"
+import { MESSAGES } from "@/utils/messages"
 import {
     Download,
     ListEnd,
@@ -98,7 +99,7 @@ export default function Home() {
             clearSelection()
             setPlaylistInput("")
         } catch {
-            toast.error("Failed to add songs to playlist")
+            toast.error(MESSAGES.ADD_SONGS_TO_PLAYLIST_FAILED)
         }
     }
 
@@ -213,7 +214,7 @@ export default function Home() {
                                                     onClick={(e) => {
                                                         e.stopPropagation()
                                                         addToNowPlaying(video)
-                                                        toast.success("Added to queue")
+                                                        toast.success(MESSAGES.QUEUE_ADDED)
                                                     }}
                                                     className='flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white/20 text-white shadow-lg backdrop-blur-md transition-transform hover:scale-110'
                                                     title='Add to Queue'
@@ -290,7 +291,7 @@ export default function Home() {
                                                 onClick={(e) => {
                                                     e.stopPropagation()
                                                     addToNowPlaying(video)
-                                                    toast.success("Added to queue")
+                                                    toast.success(MESSAGES.QUEUE_ADDED)
                                                 }}
                                                 className='flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-black/5 hover:text-red-500 dark:hover:bg-white/5'
                                                 title='Add to Queue'

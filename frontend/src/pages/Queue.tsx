@@ -6,6 +6,7 @@ import { useQueueStore } from "@/hooks/useQueue"
 import { useTitle } from "@/hooks/useTitle"
 import { formatDuration } from "@/lib/utils"
 import { openDownload } from "@/utils/download"
+import { MESSAGES } from "@/utils/messages"
 import { Reorder } from "framer-motion"
 import { Download, GripVertical, Loader2, Play, Plus, Trash2 } from "lucide-react"
 import { useState } from "react"
@@ -51,7 +52,7 @@ export default function Queue() {
             toast.success(`Added ${queue.length} songs to ${playlistInput}`)
             setPlaylistInput("")
         } catch {
-            toast.error("Failed to add songs to playlist")
+            toast.error(MESSAGES.ADD_SONGS_TO_PLAYLIST_FAILED)
         }
     }
 

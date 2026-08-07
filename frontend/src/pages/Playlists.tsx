@@ -7,7 +7,7 @@ import {
 import { useTitle } from "@/hooks/useTitle"
 import { type PlaylistSortOptions } from "@/services/playlist.service"
 import { Loader2 } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import { PlaylistCollection } from "./playlists/playlist-collection"
 import { PlaylistDetail } from "./playlists/playlist-detail"
@@ -22,6 +22,8 @@ export default function Playlists() {
         sort_by: "created_at",
         order: "desc",
     })
+    const [query, setQuery] = useState("")
+    const [debouncedQuery, setDebouncedQuery] = useState("")
     const rawTab = searchParams.get("view")
     const tab: PlaylistsTab = VALID_TABS.includes(rawTab as PlaylistsTab)
         ? (rawTab as PlaylistsTab)
@@ -38,10 +40,18 @@ export default function Playlists() {
         )
     }
     useTitle(tab === "mine" ? "My Playlists" : tab === "discover" ? "Discover" : "Following")
-    const { playlists, isLoading } = usePlaylists(playlistSort)
-    const discover = useDiscoverPlaylists(50, tab === "discover")
-    const following = useFollowingPlaylists(tab === "following")
+    const { playlists, isLoading } = usePlaylists({
+        ...playlistSort,
+        q: debouncedQuery || undefined,
+    })
+    const discover = useDiscoverPlaylists(50, tab === "discover", debouncedQuery || undefined)
+    const following = useFollowingPlaylists(tab === "following", debouncedQuery || undefined)
     const followPlaylist = useFollowPlaylist()
+
+    useEffect(() => {
+        const timer = setTimeout(() => setDebouncedQuery(query), 250)
+        return () => clearTimeout(timer)
+    }, [query])
 
     const activePlaylistId = searchParams.get("playlist")
     const activePlaylist =
@@ -75,6 +85,8 @@ export default function Playlists() {
             playlists={visible}
             sort={playlistSort}
             onSortChange={setPlaylistSort}
+            search={query}
+            onSearchChange={setQuery}
             onFollow={followPlaylist.mutateAsync}
             isFollowing={followPlaylist.isPending}
         />

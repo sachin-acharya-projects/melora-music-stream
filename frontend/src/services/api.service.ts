@@ -1,6 +1,8 @@
+import { API_BASE_URL } from "@/config"
 import { type LyricsResponse, type Song } from "@/types"
 import { ENDPOINTS } from "@/utils/api/endpoints"
 import { http } from "@/utils/api/http"
+import { API_LIMITS } from "@/utils/constants"
 
 export interface UserState {
     last_song_id: string | null
@@ -16,7 +18,10 @@ export const apiService = {
         return data
     },
 
-    getRelatedSongs: async (songId: string, limit = 6): Promise<Song[]> => {
+    getRelatedSongs: async (
+        songId: string,
+        limit: number = API_LIMITS.RELATED_SONGS,
+    ): Promise<Song[]> => {
         const { data } = await http.get<Song[]>(ENDPOINTS.RELATED_SONGS(songId), {
             params: { limit },
         })
@@ -36,7 +41,7 @@ export const apiService = {
     },
 
     getDownloadUrl: (videoId: string) => {
-        return `${import.meta.env.VITE_BASE_URL}/api/v1${ENDPOINTS.DOWNLOAD(videoId)}`
+        return `${API_BASE_URL}${ENDPOINTS.DOWNLOAD(videoId)}`
     },
 
     getState: async (): Promise<UserState> => {

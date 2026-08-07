@@ -4,6 +4,7 @@ from typing import Any
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
+from app.core.messages import Messages
 from app.db.models.playlist import PlaylistModel
 from app.db.models.playlist_share import PlaylistShareModel
 from app.db.models.song import SongModel
@@ -26,7 +27,7 @@ class PlaylistShareService:
             db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id).first()
         )
         if db_playlist is None:
-            raise HTTPException(status_code=404, detail="Playlist not found")
+            raise HTTPException(status_code=404, detail=Messages.PLAYLIST_NOT_FOUND)
 
         PlaylistShareService._ensure_owner(db_playlist, user)
 
@@ -50,7 +51,7 @@ class PlaylistShareService:
             db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id).first()
         )
         if db_playlist is None:
-            raise HTTPException(status_code=404, detail="Playlist not found")
+            raise HTTPException(status_code=404, detail=Messages.PLAYLIST_NOT_FOUND)
 
         PlaylistShareService._ensure_owner(db_playlist, user)
 
@@ -71,7 +72,7 @@ class PlaylistShareService:
         )
         if db_share is None:
             raise HTTPException(
-                status_code=404, detail="Playlist not found or link revoked"
+                status_code=404, detail=Messages.PLAYLIST_NOT_FOUND_OR_LINK_REVOKED
             )
 
         db_playlist = (
@@ -81,7 +82,7 @@ class PlaylistShareService:
         )
         if db_playlist is None:
             raise HTTPException(
-                status_code=404, detail="Playlist not found or link revoked"
+                status_code=404, detail=Messages.PLAYLIST_NOT_FOUND_OR_LINK_REVOKED
             )
 
         songs = (
@@ -109,5 +110,5 @@ class PlaylistShareService:
         if playlist.user_id is None or playlist.user_id != user.id:
             raise HTTPException(
                 status_code=403,
-                detail="You do not have permission to modify this playlist",
+                detail=Messages.NO_PERMISSION_TO_MODIFY_PLAYLIST,
             )

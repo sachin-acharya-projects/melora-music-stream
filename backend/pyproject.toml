@@ -46,6 +46,7 @@ include = ["app*"]
 line-length = 88
 target-version = "py312"
 indent-width = 4
+exclude = ["alembic/"]
 
 [tool.ruff.lint]
 select = [
@@ -87,6 +88,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"] # Unused imports in __init__.py are common for exports
+"app/core/messages.py" = ["S105"] # Token-named string constants are messages, not secrets
 "tests/**" = ["S101", "ANN", "PLR2004", "PT011", "B017", "ARG002", "S105", "ARG005", "ARG001", "SLF001"]
 
 [tool.ruff.format]
@@ -106,7 +108,7 @@ disallow_any_explicit = false
 ignore_missing_imports = true
 explicit_package_bases = true
 warn_unused_configs = true
-exclude = ["venv", ".venv", "build", "dist"]
+exclude = ["venv", ".venv", "build", "dist", "tests", "alembic"]
 
 [tool.pydantic-mypy]
 init_forbid_extra = true

@@ -2,7 +2,19 @@ import Avatar from "@/components/ui/avatar/avatar"
 import { useAuth } from "@/hooks/useAuth"
 import { useQueueStore } from "@/hooks/useQueue"
 import { useThemeStore } from "@/hooks/useTheme"
-import { ListEnd, ListMusic, Moon, Music2, Plus, Sun, User, LogOut } from "lucide-react"
+import {
+    BarChart3,
+    History,
+    ListEnd,
+    ListMusic,
+    Mic2,
+    Moon,
+    Music2,
+    Plus,
+    Sun,
+    User,
+    LogOut,
+} from "lucide-react"
 import { useEffect, useState } from "react"
 import { Link, useLocation } from "react-router-dom"
 
@@ -35,6 +47,39 @@ export default function Navbar() {
                 >
                     <ListMusic className='h-4 w-4' />
                     <span className='font-medium'>Playlists</span>
+                </Link>
+                <Link
+                    to='/artists'
+                    className={`flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 transition-colors ${
+                        location.pathname.startsWith("/artists")
+                            ? "bg-red-500 text-white"
+                            : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"
+                    }`}
+                >
+                    <Mic2 className='h-4 w-4' />
+                    <span className='font-medium'>Artists</span>
+                </Link>
+                <Link
+                    to='/history'
+                    className={`flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 transition-colors ${
+                        location.pathname === "/history"
+                            ? "bg-red-500 text-white"
+                            : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"
+                    }`}
+                >
+                    <History className='h-4 w-4' />
+                    <span className='font-medium'>History</span>
+                </Link>
+                <Link
+                    to='/stats'
+                    className={`flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 transition-colors ${
+                        location.pathname === "/stats"
+                            ? "bg-red-500 text-white"
+                            : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"
+                    }`}
+                >
+                    <BarChart3 className='h-4 w-4' />
+                    <span className='font-medium'>Stats</span>
                 </Link>
                 <Link
                     to='/now-playing'

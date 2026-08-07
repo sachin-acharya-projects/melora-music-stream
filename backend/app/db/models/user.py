@@ -7,9 +7,13 @@ from sqlalchemy import JSON, Boolean, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import BaseModel
+from app.db.models.associations import user_artist_follows
 
 if TYPE_CHECKING:
+    from app.db.models.artist import ArtistModel
+    from app.db.models.listening_history import ListeningHistoryModel
     from app.db.models.playlist import PlaylistCollaboratorModel, PlaylistModel
+    from app.db.models.user_stats import UserStatsModel
 
 
 class UserRole(StrEnum):
@@ -53,4 +57,24 @@ class UserModel(BaseModel):
         "PlaylistCollaboratorModel",
         lazy="selectin",
         overlaps="user",
+    )
+
+    followed_artists: Mapped[list[ArtistModel]] = relationship(
+        "ArtistModel",
+        secondary=user_artist_follows,
+        back_populates="followers",
+        lazy="selectin",
+    )
+
+    listening_history: Mapped[list[ListeningHistoryModel]] = relationship(
+        "ListeningHistoryModel",
+        back_populates="user",
+        order_by="ListeningHistoryModel.played_at.desc()",
+        lazy="selectin",
+    )
+
+    stats: Mapped[UserStatsModel | None] = relationship(
+        "UserStatsModel",
+        back_populates="user",
+        lazy="selectin",
     )

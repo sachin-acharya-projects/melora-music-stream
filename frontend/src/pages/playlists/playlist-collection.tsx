@@ -60,6 +60,8 @@ interface PlaylistCollectionProps {
     onSortChange: (sort: PlaylistSortOptions) => void
     view?: PlaylistsTab
     onTabChange?: (tab: PlaylistsTab) => void
+    search?: string
+    onSearchChange?: (query: string) => void
     onFollow?: (playlistId: string) => Promise<{ is_following: boolean; follower_count: number }>
     isFollowing?: boolean
 }
@@ -70,6 +72,8 @@ export function PlaylistCollection({
     onSortChange,
     view = "mine",
     onTabChange,
+    search = "",
+    onSearchChange,
     onFollow,
     isFollowing,
 }: PlaylistCollectionProps) {
@@ -203,6 +207,24 @@ export function PlaylistCollection({
                     </p>
                 </div>
                 <div className='flex items-center gap-3'>
+                    {onSearchChange && (
+                        <div className='relative'>
+                            <Search className='absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400' />
+                            <input
+                                type='text'
+                                value={search}
+                                onChange={(e) => onSearchChange(e.target.value)}
+                                placeholder={
+                                    view === "discover"
+                                        ? "Search public playlists..."
+                                        : view === "following"
+                                          ? "Search followed playlists..."
+                                          : "Search your playlists..."
+                                }
+                                className='dark:bg-card h-11 w-56 rounded-xl border bg-white pr-4 pl-10 text-sm shadow-sm transition-all focus:border-red-500 focus:outline-none dark:border-white/10 dark:text-white'
+                            />
+                        </div>
+                    )}
                     {onTabChange && (
                         <div className='dark:bg-card flex items-center gap-1 rounded-xl border border-gray-200 bg-white p-1 dark:border-white/10'>
                             {(Object.keys(TAB_LABELS) as PlaylistsTab[]).map((tab) => (
@@ -258,22 +280,35 @@ export function PlaylistCollection({
                         <ListMusic className='h-9 w-9 text-red-500' />
                     </span>
                     <div className='flex flex-col gap-1'>
-                        <h2 className='text-lg font-semibold dark:text-white'>
-                            {isOwnerView
-                                ? "No playlists yet"
-                                : view === "following"
-                                  ? "Not following anyone yet"
-                                  : "No public playlists yet"}
-                        </h2>
-                        <p className='text-sm text-gray-500 dark:text-gray-400'>
-                            {isOwnerView
-                                ? "Create your first playlist to start organizing your music"
-                                : view === "following"
-                                  ? "Follow playlists from Discover to see them here"
-                                  : "When the community publishes playlists, they'll show up here"}
-                        </p>
+                        {search.trim() ? (
+                            <>
+                                <h2 className='text-lg font-semibold dark:text-white'>
+                                    No playlists found
+                                </h2>
+                                <p className='text-sm text-gray-500 dark:text-gray-400'>
+                                    No results for “{search.trim()}”. Try a different search.
+                                </p>
+                            </>
+                        ) : (
+                            <>
+                                <h2 className='text-lg font-semibold dark:text-white'>
+                                    {isOwnerView
+                                        ? "No playlists yet"
+                                        : view === "following"
+                                          ? "Not following anyone yet"
+                                          : "No public playlists yet"}
+                                </h2>
+                                <p className='text-sm text-gray-500 dark:text-gray-400'>
+                                    {isOwnerView
+                                        ? "Create your first playlist to start organizing your music"
+                                        : view === "following"
+                                          ? "Follow playlists from Discover to see them here"
+                                          : "When the community publishes playlists, they'll show up here"}
+                                </p>
+                            </>
+                        )}
                     </div>
-                    {isOwnerView && (
+                    {isOwnerView && !search.trim() && (
                         <button
                             onClick={() => openModal("create")}
                             className='flex h-11 cursor-pointer items-center gap-2 rounded-xl bg-red-600 px-5 text-sm font-medium text-white transition-colors hover:bg-red-700'

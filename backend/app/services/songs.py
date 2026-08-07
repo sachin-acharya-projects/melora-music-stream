@@ -3,6 +3,7 @@ from typing import Any
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.db.models.song import SongModel
 from app.schemas.song import Song
 
@@ -26,7 +27,13 @@ class SongService:
 
     @staticmethod
     def upsert_song(db: Session, song: Song) -> SongModel:
-        """Idempotently create or get a song."""
+        """Idempotently create or get a song.
+
+        Artists are deliberately not created or linked here: queue sync and
+        playlist adds must never register artists. Materialization happens in
+        :func:`app.services.artist.ArtistService.register_artist_if_threshold_reached`
+        once the play threshold is met.
+        """
         db_song = db.query(SongModel).filter(SongModel.id == song.id).first()
         if db_song is None:
             db_song = SongModel(
@@ -43,7 +50,7 @@ class SongService:
 
     @staticmethod
     def get_related_songs(
-        db: Session, song_id: str, *, limit: int = 6
+        db: Session, song_id: str, *, limit: int = settings.SIMILAR_SONGS_LIMIT
     ) -> list[dict[str, Any]]:
         """Return other songs from the same uploader, most recently added first."""
         current = db.query(SongModel).filter(SongModel.id == song_id).first()

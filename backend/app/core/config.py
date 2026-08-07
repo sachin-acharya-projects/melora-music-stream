@@ -43,6 +43,29 @@ class Settings(BaseSettings):
     # Frontend
     FRONTEND_URL: str = "http://localhost:5173"
 
+    # Service tunables
+    ARTIST_SEARCH_LIMIT: int = 6
+    ARTIST_CHANNEL_SONG_LIMIT: int = 20
+    ARTIST_FEATURED_SECTION_LIMIT: int = 10
+    ARTIST_REGISTRATION_THRESHOLD: int = 3
+    ARTIST_TOP_SONGS_LIMIT: int = 20
+    ARTIST_RECENT_SONGS_LIMIT: int = 10
+    ARTIST_CHANNEL_PLAYLIST_LIMIT: int = 12
+    ARTIST_PLAYLIST_SONGS_LIMIT: int = 30
+    ARTIST_UPLOADS_LIMIT: int = 50
+    ARTIST_IMPORT_MAX_WORKERS: int = 6
+    ARTIST_SUGGESTIONS_TOP_ARTISTS: int = 5
+    ARTIST_SUGGESTIONS_MAX: int = 100
+    ARTIST_SUGGESTIONS_TTL_SECONDS: int = 12 * 60 * 60
+    ARTIST_SUGGESTIONS_RETRY_SECONDS: int = 15 * 60
+    SIMILAR_SONGS_LIMIT: int = 6
+    USER_SEARCH_LIMIT_DEFAULT: int = 10
+    USER_SEARCH_LIMIT_MAX: int = 20
+    STATS_CACHE_TTL_SECONDS: int = 30 * 60
+    LYRICS_CACHE_TTL_SECONDS: int = 60 * 60 * 24 * 7
+    LYRICS_MISS_TTL_SECONDS: int = 60 * 60
+    LRCLIB_URL: str = "https://lrclib.net/api/get"
+
     @property
     def media_path(self) -> Path:
         """Filesystem path of the media root directory."""

@@ -3,6 +3,7 @@ import { usePlaylists } from "@/hooks/usePlaylists"
 import { formatDuration } from "@/lib/utils"
 import { apiService } from "@/services/api.service"
 import { type Playlist, type Song } from "@/types"
+import { MESSAGES } from "@/utils/messages"
 import { motion } from "framer-motion"
 import { Check, Import, Loader2, Plus, Search, X } from "lucide-react"
 import { useState } from "react"
@@ -80,7 +81,7 @@ export function SearchAddModal({
             setAddedIds(new Set(results.map((r) => r.id)))
             toast.success(`Added ${results.length} songs`)
         } catch {
-            toast.error("Failed to add songs")
+            toast.error(MESSAGES.ADD_SONGS_FAILED)
         }
     }
 

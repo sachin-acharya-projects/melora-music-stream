@@ -1,15 +1,17 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios"
+import { API_BASE_URL } from "@/config"
 import { authService, type TokenResponse } from "@/services/auth.service"
+import { ENDPOINTS } from "@/utils/api/endpoints"
 
 export const http = axios.create({
-    baseURL: `${import.meta.env.VITE_BASE_URL}/api/v1`,
+    baseURL: API_BASE_URL,
     withCredentials: true,
 })
 
 // Dedicated instance for token refresh - bypasses the response interceptor to
 // prevent infinite refresh loops when the refresh endpoint itself returns 401.
 export const refreshHttp = axios.create({
-    baseURL: `${import.meta.env.VITE_BASE_URL}/api/v1`,
+    baseURL: API_BASE_URL,
     withCredentials: true,
 })
 
@@ -21,7 +23,7 @@ async function refreshToken(): Promise<string> {
         throw new Error("No refresh token")
     }
 
-    const { data } = await refreshHttp.post<TokenResponse>("/auth/refresh", {
+    const { data } = await refreshHttp.post<TokenResponse>(ENDPOINTS.AUTH.REFRESH, {
         refresh_token: refreshToken,
     })
 

@@ -5,11 +5,12 @@ Revises: 8d7548eca170
 Create Date: 2026-08-06 21:26:23.195968
 
 """
+
 from typing import Sequence, Union
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "8bfb8ac8a75b"
@@ -30,7 +31,9 @@ def upgrade() -> None:
             )
         )
 
-    op.execute("UPDATE playlists SET is_collaborative = 0 WHERE is_collaborative IS NULL")
+    op.execute(
+        "UPDATE playlists SET is_collaborative = 0 WHERE is_collaborative IS NULL"
+    )
 
     op.create_table(
         "playlist_collaborators",

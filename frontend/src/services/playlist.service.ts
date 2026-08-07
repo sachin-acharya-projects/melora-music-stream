@@ -9,6 +9,7 @@ import {
 } from "@/types"
 import { ENDPOINTS } from "@/utils/api/endpoints"
 import { http } from "@/utils/api/http"
+import { API_LIMITS } from "@/utils/constants"
 
 export interface PlaylistSortOptions {
     sort_by?: "name" | "created_at" | "title" | "uploader" | "duration"
@@ -30,15 +31,20 @@ export const playlistService = {
         return data
     },
 
-    getDiscover: async (limit = 50): Promise<Playlist[]> => {
+    getDiscover: async (
+        limit: number = API_LIMITS.DISCOVER_PLAYLISTS,
+        q?: string,
+    ): Promise<Playlist[]> => {
         const { data } = await http.get<Playlist[]>(ENDPOINTS.PLAYLISTS.DISCOVER, {
-            params: { limit },
+            params: { limit, q },
         })
         return data
     },
 
-    getFollowing: async (): Promise<Playlist[]> => {
-        const { data } = await http.get<Playlist[]>(ENDPOINTS.PLAYLISTS.FOLLOWING)
+    getFollowing: async (q?: string): Promise<Playlist[]> => {
+        const { data } = await http.get<Playlist[]>(ENDPOINTS.PLAYLISTS.FOLLOWING, {
+            params: { q },
+        })
         return data
     },
 

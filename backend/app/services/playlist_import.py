@@ -3,6 +3,7 @@ from typing import Any
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
+from app.core.messages import Messages
 from app.db.models.playlist import PlaylistModel
 from app.db.models.song import SongModel
 from app.db.models.user import UserModel
@@ -84,7 +85,7 @@ class PlaylistImportService:
             )
             if db_playlist is None:
                 raise HTTPException(
-                    status_code=404, detail="Playlist with provided ID not found"
+                    status_code=404, detail=Messages.PLAYLIST_NOT_FOUND_BY_ID
                 )
             PlaylistImportService._ensure_owner(db_playlist, user)
             return db_playlist
@@ -103,7 +104,7 @@ class PlaylistImportService:
             return db_playlist
 
         raise HTTPException(
-            status_code=400, detail="Either playlist 'id' or 'name' must be provided"
+            status_code=400, detail=Messages.PLAYLIST_ID_OR_NAME_REQUIRED
         )
 
     @staticmethod
@@ -117,5 +118,5 @@ class PlaylistImportService:
         if playlist.user_id is None or (playlist.user_id != user.id and not is_editor):
             raise HTTPException(
                 status_code=403,
-                detail="You do not have permission to modify this playlist",
+                detail=Messages.NO_PERMISSION_TO_MODIFY_PLAYLIST,
             )

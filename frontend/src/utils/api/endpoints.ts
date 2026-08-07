@@ -28,6 +28,31 @@ export const ENDPOINTS = {
         SEARCH: (q: string, limit?: number) =>
             `/users/search?q=${encodeURIComponent(q)}${limit ? `&limit=${limit}` : ""}`,
     },
+    ARTISTS: {
+        BASE: "/artists/",
+        FEATURED: "/artists/featured",
+        SUGGESTED: "/artists/suggested",
+        FOLLOWING: "/artists/following",
+        YOUTUBE_SEARCH: "/artists/youtube/search",
+        YOUTUBE_IMPORT: "/artists/youtube/import",
+        BY_SLUG: (slug: string) => `/artists/${encodeURIComponent(slug)}`,
+        SONGS: (slug: string) => `/artists/${encodeURIComponent(slug)}/songs`,
+        ALBUMS: (slug: string) => `/artists/${encodeURIComponent(slug)}/albums`,
+        RECENTLY_PLAYED: (slug: string) => `/artists/${encodeURIComponent(slug)}/recently-played`,
+        FOLLOW: (id: string) => `/artists/${id}/follow`,
+    },
+    HISTORY: {
+        BASE: "/history/",
+        RECENT: "/history/recent",
+        STATS: "/history/stats",
+    },
+    STATS: {
+        BASE: "/stats/",
+        TOP_ARTISTS: "/stats/top-artists",
+        TOP_SONGS: "/stats/top-songs",
+        GENRES: "/stats/genres",
+        RECALCULATE: "/stats/recalculate",
+    },
     AUTH: {
         LOGIN: "/auth/login",
         GOOGLE_CALLBACK: "/auth/google/callback",

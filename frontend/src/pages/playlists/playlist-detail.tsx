@@ -20,6 +20,7 @@ import { useThemeStore } from "@/hooks/useTheme"
 import { formatDuration } from "@/lib/utils"
 import { apiService } from "@/services/api.service"
 import { type PlaylistDetail, type Song } from "@/types"
+import { MESSAGES } from "@/utils/messages"
 import { useQueryClient } from "@tanstack/react-query"
 import { motion, Reorder } from "framer-motion"
 import {
@@ -217,7 +218,7 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
             clearSelection()
             setTargetPlaylistId("")
         } catch {
-            toast.error("Failed to add songs")
+            toast.error(MESSAGES.ADD_SONGS_FAILED)
         }
     }
 
@@ -603,7 +604,7 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
                             handlePlay={() => handlePlay(localSongs.indexOf(song))}
                             onAddToQueue={() => {
                                 addToNowPlaying(song)
-                                toast.success("Added to queue")
+                                toast.success(MESSAGES.QUEUE_ADDED)
                             }}
                             onDownload={() =>
                                 window.open(apiService.getDownloadUrl(song.id), "_blank")
@@ -654,7 +655,7 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
                                             onClick={(e) => {
                                                 e.stopPropagation()
                                                 addToNowPlaying(song)
-                                                toast.success("Added to queue")
+                                                toast.success(MESSAGES.QUEUE_ADDED)
                                             }}
                                             className='flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white/20 text-white shadow-lg backdrop-blur-md transition-transform hover:scale-110'
                                             title='Add to Queue'
@@ -737,7 +738,7 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
                                         onClick={(e) => {
                                             e.stopPropagation()
                                             addToNowPlaying(song)
-                                            toast.success("Added to queue")
+                                            toast.success(MESSAGES.QUEUE_ADDED)
                                         }}
                                         className='flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-black/5 hover:text-red-500 dark:hover:bg-white/5'
                                         title='Add to Queue'

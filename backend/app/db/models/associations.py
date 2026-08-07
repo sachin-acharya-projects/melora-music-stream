@@ -67,3 +67,49 @@ playlist_follows = Table(
         default=lambda: datetime.now(UTC),
     ),
 )
+
+# Association table for songs and artists
+song_artist = Table(
+    "song_artist",
+    Base.metadata,
+    Column(
+        "song_id",
+        String,
+        ForeignKey("songs.id"),
+        primary_key=True,
+    ),
+    Column(
+        "artist_id",
+        String,
+        ForeignKey("artists.id"),
+        primary_key=True,
+    ),
+    Column(
+        "role",
+        String,
+        default="primary",
+    ),
+)
+
+# Association table for users following artists
+user_artist_follows = Table(
+    "user_artist_follows",
+    Base.metadata,
+    Column(
+        "user_id",
+        String,
+        ForeignKey("users.id"),
+        primary_key=True,
+    ),
+    Column(
+        "artist_id",
+        String,
+        ForeignKey("artists.id"),
+        primary_key=True,
+    ),
+    Column(
+        "created_at",
+        DateTime,
+        default=lambda: datetime.now(UTC),
+    ),
+)
