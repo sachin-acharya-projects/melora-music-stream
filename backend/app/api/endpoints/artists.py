@@ -1,6 +1,6 @@
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Query
 
 from app.api.deps import CurrentUser, OptionalUser, SessionDep, get_current_user
 from app.schemas.artist import YouTubeArtistImport
@@ -83,8 +83,15 @@ def import_youtube_artist(
 
 
 @router.get("/{slug}")
-def get_artist(db: SessionDep, user: OptionalUser, slug: str) -> dict[str, Any]:
-    return ArtistService.get_artist_by_slug(db, slug, user)
+def get_artist(
+    db: SessionDep,
+    user: OptionalUser,
+    slug: str,
+    background_tasks: BackgroundTasks,
+) -> dict[str, Any]:
+    result = ArtistService.get_artist_by_slug(db, slug, user, enrich=False)
+    background_tasks.add_task(ArtistService.enrich_artist_in_background, result["id"])
+    return result
 
 
 @router.get("/{slug}/recently-played")

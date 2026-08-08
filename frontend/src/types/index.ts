@@ -79,6 +79,7 @@ export interface Artist {
     genres: string[]
     monthly_listeners: number | null
     follower_count: number
+    subscribers?: number | null
     is_following: boolean
     is_enriched: boolean
     is_from_youtube: boolean

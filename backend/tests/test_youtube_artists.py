@@ -535,3 +535,102 @@ def test_get_artist_albums_plain_artist_groups_singles(db: Session) -> None:
     assert len(result["albums"]) == 1
     assert result["albums"][0]["name"] == "Singles"
     assert [s["id"] for s in result["albums"][0]["songs"]] == ["vid-1"]
+
+
+def test_get_artist_songs_caches_channel_uploads(db: Session, monkeypatch) -> None:
+    artist = ArtistService.get_or_create_artist(
+        db, "Daft Punk", youtube_channel_id=CHANNEL_ONE
+    )
+
+    calls: list[str] = []
+    monkeypatch.setattr(
+        youtube_service,
+        "get_channel_uploads",
+        lambda channel_id, limit=50: (
+            calls.append(channel_id) or [_upload("upload-1", "One More Time")]
+        ),
+    )
+
+    first = ArtistService.get_artist_songs(db, artist.slug)
+    second = ArtistService.get_artist_songs(db, artist.slug)
+
+    assert [s["id"] for s in first] == ["upload-1"]
+    assert first == second
+    assert calls == [CHANNEL_ONE]
+
+    artist = db.query(ArtistModel).filter(ArtistModel.id == artist.id).first()
+    assert "uploads_cache" in (artist.channel_metadata or {})
+
+
+def test_get_artist_songs_refetches_after_cache_expiry(
+    db: Session, monkeypatch
+) -> None:
+    artist = ArtistService.get_or_create_artist(
+        db, "Daft Punk", youtube_channel_id=CHANNEL_ONE
+    )
+
+    def make_upload(video_id: str) -> dict:
+        return _upload(video_id, f"Track {video_id}")
+
+    monkeypatch.setattr(
+        youtube_service,
+        "get_channel_uploads",
+        lambda channel_id, limit=50: [make_upload("upload-1")],
+    )
+
+    ArtistService.get_artist_songs(db, artist.slug)
+
+    artist = db.query(ArtistModel).filter(ArtistModel.id == artist.id).first()
+    artist.channel_metadata = {
+        **(artist.channel_metadata or {}),
+        "uploads_cache": {"fetched_at": 0, "items": [make_upload("upload-1")]},
+    }
+    db.commit()
+
+    monkeypatch.setattr(
+        youtube_service,
+        "get_channel_uploads",
+        lambda channel_id, limit=50: [make_upload("upload-2")],
+    )
+
+    songs = ArtistService.get_artist_songs(db, artist.slug)
+
+    assert [s["id"] for s in songs] == ["upload-2"]
+
+
+def test_get_artist_albums_caches_channel_layout(db: Session, monkeypatch) -> None:
+    artist = ArtistService.get_or_create_artist(
+        db, "Daft Punk", youtube_channel_id=CHANNEL_ONE
+    )
+
+    playlist_calls: list[str] = []
+    monkeypatch.setattr(
+        youtube_service,
+        "get_channel_playlists",
+        lambda channel_id, limit=12: (
+            playlist_calls.append(channel_id)
+            or [
+                {"id": "PLone", "name": "Discovery", "url": "http://pl/one"},
+            ]
+        ),
+    )
+    monkeypatch.setattr(
+        youtube_service,
+        "get_playlist_songs",
+        lambda playlist_id, limit=30: [_upload(f"pl-{playlist_id}-1", "Track")],
+    )
+    monkeypatch.setattr(
+        youtube_service,
+        "get_channel_uploads",
+        lambda channel_id, limit=50: [],
+    )
+
+    first = ArtistService.get_artist_albums(db, artist.slug)
+    second = ArtistService.get_artist_albums(db, artist.slug)
+
+    assert [a["name"] for a in first["albums"]] == ["Discovery"]
+    assert first == second
+    assert playlist_calls == [CHANNEL_ONE]
+
+    artist = db.query(ArtistModel).filter(ArtistModel.id == artist.id).first()
+    assert "albums_cache" in (artist.channel_metadata or {})

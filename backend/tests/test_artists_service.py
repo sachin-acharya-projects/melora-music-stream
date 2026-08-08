@@ -9,7 +9,16 @@ from app.schemas.history import HistoryRecordCreate
 from app.schemas.song import Song
 from app.services.artist import ArtistService
 from app.services.history import HistoryService
+from app.services.metadata_enrichment import ArtistEnricher
 from app.services.songs import SongService
+from app.services.stats import StatsService
+
+# The autouse conftest fixture stubs ArtistService._discover_related_artists so
+# featured/suggested endpoints stay offline. Capture the real implementation at
+# import time (before fixtures run) for the focused test below.
+_REAL_DISCOVER_RELATED_ARTISTS = ArtistService.__dict__[
+    "_discover_related_artists"
+].__func__
 
 
 def make_song(db: Session, song_id: str, uploader: str) -> SongModel:
@@ -193,6 +202,22 @@ class TestArtistQueries:
             ArtistService.get_artist_by_slug(db, "nope", None)
         assert exc_info.value.status_code == 404
 
+    def test_get_artist_by_slug_skips_sync_enrichment(
+        self, db: Session, monkeypatch
+    ) -> None:
+        ArtistService.get_or_create_artist(db, "Radiohead")
+
+        def boom(*args, **kwargs):
+            raise RuntimeError
+
+        monkeypatch.setattr(ArtistEnricher, "enrich", boom)
+
+        result = ArtistService.get_artist_by_slug(db, "radiohead", None, enrich=False)
+        assert result["name"] == "Radiohead"
+
+        with pytest.raises(RuntimeError):
+            ArtistService.get_artist_by_slug(db, "radiohead", None)
+
     def test_albums_grouped(self, db: Session) -> None:
         ArtistService.get_or_create_artist(db, "Radiohead")
         db_song = make_song(db, "song1", "Radiohead")
@@ -201,3 +226,49 @@ class TestArtistQueries:
         result = ArtistService.get_artist_albums(db, "radiohead")
         assert result["albums"][0]["name"] == "Singles"
         assert len(result["albums"][0]["songs"]) == 1
+
+
+def test_discover_related_artists_reports_subscribers_not_followers(
+    db: Session, monkeypatch
+) -> None:
+    class FakeYTMusic:
+        def search(self, artist_name, filter=None, limit=1):  # noqa: A002
+            return [{"browseId": f"CH-{artist_name}"}]
+
+        def get_artist(self, browse_id):
+            return {
+                "related": {
+                    "results": [
+                        {
+                            "title": "Related Artist",
+                            "browseId": "CH-RELATED",
+                            "subscribers": "1.42M",
+                            "thumbnails": [
+                                {"url": "http://small"},
+                                {"url": "http://big"},
+                            ],
+                        }
+                    ]
+                }
+            }
+
+    monkeypatch.setattr("app.services.artist.YTMusic", FakeYTMusic)
+    monkeypatch.setattr(
+        StatsService,
+        "get_top_artists",
+        lambda db, *, user_id, limit: [{"name": "Played Artist", "plays": 5}],
+    )
+    monkeypatch.setattr(
+        ArtistService,
+        "_discover_related_artists",
+        _REAL_DISCOVER_RELATED_ARTISTS,
+    )
+
+    items = ArtistService._discover_related_artists(db, "user-1")
+
+    assert len(items) == 1
+    item = items[0]
+    assert item["name"] == "Related Artist"
+    assert item["is_external"] is True
+    assert item["subscribers"] == 1_420_000
+    assert item["follower_count"] == 0

@@ -6,7 +6,7 @@ import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from fastapi import HTTPException
 from sqlalchemy import asc, desc, func, or_
@@ -14,6 +14,7 @@ from ytmusicapi import YTMusic
 
 from app.core.config import settings
 from app.core.messages import Messages
+from app.db.base import SessionLocal
 from app.db.models.artist import ArtistModel
 from app.db.models.associations import song_artist, user_artist_follows
 from app.db.models.listening_history import ListeningHistoryModel
@@ -488,9 +489,7 @@ class ArtistService:
         return items[:limit]
 
     @staticmethod
-    def _discover_related_artists(
-        db: Session, user_id: str
-    ) -> list[dict[str, Any]]:
+    def _discover_related_artists(db: Session, user_id: str) -> list[dict[str, Any]]:
         """Fetch "fans might also like" artists from YouTube Music."""
         top = StatsService.get_top_artists(
             db, user_id=user_id, limit=settings.ARTIST_SUGGESTIONS_TOP_ARTISTS
@@ -513,9 +512,7 @@ class ArtistService:
 
         def fetch(artist_name: str) -> None:
             try:
-                results = ytmusic.search(
-                    artist_name, filter="artists", limit=1
-                )
+                results = ytmusic.search(artist_name, filter="artists", limit=1)
                 if not results or not results[0].get("browseId"):
                     return
                 info = ytmusic.get_artist(results[0]["browseId"])
@@ -564,14 +561,13 @@ class ArtistService:
                     "bio": None,
                     "genres": [],
                     "monthly_listeners": None,
-                    "follower_count": candidate["subscribers"],
+                    "follower_count": 0,
+                    "subscribers": candidate["subscribers"],
                     "is_following": False,
                     "is_enriched": False,
                     "is_from_youtube": True,
                     "is_external": True,
-                    "reason": (
-                        f"Because you listen to {candidate['sources'][0]}"
-                    ),
+                    "reason": (f"Because you listen to {candidate['sources'][0]}"),
                 }
             )
         return items
@@ -597,9 +593,7 @@ class ArtistService:
             return 0
 
     @staticmethod
-    def _genre_based_suggestions(
-        db: Session, user_id: str
-    ) -> list[dict[str, Any]]:
+    def _genre_based_suggestions(db: Session, user_id: str) -> list[dict[str, Any]]:
         """Rank unplayed library artists by weighted genre overlap."""
         genre_plays = {
             entry["name"]: entry["plays"]
@@ -679,9 +673,7 @@ class ArtistService:
         """Pick the highest-resolution thumbnail URL from a YTMusic item."""
         if isinstance(thumbnails, list) and thumbnails:
             url = (
-                thumbnails[-1].get("url")
-                if isinstance(thumbnails[-1], dict)
-                else None
+                thumbnails[-1].get("url") if isinstance(thumbnails[-1], dict) else None
             )
             if isinstance(url, str):
                 return url
@@ -709,9 +701,7 @@ class ArtistService:
         ArtistService.sync_song_artists(db, db_song)
 
     @staticmethod
-    def sync_ytmusic_content(
-        db: Session, artist: ArtistModel, channel_id: str
-    ) -> None:
+    def sync_ytmusic_content(db: Session, artist: ArtistModel, channel_id: str) -> None:
         """Import the artist's YTMusic top songs and albums into the library.
 
         YouTube Music artist channels expose no "Videos" tab, so channel-upload
@@ -775,9 +765,7 @@ class ArtistService:
                 }
 
             with ThreadPoolExecutor(
-                max_workers=min(
-                    settings.ARTIST_IMPORT_MAX_WORKERS, len(album_results)
-                )
+                max_workers=min(settings.ARTIST_IMPORT_MAX_WORKERS, len(album_results))
             ) as pool:
                 results = list(pool.map(fetch_album, album_results))
 
@@ -818,21 +806,59 @@ class ArtistService:
         }
 
     @staticmethod
+    def _cached_channel_uploads(
+        db: Session,
+        db_artist: ArtistModel,
+        channel_id: str,
+        *,
+        limit: int = settings.ARTIST_UPLOADS_LIMIT,
+    ) -> list[dict[str, Any]]:
+        """Return the channel's uploads, cached in ``channel_metadata``.
+
+        Fetching a channel's Videos tab with yt-dlp is slow, so the result is
+        stored in ``channel_metadata["uploads_cache"]`` alongside a timestamp
+        and served from there until it exceeds
+        :data:`settings.ARTIST_CHANNEL_CACHE_TTL_SECONDS`. A failed refresh
+        falls back to the last known-good snapshot when one exists.
+        """
+        metadata = dict(db_artist.channel_metadata or {})
+        cached = metadata.get("uploads_cache")
+        if (
+            isinstance(cached, dict)
+            and isinstance(cached.get("items"), list)
+            and time.time() - float(cached.get("fetched_at") or 0)
+            < settings.ARTIST_CHANNEL_CACHE_TTL_SECONDS
+        ):
+            return cast("list[dict[str, Any]]", cached["items"])
+
+        try:
+            uploads = youtube_service.get_channel_uploads(channel_id, limit=limit)
+        except Exception:
+            logger.warning(
+                "Failed to fetch channel uploads for %s", channel_id, exc_info=True
+            )
+            return (
+                cast("list[dict[str, Any]]", cached["items"])
+                if isinstance(cached, dict) and isinstance(cached.get("items"), list)
+                else []
+            )
+
+        metadata["uploads_cache"] = {"fetched_at": time.time(), "items": uploads}
+        db_artist.channel_metadata = metadata
+        db.commit()
+        return uploads
+
+    @staticmethod
     def _merge_channel_and_library_songs(
+        db: Session,
         db_artist: ArtistModel,
         channel_id: str,
         *,
         upload_limit: int = settings.ARTIST_UPLOADS_LIMIT,
     ) -> list[dict[str, Any]]:
-        try:
-            uploads = youtube_service.get_channel_uploads(
-                channel_id, limit=upload_limit
-            )
-        except Exception:
-            logger.warning(
-                "Failed to fetch channel uploads for %s", channel_id, exc_info=True
-            )
-            uploads = []
+        uploads = ArtistService._cached_channel_uploads(
+            db, db_artist, channel_id, limit=upload_limit
+        )
 
         songs = [ArtistService._channel_song(s) for s in uploads]
         known = {s["id"] for s in songs}
@@ -845,14 +871,39 @@ class ArtistService:
         return songs
 
     @staticmethod
+    def enrich_artist_in_background(artist_id: str) -> None:
+        """Enrich an artist after the HTTP response, in its own DB session."""
+        db = SessionLocal()
+        try:
+            db_artist = (
+                db.query(ArtistModel).filter(ArtistModel.id == artist_id).first()
+            )
+            if db_artist is None or db_artist.enriched_at is not None:
+                return
+            ArtistService.enrich_artist(db, artist_id)
+        except Exception:
+            logger.warning(
+                "Background enrichment failed for artist %s",
+                artist_id,
+                exc_info=True,
+            )
+        finally:
+            db.close()
+
+    @staticmethod
     def get_artist_by_slug(
-        db: Session, slug: str, user: UserModel | None
+        db: Session,
+        slug: str,
+        user: UserModel | None,
+        *,
+        enrich: bool = True,
     ) -> dict[str, Any]:
         db_artist = db.query(ArtistModel).filter(ArtistModel.slug == slug).first()
         if db_artist is None:
             raise HTTPException(status_code=404, detail=Messages.ARTIST_NOT_FOUND)
 
-        ArtistService.enrich_artist(db, db_artist.id)
+        if enrich:
+            ArtistService.enrich_artist(db, db_artist.id)
 
         return {
             **ArtistService.serialize(
@@ -863,7 +914,11 @@ class ArtistService:
 
     @staticmethod
     def get_recently_played(
-        db: Session, slug: str, user_id: str, *, limit: int = settings.ARTIST_RECENT_SONGS_LIMIT
+        db: Session,
+        slug: str,
+        user_id: str,
+        *,
+        limit: int = settings.ARTIST_RECENT_SONGS_LIMIT,
     ) -> list[dict[str, Any]]:
         """Return the user's most recent plays of this artist's songs."""
         db_artist = db.query(ArtistModel).filter(ArtistModel.slug == slug).first()
@@ -917,7 +972,9 @@ class ArtistService:
             raise HTTPException(status_code=404, detail=Messages.ARTIST_NOT_FOUND)
         channel_id = ArtistService._channel_id(db_artist)
         if channel_id and not (db_artist.channel_metadata or {}).get("ytmusic_albums"):
-            return ArtistService._merge_channel_and_library_songs(db_artist, channel_id)
+            return ArtistService._merge_channel_and_library_songs(
+                db, db_artist, channel_id
+            )
         return ArtistService._song_dicts(db_artist)
 
     @staticmethod
@@ -969,6 +1026,16 @@ class ArtistService:
                 ]
             }
 
+        metadata = dict(db_artist.channel_metadata or {})
+        cached = metadata.get("albums_cache")
+        if (
+            isinstance(cached, dict)
+            and isinstance(cached.get("albums"), list)
+            and time.time() - float(cached.get("fetched_at") or 0)
+            < settings.ARTIST_CHANNEL_CACHE_TTL_SECONDS
+        ):
+            return {"albums": cast("list[dict[str, Any]]", cached["albums"])}
+
         try:
             playlists = youtube_service.get_channel_playlists(
                 channel_id, limit=settings.ARTIST_CHANNEL_PLAYLIST_LIMIT
@@ -983,7 +1050,7 @@ class ArtistService:
 
         albums = ArtistService._channel_playlist_albums(playlists)
         known_ids = {song["id"] for album in albums for song in album["songs"]}
-        singles = ArtistService._channel_singles(db_artist, channel_id, known_ids)
+        singles = ArtistService._channel_singles(db, db_artist, channel_id, known_ids)
         if singles:
             albums.append(
                 {
@@ -997,6 +1064,10 @@ class ArtistService:
         for album in albums:
             if not album["cover_image_url"] and album["songs"]:
                 album["cover_image_url"] = album["songs"][0]["thumbnail"] or None
+
+        metadata["albums_cache"] = {"fetched_at": time.time(), "albums": albums}
+        db_artist.channel_metadata = metadata
+        db.commit()
 
         return {"albums": albums}
 
@@ -1031,19 +1102,17 @@ class ArtistService:
 
     @staticmethod
     def _channel_singles(
+        db: Session,
         db_artist: ArtistModel,
         channel_id: str,
         known_ids: set[str],
     ) -> list[dict[str, Any]]:
-        try:
-            uploads = youtube_service.get_channel_uploads(
-                channel_id, limit=settings.ARTIST_UPLOADS_LIMIT
-            )
-        except Exception:
-            logger.warning(
-                "Failed to fetch channel uploads for %s", channel_id, exc_info=True
-            )
-            uploads = []
+        uploads = ArtistService._cached_channel_uploads(
+            db,
+            db_artist,
+            channel_id,
+            limit=settings.ARTIST_UPLOADS_LIMIT,
+        )
         singles: list[dict[str, Any]] = []
         for song in uploads:
             if song["id"] not in known_ids:

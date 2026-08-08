@@ -1,4 +1,5 @@
 import { type Artist } from "@/types"
+import { formatCount } from "@/lib/utils"
 import { Download, Heart, Loader2, Youtube } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 
@@ -69,10 +70,18 @@ export function ArtistCard({
             <p className='mt-1 text-xs text-gray-500 dark:text-gray-400'>
                 {artist.play_count != null
                     ? `${artist.play_count} ${artist.play_count === 1 ? "play" : "plays"}`
-                    : `${artist.follower_count.toLocaleString()} ${
-                          artist.follower_count === 1 ? "follower" : "followers"
-                      }`}
+                    : artist.subscribers != null
+                      ? `${formatCount(artist.subscribers)} subscribers`
+                      : `${artist.follower_count.toLocaleString()} ${
+                            artist.follower_count === 1 ? "follower" : "followers"
+                        }`}
             </p>
+            {artist.subscribers != null && (
+                <p className='mt-0.5 text-[11px] text-gray-400 dark:text-gray-500'>
+                    {artist.follower_count.toLocaleString()}{" "}
+                    {artist.follower_count === 1 ? "follower" : "followers"}
+                </p>
+            )}
 
             {artist.is_external && onImport && (
                 <span className='mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-red-100 px-3 py-1 text-xs font-medium text-red-600 dark:bg-red-950 dark:text-red-400'>
