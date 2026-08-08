@@ -6,75 +6,57 @@ import { usePlayerStore } from "@/hooks/usePlayer"
 import { usePlaylists } from "@/hooks/usePlaylists"
 import { useQueueStore } from "@/hooks/useQueue"
 import { useSearch } from "@/hooks/useSearch"
+import { useSongSelection } from "@/hooks/useSongSelection"
 import { useThemeStore } from "@/hooks/useTheme"
 import { useTitle } from "@/hooks/useTitle"
 import { formatDuration } from "@/lib/utils"
-import { apiService } from "@/services/api.service"
-import { Download, ListMusic, Play, Settings2 } from "lucide-react"
+import { openDownload, openDownloads } from "@/utils/download"
+import { MESSAGES } from "@/utils/messages"
+import {
+    Download,
+    ListEnd,
+    ListMusic,
+    Music2,
+    Play,
+    Search,
+    User,
+    type LucideIcon,
+} from "lucide-react"
 import { useState } from "react"
 import { Link } from "react-router-dom"
 import { toast } from "react-toastify"
 
 export default function Home() {
-    useTitle("Search and Download Music")
+    useTitle("Melora Music")
     const [searchQuery, setSearchQuery] = useState("")
-    const [selectedVideos, setSelectedVideos] = useState<string[]>([])
     const [playlistInput, setPlaylistInput] = useState("")
-    const [lastSelectedId, setLastSelectedId] = useState<string | null>(null)
+    const { selectedSongIds, toggleSelect, toggleSelectAll, clearSelection, getSelectedSongs } =
+        useSongSelection()
+
+    const quickActions: Array<{
+        to: string
+        label: string
+        description: string
+        icon: LucideIcon
+    }> = [
+        {
+            to: "/playlists",
+            label: "Playlists",
+            description: "Manage your collections",
+            icon: ListMusic,
+        },
+        { to: "/now-playing", label: "Now Playing", description: "Control playback", icon: Music2 },
+        { to: "/queue", label: "Queue", description: "See what's next", icon: ListEnd },
+        { to: "/profile", label: "Profile", description: "Your account", icon: User },
+    ]
 
     const { viewMode, setViewMode } = useThemeStore()
     const addDownloadQueue = useQueueStore((s) => s.add)
     const setPlaylist = usePlayerStore((s) => s.setPlaylist)
     const addToNowPlaying = usePlayerStore((s) => s.addToQueue)
 
-    const { playlists, addSong, createPlaylist, isAdding, isCreating } = usePlaylists()
+    const { playlists, addSongsBulk, createPlaylist, isAddingBulk, isCreating } = usePlaylists()
     const { data: videos = [], isLoading: isSearchLoading, isError } = useSearch(searchQuery)
-
-    const toggleSelect = (video_id: string, e: React.MouseEvent) => {
-        if ((e.target as HTMLElement).closest("button")) return
-
-        if (e.shiftKey && lastSelectedId) {
-            const currentIndex = videos.findIndex((v) => v.id === video_id)
-            const lastIndex = videos.findIndex((v) => v.id === lastSelectedId)
-
-            if (currentIndex !== -1 && lastIndex !== -1) {
-                const start = Math.min(currentIndex, lastIndex)
-                const end = Math.max(currentIndex, lastIndex)
-                const rangeIds = videos.slice(start, end + 1).map((v) => v.id)
-
-                setSelectedVideos((prev) => {
-                    const newSelection = new Set([...prev, ...rangeIds])
-                    return Array.from(newSelection)
-                })
-                setLastSelectedId(video_id)
-                return
-            }
-        }
-
-        setSelectedVideos((prev) => {
-            const isSelected = prev.includes(video_id)
-            if (isSelected) {
-                setLastSelectedId(null)
-                return prev.filter((v) => v !== video_id)
-            } else {
-                setLastSelectedId(video_id)
-                return [...prev, video_id]
-            }
-        })
-    }
-
-    const toggleSelectAll = () => {
-        if (selectedVideos.length === videos.length) {
-            setSelectedVideos([])
-        } else {
-            setSelectedVideos(videos.map((v) => v.id))
-        }
-    }
-
-    const clearSelection = () => {
-        setSelectedVideos([])
-        setLastSelectedId(null)
-    }
 
     const onSearch = (q: string) => {
         setSearchQuery(q)
@@ -82,7 +64,7 @@ export default function Home() {
     }
 
     const handleBulkAddToDownloadQueue = () => {
-        const selectedSongs = videos.filter((v) => selectedVideos.includes(v.id))
+        const selectedSongs = getSelectedSongs(videos)
         selectedSongs.forEach((song) => {
             addDownloadQueue(song, "audio", false)
         })
@@ -91,16 +73,14 @@ export default function Home() {
     }
 
     const handleDownloadNow = () => {
-        selectedVideos.forEach((id) => {
-            window.open(apiService.getDownloadUrl(id), "_blank")
-        })
+        openDownloads(selectedSongIds)
         clearSelection()
     }
 
     const handleAddToPlaylist = async () => {
         if (!playlistInput) return
 
-        const songsToAdd = videos.filter((v) => selectedVideos.includes(v.id))
+        const songsToAdd = getSelectedSongs(videos)
 
         try {
             const existing = playlists.find(
@@ -109,21 +89,17 @@ export default function Home() {
             let playlistId = existing?.id
 
             if (!playlistId) {
-                const newPlaylist = await createPlaylist(playlistInput)
+                const newPlaylist = await createPlaylist({ name: playlistInput })
                 playlistId = newPlaylist.id
             }
 
-            await Promise.all(
-                songsToAdd.map(async (song) => {
-                    await addSong({ playlistId: playlistId!, song })
-                }),
-            )
+            await addSongsBulk({ playlistId: playlistId!, songs: songsToAdd })
 
             toast.success(`Added ${songsToAdd.length} songs to ${playlistInput}`)
             clearSelection()
             setPlaylistInput("")
         } catch {
-            toast.error("Failed to add songs to playlist")
+            toast.error(MESSAGES.ADD_SONGS_TO_PLAYLIST_FAILED)
         }
     }
 
@@ -132,32 +108,48 @@ export default function Home() {
     }
 
     const handlePlaySelected = () => {
-        const selected = videos.filter((v) => selectedVideos.includes(v.id))
+        const selected = getSelectedSongs(videos)
         if (selected.length > 0) {
             setPlaylist(selected, 0)
             clearSelection()
         }
     }
 
-    const isPlaylistActionLoading = isAdding || isCreating
+    const isPlaylistActionLoading = isAddingBulk || isCreating
 
     return (
         <div className='flex flex-col items-center gap-12'>
             {/* Header */}
             <div className='flex flex-col items-center gap-5 pt-32'>
                 <h1 className='text-center text-5xl font-bold text-shadow-md dark:text-white'>
-                    <span className='text-red-500'>YouTube</span> Downloader
+                    <span className='text-red-500'>Melora</span> Music
                 </h1>
+
+                <p className='text-center text-gray-500 dark:text-gray-400'>
+                    Search, discover, and stream your favorite music
+                </p>
 
                 <SearchForm onSearch={onSearch} isLoading={isSearchLoading} />
 
-                <Link
-                    to='/playlists/edit'
-                    className='-mt-2 flex w-full cursor-pointer items-center gap-2 text-sm font-medium text-gray-500 transition-colors hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400'
-                >
-                    <Settings2 className='h-5 w-5' />
-                    Edit Playlists
-                </Link>
+                <div className='mt-4 grid w-full max-w-4xl grid-cols-2 gap-4 md:grid-cols-4'>
+                    {quickActions.map((action) => (
+                        <Link
+                            key={action.to}
+                            to={action.to}
+                            className='group dark:bg-card flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-gray-200 bg-white p-5 text-center transition-all hover:-translate-y-1 hover:border-red-300 hover:shadow-md dark:border-white/10 dark:hover:border-red-800'
+                        >
+                            <span className='flex h-11 w-11 items-center justify-center rounded-full bg-red-100 text-red-600 transition-colors group-hover:bg-red-600 group-hover:text-white dark:bg-red-950 dark:text-red-400'>
+                                <action.icon className='h-5 w-5' />
+                            </span>
+                            <span className='text-sm font-semibold dark:text-white'>
+                                {action.label}
+                            </span>
+                            <span className='text-xs text-gray-500 dark:text-gray-400'>
+                                {action.description}
+                            </span>
+                        </Link>
+                    ))}
+                </div>
             </div>
 
             {/* Content Section */}
@@ -168,15 +160,15 @@ export default function Home() {
                         <div className='mb-6 flex items-center justify-between'>
                             <div className='flex items-center gap-4'>
                                 <button
-                                    onClick={toggleSelectAll}
+                                    onClick={() => toggleSelectAll(videos.map((v) => v.id))}
                                     className='cursor-pointer rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-red-700 active:scale-95'
                                 >
-                                    {selectedVideos.length === videos.length
+                                    {selectedSongIds.length === videos.length
                                         ? "Deselect All"
                                         : "Select All"}
                                 </button>
                                 <p className='text-sm text-gray-600 dark:text-gray-400'>
-                                    {selectedVideos.length} selected
+                                    {selectedSongIds.length} selected
                                 </p>
                             </div>
 
@@ -192,15 +184,15 @@ export default function Home() {
                             }
                         >
                             {videos.map((video, index) => {
-                                const selected = selectedVideos.includes(video.id)
+                                const selected = selectedSongIds.includes(video.id)
 
                                 return viewMode === "grid" ? (
                                     <div
                                         key={video.id}
-                                        onClick={(e) => toggleSelect(video.id, e)}
+                                        onClick={(e) => toggleSelect(video.id, e, videos)}
                                         className={`group relative cursor-pointer overflow-hidden rounded-xl border transition-all hover:-translate-y-1 hover:shadow-md ${
                                             selected
-                                                ? "border-red-500 bg-red-50/5 ring-2 ring-red-500/50"
+                                                ? "border-red-500 bg-red-50 ring-2 ring-red-500/50 dark:bg-red-950"
                                                 : "dark:bg-card border-gray-200 bg-white dark:border-white/10"
                                         } `}
                                     >
@@ -222,7 +214,7 @@ export default function Home() {
                                                     onClick={(e) => {
                                                         e.stopPropagation()
                                                         addToNowPlaying(video)
-                                                        toast.success("Added to queue")
+                                                        toast.success(MESSAGES.QUEUE_ADDED)
                                                     }}
                                                     className='flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white/20 text-white shadow-lg backdrop-blur-md transition-transform hover:scale-110'
                                                     title='Add to Queue'
@@ -232,10 +224,7 @@ export default function Home() {
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation()
-                                                        window.open(
-                                                            apiService.getDownloadUrl(video.id),
-                                                            "_blank",
-                                                        )
+                                                        openDownload(video.id)
                                                     }}
                                                     className='flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white/20 text-white shadow-lg backdrop-blur-md transition-transform hover:scale-110'
                                                     title='Download MP3'
@@ -264,10 +253,10 @@ export default function Home() {
                                 ) : (
                                     <div
                                         key={video.id}
-                                        onClick={(e) => toggleSelect(video.id, e)}
+                                        onClick={(e) => toggleSelect(video.id, e, videos)}
                                         className={`group flex cursor-pointer items-center gap-4 rounded-xl border p-2 transition-all select-none ${
                                             selected
-                                                ? "border-red-500 bg-red-50/5"
+                                                ? "border-red-500 bg-red-50 dark:bg-red-950"
                                                 : "dark:bg-card border-gray-100 bg-white hover:border-red-200 dark:border-white/10"
                                         }`}
                                     >
@@ -302,7 +291,7 @@ export default function Home() {
                                                 onClick={(e) => {
                                                     e.stopPropagation()
                                                     addToNowPlaying(video)
-                                                    toast.success("Added to queue")
+                                                    toast.success(MESSAGES.QUEUE_ADDED)
                                                 }}
                                                 className='flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-black/5 hover:text-red-500 dark:hover:bg-white/5'
                                                 title='Add to Queue'
@@ -312,10 +301,7 @@ export default function Home() {
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation()
-                                                    window.open(
-                                                        apiService.getDownloadUrl(video.id),
-                                                        "_blank",
-                                                    )
+                                                    openDownload(video.id)
                                                 }}
                                                 className='flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-black/5 hover:text-red-500 dark:hover:bg-white/5'
                                                 title='Download'
@@ -336,14 +322,34 @@ export default function Home() {
                 )}
 
                 {!isSearchLoading && videos.length === 0 && searchQuery && !isError && (
-                    <div className='-mt-4 text-center text-gray-500 dark:text-gray-400'>
-                        No results found for "{searchQuery}"
+                    <div className='-mt-4 flex flex-col items-center gap-4 pt-16 text-center'>
+                        <span className='flex h-20 w-20 items-center justify-center rounded-full bg-red-100 dark:bg-red-950'>
+                            <Search className='h-9 w-9 text-red-500' />
+                        </span>
+                        <div className='flex flex-col gap-1'>
+                            <h2 className='text-lg font-semibold dark:text-white'>
+                                No results found
+                            </h2>
+                            <p className='text-sm text-gray-500 dark:text-gray-400'>
+                                Nothing matched "{searchQuery}". Try a different search.
+                            </p>
+                        </div>
                     </div>
                 )}
 
                 {!isSearchLoading && !searchQuery && (
-                    <div className='-mt-4 text-center text-gray-500 dark:text-gray-400'>
-                        Search for videos to start downloading
+                    <div className='-mt-4 flex flex-col items-center gap-4 pt-16 text-center'>
+                        <span className='flex h-20 w-20 items-center justify-center rounded-full bg-red-100 dark:bg-red-950'>
+                            <Music2 className='h-9 w-9 text-red-500' />
+                        </span>
+                        <div className='flex flex-col gap-1'>
+                            <h2 className='text-lg font-semibold dark:text-white'>
+                                Discover new music
+                            </h2>
+                            <p className='text-sm text-gray-500 dark:text-gray-400'>
+                                Search for songs, artists, or albums to start listening
+                            </p>
+                        </div>
                     </div>
                 )}
 
@@ -369,10 +375,10 @@ export default function Home() {
             </div>
 
             <BulkActionBar
-                isVisible={selectedVideos.length > 0}
-                selectedCount={selectedVideos.length}
+                isVisible={selectedSongIds.length > 0}
+                selectedCount={selectedSongIds.length}
                 totalCount={videos.length}
-                onSelectAll={toggleSelectAll}
+                onSelectAll={() => toggleSelectAll(videos.map((v) => v.id))}
                 onPlay={handlePlaySelected}
                 playlists={playlists}
                 playlistValue={playlistInput}

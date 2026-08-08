@@ -55,7 +55,7 @@ export default function BulkActionBar({
                     <div className='flex items-center gap-3'>
                         <button
                             onClick={onSelectAll}
-                            className='flex cursor-pointer items-center gap-2 rounded-lg bg-red-600/10 px-4 py-2 text-sm font-bold text-red-600 transition-all hover:bg-red-600 hover:text-white'
+                            className='flex cursor-pointer items-center gap-2 rounded-lg bg-red-100 px-4 py-2 text-sm font-bold text-red-600 transition-all hover:bg-red-600 hover:text-white dark:bg-red-950'
                             title='Toggle All'
                         >
                             <CheckSquare className='h-4 w-4' />

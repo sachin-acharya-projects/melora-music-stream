@@ -5,7 +5,8 @@ import { usePlaylists } from "@/hooks/usePlaylists"
 import { useQueueStore } from "@/hooks/useQueue"
 import { useTitle } from "@/hooks/useTitle"
 import { formatDuration } from "@/lib/utils"
-import { apiService } from "@/services/api.service"
+import { openDownload } from "@/utils/download"
+import { MESSAGES } from "@/utils/messages"
 import { Reorder } from "framer-motion"
 import { Download, GripVertical, Loader2, Play, Plus, Trash2 } from "lucide-react"
 import { useState } from "react"
@@ -17,7 +18,7 @@ export default function Queue() {
     const [playlistInput, setPlaylistInput] = useState("")
     const setPlaylist = usePlayerStore((s) => s.setPlaylist)
 
-    const { playlists, addSong, createPlaylist, isAdding, isCreating } = usePlaylists()
+    const { playlists, addSongsBulk, createPlaylist, isAddingBulk, isCreating } = usePlaylists()
 
     // Dialog state
     const [isClearDialogOpen, setIsClearDialogOpen] = useState(false)
@@ -42,23 +43,21 @@ export default function Queue() {
             let playlistId = existing?.id
 
             if (!playlistId) {
-                const newPlaylist = await createPlaylist(playlistInput)
+                const newPlaylist = await createPlaylist({ name: playlistInput })
                 playlistId = newPlaylist.id
             }
 
-            for (const song of queue) {
-                await addSong({ playlistId: playlistId!, song })
-            }
+            await addSongsBulk({ playlistId: playlistId!, songs: queue })
 
             toast.success(`Added ${queue.length} songs to ${playlistInput}`)
             setPlaylistInput("")
         } catch {
-            toast.error("Failed to add songs to playlist")
+            toast.error(MESSAGES.ADD_SONGS_TO_PLAYLIST_FAILED)
         }
     }
 
     const handleDownload = (id: string) => {
-        window.open(apiService.getDownloadUrl(id), "_blank")
+        openDownload(id)
     }
 
     if (queue.length === 0) {
@@ -77,7 +76,7 @@ export default function Queue() {
         )
     }
 
-    const isPlaylistActionLoading = isAdding || isCreating
+    const isPlaylistActionLoading = isAddingBulk || isCreating
 
     return (
         <div className='mx-auto w-full max-w-4xl px-4 py-10'>

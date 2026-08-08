@@ -1,5 +1,7 @@
 from pydantic import BaseModel
 
+from app.db.models.playlist import CollaboratorRole, PlaylistVisibility
+
 
 class Song(BaseModel):
     id: str
@@ -11,6 +13,20 @@ class Song(BaseModel):
 
 class PlaylistCreate(BaseModel):
     name: str
+    description: str | None = None
+    visibility: PlaylistVisibility = PlaylistVisibility.PRIVATE
+
+
+class PlaylistUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    visibility: PlaylistVisibility | None = None
+    is_collaborative: bool | None = None
+
+
+class CollaboratorCreate(BaseModel):
+    user_id: str
+    role: CollaboratorRole = CollaboratorRole.EDITOR
 
 
 class PlaylistImport(BaseModel):

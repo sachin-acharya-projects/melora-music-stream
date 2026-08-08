@@ -1,0 +1,37 @@
+from typing import Any
+
+from sqlalchemy import or_
+from sqlalchemy.orm import Session
+
+from app.db.models.user import UserModel
+
+
+class UserService:
+    """User lookups and serialization."""
+
+    @staticmethod
+    def search(db: Session, *, query: str, limit: int) -> list[dict[str, Any]]:
+        """Search active users by username or display name (for playlist invites)."""
+        pattern = f"%{query}%"
+        users = (
+            db.query(UserModel)
+            .filter(
+                UserModel.is_active == True,  # noqa: E712
+                or_(
+                    UserModel.username.ilike(pattern),
+                    UserModel.display_name.ilike(pattern),
+                ),
+            )
+            .order_by(UserModel.username)
+            .limit(limit)
+            .all()
+        )
+        return [
+            {
+                "id": u.id,
+                "username": u.username,
+                "display_name": u.display_name,
+                "avatar_url": u.avatar_url,
+            }
+            for u in users
+        ]

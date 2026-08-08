@@ -1,5 +1,11 @@
-import { playlistService, type PlaylistSortOptions } from "@/services/playlist.service"
+import {
+    playlistService,
+    type PlaylistSortOptions,
+    type PlaylistUpdatePayload,
+} from "@/services/playlist.service"
 import { type Song } from "@/types"
+import { API_LIMITS } from "@/utils/constants"
+import { MESSAGES } from "@/utils/messages"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "react-toastify"
 
@@ -9,10 +15,19 @@ export function usePlaylists(options: PlaylistSortOptions = {}) {
     const playlistsQuery = useQuery({
         queryKey: ["playlists", options],
         queryFn: () => playlistService.getAll(options),
+        placeholderData: (previousData) => previousData,
     })
 
     const createPlaylistMutation = useMutation({
-        mutationFn: playlistService.create,
+        mutationFn: ({
+            name,
+            description,
+            visibility,
+        }: {
+            name: string
+            description?: string
+            visibility?: "private" | "public"
+        }) => playlistService.create(name, description, visibility),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["playlists"] })
         },
@@ -21,15 +36,28 @@ export function usePlaylists(options: PlaylistSortOptions = {}) {
     const addSongToPlaylistMutation = useMutation({
         mutationFn: ({ playlistId, song }: { playlistId: string; song: Song }) =>
             playlistService.addSong(playlistId, song),
-        onSuccess: () => {
+        onSuccess: (_data, { playlistId }) => {
             queryClient.invalidateQueries({ queryKey: ["playlists"] })
+            queryClient.invalidateQueries({ queryKey: ["playlist", playlistId] })
+        },
+    })
+
+    const addSongsBulkToPlaylistMutation = useMutation({
+        mutationFn: ({ playlistId, songs }: { playlistId: string; songs: Song[] }) =>
+            playlistService.addSongsBulk(playlistId, songs),
+        onSuccess: (_data, { playlistId }) => {
+            queryClient.invalidateQueries({ queryKey: ["playlists"] })
+            queryClient.invalidateQueries({ queryKey: ["playlist", playlistId] })
         },
     })
 
     const importPlaylistMutation = useMutation({
         mutationFn: playlistService.import,
-        onSuccess: () => {
+        onSuccess: (_data, { id }) => {
             queryClient.invalidateQueries({ queryKey: ["playlists"] })
+            if (id) {
+                queryClient.invalidateQueries({ queryKey: ["playlist", id] })
+            }
             toast.success("Playlist imported successfully")
         },
         onError: () => toast.error("Failed to import playlist"),
@@ -38,8 +66,9 @@ export function usePlaylists(options: PlaylistSortOptions = {}) {
     const renamePlaylistMutation = useMutation({
         mutationFn: ({ id, name }: { id: string; name: string }) =>
             playlistService.rename(id, name),
-        onSuccess: () => {
+        onSuccess: (_data, { id }) => {
             queryClient.invalidateQueries({ queryKey: ["playlists"] })
+            queryClient.invalidateQueries({ queryKey: ["playlist", id] })
             toast.success("Playlist renamed")
         },
         onError: () => toast.error("Failed to rename playlist"),
@@ -47,11 +76,36 @@ export function usePlaylists(options: PlaylistSortOptions = {}) {
 
     const deletePlaylistMutation = useMutation({
         mutationFn: playlistService.delete,
-        onSuccess: () => {
+        onSuccess: (_data, id) => {
             queryClient.invalidateQueries({ queryKey: ["playlists"] })
+            queryClient.invalidateQueries({ queryKey: ["playlist", id] })
             toast.success("Playlist deleted")
         },
         onError: () => toast.error("Failed to delete playlist"),
+    })
+
+    const deletePlaylistsBulkMutation = useMutation({
+        mutationFn: async (ids: string[]) => {
+            for (const id of ids) {
+                await playlistService.delete(id)
+            }
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["playlists"] })
+            toast.success("Playlists deleted")
+        },
+        onError: () => toast.error("Failed to delete some playlists"),
+    })
+
+    const updatePlaylistMutation = useMutation({
+        mutationFn: ({ id, payload }: { id: string; payload: PlaylistUpdatePayload }) =>
+            playlistService.update(id, payload),
+        onSuccess: (_data, { id }) => {
+            queryClient.invalidateQueries({ queryKey: ["playlists"] })
+            queryClient.invalidateQueries({ queryKey: ["playlist", id] })
+            toast.success("Playlist updated")
+        },
+        onError: () => toast.error("Failed to update playlist"),
     })
 
     const removeSongsMutation = useMutation({
@@ -60,8 +114,9 @@ export function usePlaylists(options: PlaylistSortOptions = {}) {
                 await playlistService.removeSong(playlistId, id)
             }
         },
-        onSuccess: () => {
+        onSuccess: (_data, { playlistId }) => {
             queryClient.invalidateQueries({ queryKey: ["playlists"] })
+            queryClient.invalidateQueries({ queryKey: ["playlist", playlistId] })
             toast.success("Songs removed from playlist")
         },
         onError: () => toast.error("Failed to remove some songs"),
@@ -75,12 +130,18 @@ export function usePlaylists(options: PlaylistSortOptions = {}) {
         isCreating: createPlaylistMutation.isPending,
         addSong: addSongToPlaylistMutation.mutateAsync,
         isAdding: addSongToPlaylistMutation.isPending,
-        importPlaylist: importPlaylistMutation.mutate,
+        addSongsBulk: addSongsBulkToPlaylistMutation.mutateAsync,
+        isAddingBulk: addSongsBulkToPlaylistMutation.isPending,
+        importPlaylist: importPlaylistMutation.mutateAsync,
         isImporting: importPlaylistMutation.isPending,
         renamePlaylist: renamePlaylistMutation.mutate,
         isRenaming: renamePlaylistMutation.isPending,
         deletePlaylist: deletePlaylistMutation.mutate,
         isDeleting: deletePlaylistMutation.isPending,
+        deletePlaylistsBulk: deletePlaylistsBulkMutation.mutateAsync,
+        isDeletingBulk: deletePlaylistsBulkMutation.isPending,
+        updatePlaylist: updatePlaylistMutation.mutate,
+        isUpdating: updatePlaylistMutation.isPending,
         removeSongs: removeSongsMutation.mutate,
         isRemoving: removeSongsMutation.isPending,
     }
@@ -91,5 +152,106 @@ export function usePlaylist(id: string | null, options: PlaylistSortOptions = {}
         queryKey: ["playlist", id, options],
         queryFn: () => (id ? playlistService.getById(id, options) : null),
         enabled: !!id,
+    })
+}
+
+export function useDiscoverPlaylists(
+    limit: number = API_LIMITS.DISCOVER_PLAYLISTS,
+    enabled = true,
+    q?: string,
+) {
+    return useQuery({
+        queryKey: ["playlists", "discover", q],
+        queryFn: () => playlistService.getDiscover(limit, q),
+        enabled,
+        placeholderData: (previousData) => previousData,
+    })
+}
+
+export function useFollowingPlaylists(enabled = true, q?: string) {
+    return useQuery({
+        queryKey: ["playlists", "following", q],
+        queryFn: () => playlistService.getFollowing(q),
+        enabled,
+        placeholderData: (previousData) => previousData,
+    })
+}
+
+export function useFollowPlaylist() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: playlistService.toggleFollow,
+        onSuccess: (result, playlistId) => {
+            queryClient.invalidateQueries({ queryKey: ["playlists"] })
+            queryClient.invalidateQueries({ queryKey: ["playlist", playlistId] })
+            toast.success(result.is_following ? "Following playlist" : "Unfollowed playlist")
+        },
+        onError: () => toast.error(MESSAGES.FOLLOW_UPDATE_FAILED),
+    })
+}
+
+export function useCollaborators(playlistId: string | null) {
+    const queryClient = useQueryClient()
+
+    const collaboratorsQuery = useQuery({
+        queryKey: ["collaborators", playlistId],
+        queryFn: () => (playlistId ? playlistService.getCollaborators(playlistId) : []),
+        enabled: !!playlistId,
+    })
+
+    const invalidate = (id: string) => {
+        queryClient.invalidateQueries({ queryKey: ["collaborators", id] })
+        queryClient.invalidateQueries({ queryKey: ["playlist", id] })
+        queryClient.invalidateQueries({ queryKey: ["playlists"] })
+    }
+
+    const addCollaboratorMutation = useMutation({
+        mutationFn: ({ userId, role }: { userId: string; role: "viewer" | "editor" }) => {
+            if (!playlistId) throw new Error("No playlist")
+            return playlistService.addCollaborator(playlistId, userId, role)
+        },
+        onSuccess: () => {
+            if (playlistId) invalidate(playlistId)
+            toast.success("Collaborator added")
+        },
+        onError: () => toast.error("Failed to add collaborator"),
+    })
+
+    const removeCollaboratorMutation = useMutation({
+        mutationFn: (userId: string) => {
+            if (!playlistId) throw new Error("No playlist")
+            return playlistService.removeCollaborator(playlistId, userId)
+        },
+        onSuccess: () => {
+            if (playlistId) invalidate(playlistId)
+            toast.success("Collaborator removed")
+        },
+        onError: () => toast.error("Failed to remove collaborator"),
+    })
+
+    return {
+        collaborators: collaboratorsQuery.data || [],
+        isLoading: collaboratorsQuery.isLoading,
+        addCollaborator: addCollaboratorMutation.mutateAsync,
+        isAdding: addCollaboratorMutation.isPending,
+        removeCollaborator: removeCollaboratorMutation.mutate,
+        isRemoving: removeCollaboratorMutation.isPending,
+    }
+}
+
+export function useToggleCollaborative() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: playlistService.toggleCollaborative,
+        onSuccess: (result, playlistId) => {
+            queryClient.invalidateQueries({ queryKey: ["playlists"] })
+            queryClient.invalidateQueries({ queryKey: ["playlist", playlistId] })
+            toast.success(
+                result.is_collaborative ? "Collaboration enabled" : "Collaboration disabled",
+            )
+        },
+        onError: () => toast.error("Failed to update collaboration"),
     })
 }

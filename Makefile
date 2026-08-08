@@ -202,7 +202,7 @@ frontend-typecheck: ## Run frontend type checker
 
 ##@ Database Migrations
 
-.PHONY: migrate-create migrate-apply migrate-rollback
+.PHONY: migrate-create migrate-apply migrate-rollback migrate-current
 
 migrate-create: ## Create a new database migration (Usage: make migrate-create MESSAGE="description")
 	@printf "$(INFO) Creating new migration: $(MESSAGE)...\n"
@@ -218,6 +218,11 @@ migrate-rollback: ## Rollback the last migration
 	@printf "$(INFO) Rolling back last migration...\n"
 	cd $(BACKEND_DIR)
 	$(BIN_DIR)/alembic downgrade -1
+
+migrate-current: ## Show current migration version
+	@printf "$(INFO) Current migration version:\n"
+	cd $(BACKEND_DIR)
+	$(BIN_DIR)/alembic current
 
 
 ##@ Frontend Build
@@ -239,7 +244,7 @@ frontend-preview: ## Preview production frontend build
 
 .PHONY: docker-build-fullstack docker-run-fullstack \
         docker-build-backend docker-run-backend docker-clean \
-        docker-rebuild-fullstack docker-check
+        docker-rebuild-fullstack docker-check docker-redis
 
 docker-build-fullstack: ## Build full-stack Docker image
 	@printf "$(INFO) Building full-stack Docker image...\n"
@@ -256,6 +261,10 @@ docker-build-backend: ## Build backend Docker image
 docker-run-backend: ## Run backend container via Docker Compose
 	@printf "$(INFO) Starting backend container...\n"
 	BACKEND_PORT=$(PORT) $(COMPOSE) up backend -d
+
+docker-redis: ## Start Redis service only
+	@printf "$(INFO) Starting Redis...\n"
+	$(COMPOSE) up redis -d
 
 docker-clean: ## Stop containers and remove Docker volumes
 	@printf "$(WARN) Cleaning Docker resources...\n"

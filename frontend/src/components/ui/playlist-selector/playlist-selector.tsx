@@ -9,6 +9,7 @@ interface PlaylistSelectorProps {
     onChange: (value: string) => void
     placeholder?: string
     className?: string
+    showSuggestions?: boolean
 }
 
 export default function PlaylistSelector({
@@ -17,15 +18,16 @@ export default function PlaylistSelector({
     onChange,
     placeholder = "Playlist name...",
     className = "",
+    showSuggestions = true,
 }: PlaylistSelectorProps) {
     const [isOpen, setIsOpen] = useState(false)
     const [openUpward, setOpenUpward] = useState(false)
     const containerRef = useRef<HTMLDivElement>(null)
 
-    const suggestions = useMemo(
-        () => playlists.filter((p) => p.name.toLowerCase().includes(value.toLowerCase())),
-        [playlists, value],
-    )
+    const suggestions = useMemo(() => {
+        if (!showSuggestions) return []
+        return playlists.filter((p) => p.name.toLowerCase().includes(value.toLowerCase()))
+    }, [playlists, value, showSuggestions])
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -54,21 +56,27 @@ export default function PlaylistSelector({
                     value={value}
                     onChange={(e) => {
                         onChange(e.target.value)
-                        setIsOpen(true)
+                        if (showSuggestions) setIsOpen(true)
                     }}
-                    onFocus={() => setIsOpen(true)}
-                    className='h-12 w-full rounded-lg border bg-white px-3 pr-10 text-sm dark:border-white/10 dark:bg-black dark:text-white'
+                    onFocus={() => {
+                        if (showSuggestions) setIsOpen(true)
+                    }}
+                    className={`h-12 w-full rounded-lg border bg-white px-3 text-sm dark:border-white/10 dark:bg-black dark:text-white ${
+                        showSuggestions ? "pr-10" : ""
+                    }`}
                     placeholder={placeholder}
                 />
-                <button
-                    type='button'
-                    onClick={() => setIsOpen(!isOpen)}
-                    className='absolute top-1/2 right-1 -translate-y-1/2 cursor-pointer p-1 text-gray-400 hover:text-gray-600 dark:hover:text-white'
-                >
-                    <ChevronDown
-                        className={`h-4 w-4 transition-transform ${isOpen ? "rotate-180" : ""}`}
-                    />
-                </button>
+                {showSuggestions && (
+                    <button
+                        type='button'
+                        onClick={() => setIsOpen(!isOpen)}
+                        className='absolute top-1/2 right-3 -translate-y-1/2 cursor-pointer p-1 text-gray-400 hover:text-gray-600 dark:hover:text-white'
+                    >
+                        <ChevronDown
+                            className={`h-4 w-4 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                        />
+                    </button>
+                )}
             </div>
 
             <AnimatePresence>

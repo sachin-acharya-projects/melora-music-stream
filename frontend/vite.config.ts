@@ -43,4 +43,9 @@ export default defineConfig({
             "@": path.resolve("./src"),
         },
     },
+    server: {
+        proxy: {
+            "/media": "http://localhost:8000",
+        },
+    },
 })

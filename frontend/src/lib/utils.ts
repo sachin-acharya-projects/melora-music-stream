@@ -20,3 +20,24 @@ export function formatDuration(seconds: number): string {
     ret += "" + secs
     return ret
 }
+
+export function formatPlayTime(seconds: number): string {
+    if (seconds <= 0) return "0m"
+    const hours = Math.floor(seconds / 3600)
+    const minutes = Math.floor((seconds % 3600) / 60)
+    if (hours > 0) return `${hours}h ${minutes}m`
+    return `${Math.max(1, minutes)}m`
+}
+
+export function formatTotalPlayTime(seconds: number): string {
+    const hours = Math.floor(seconds / 3600)
+    const minutes = Math.floor((seconds % 3600) / 60)
+    return hours > 0 ? `${hours}h ${minutes}m` : formatDuration(seconds)
+}
+
+export function formatCount(count: number): string {
+    if (count >= 1_000_000_000) return `${(count / 1_000_000_000).toFixed(1)}B`
+    if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1)}M`
+    if (count >= 1_000) return `${(count / 1_000).toFixed(1)}K`
+    return count.toLocaleString()
+}

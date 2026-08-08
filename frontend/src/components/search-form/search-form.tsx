@@ -22,7 +22,7 @@ export default function SearchForm({ onSearch, isLoading }: SearchFormProps) {
                 <input
                     type='text'
                     className='w-full rounded-lg border bg-white p-4 dark:bg-black'
-                    placeholder='Search videos...'
+                    placeholder='Search music...'
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
                 />

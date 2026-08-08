@@ -1,51 +1,28 @@
-import { apiService } from "@/services/api.service"
-import { playlistService } from "@/services/playlist.service"
+import { createPlaylistItem } from "@/store/player/playlist-item"
+import { MAX_RECENT, restorePlayerState, syncPlayerState } from "@/store/player/state-sync"
+import { type PlayerStore } from "@/store/player/types"
 import { type Song } from "@/types"
-import { getUUID } from "@/utils/uuid/uuid"
 import { create } from "zustand"
 import { createJSONStorage, persist } from "zustand/middleware"
 
-// We wrap the song with a unique queueId to allow duplicates in the queue and reliable reordering
-export interface PlaylistItem extends Song {
-    queueId: string
+export type { PlaylistItem } from "@/store/player/types"
+
+const addRecentSong = (recentSongs: Song[], song: Song): Song[] => {
+    const filteredRecent = recentSongs.filter((s) => s.id !== song.id)
+    return [song, ...filteredRecent].slice(0, MAX_RECENT)
 }
 
-interface PlayerStore {
-    currentSong: PlaylistItem | null
-    playlist: PlaylistItem[]
-    currentIndex: number
-    isPlaying: boolean
-    repeatMode: "none" | "one" | "all"
-    volume: number
-    progress: number
-    duration: number
-    seekTime: number | null
-    lastPlaylistId: string | null
-    recentSongs: Song[]
-    isInitialized: boolean
-
-    setPlaylist: (songs: Song[], startIndex: number, playlistId?: string | null) => void
-    reorderPlaylist: (items: PlaylistItem[]) => void
-    playNext: () => void
-    playPrevious: () => void
-    togglePlay: () => void
-    setPlaying: (playing: boolean) => void
-    setRepeatMode: (mode: "none" | "one" | "all") => void
-    setProgress: (progress: number) => void
-    setDuration: (duration: number) => void
-    setVolume: (volume: number) => void
-    seekTo: (time: number) => void
-    addToQueue: (song: Song) => void
-
-    // Sync logic
-    syncWithBackend: () => Promise<void>
-    initialize: () => Promise<void>
+const mergeRecentSongs = (local: Song[], server: Song[]): Song[] => {
+    const seen = new Set<string>()
+    const merged: Song[] = []
+    for (const song of [...server, ...local]) {
+        if (song && song.id && !seen.has(song.id)) {
+            seen.add(song.id)
+            merged.push(song)
+        }
+    }
+    return merged.slice(0, MAX_RECENT)
 }
-
-const createPlaylistItem = (song: Song): PlaylistItem => ({
-    ...song,
-    queueId: getUUID(),
-})
 
 export const usePlayerStore = create<PlayerStore>()(
     persist(
@@ -62,6 +39,8 @@ export const usePlayerStore = create<PlayerStore>()(
             lastPlaylistId: null,
             recentSongs: [],
             isInitialized: false,
+            shuffle: false,
+            unshuffledPlaylist: null,
 
             setPlaylist: (songs, startIndex, playlistId = null) => {
                 const playlistItems = songs.map(createPlaylistItem)
@@ -72,14 +51,8 @@ export const usePlayerStore = create<PlayerStore>()(
                     isPlaying: true,
                     progress: 0,
                     lastPlaylistId: playlistId,
+                    recentSongs: addRecentSong(get().recentSongs, songs[startIndex]),
                 })
-
-                // Add to recent (original song object)
-                const { recentSongs } = get()
-                const song = songs[startIndex]
-                const filteredRecent = recentSongs.filter((s) => s.id !== song.id)
-                set({ recentSongs: [song, ...filteredRecent].slice(0, 50) })
-
                 get().syncWithBackend()
             },
 
@@ -111,13 +84,8 @@ export const usePlayerStore = create<PlayerStore>()(
                     currentSong: nextItem,
                     progress: 0,
                     isPlaying: true,
+                    recentSongs: addRecentSong(get().recentSongs, nextItem),
                 })
-
-                // Add to recent
-                const { recentSongs } = get()
-                const filteredRecent = recentSongs.filter((s) => s.id !== nextItem.id)
-                set({ recentSongs: [nextItem, ...filteredRecent].slice(0, 50) })
-
                 get().syncWithBackend()
             },
 
@@ -140,13 +108,8 @@ export const usePlayerStore = create<PlayerStore>()(
                     currentSong: prevItem,
                     progress: 0,
                     isPlaying: true,
+                    recentSongs: addRecentSong(get().recentSongs, prevItem),
                 })
-
-                // Add to recent
-                const { recentSongs } = get()
-                const filteredRecent = recentSongs.filter((s) => s.id !== prevItem.id)
-                set({ recentSongs: [prevItem, ...filteredRecent].slice(0, 50) })
-
                 get().syncWithBackend()
             },
 
@@ -167,6 +130,94 @@ export const usePlayerStore = create<PlayerStore>()(
                 get().syncWithBackend()
             },
 
+            addToQueueNext: (song) => {
+                const { playlist, currentIndex } = get()
+                const newItem = createPlaylistItem(song)
+                const insertAt = currentIndex === -1 ? playlist.length : currentIndex + 1
+                const newPlaylist = [
+                    ...playlist.slice(0, insertAt),
+                    newItem,
+                    ...playlist.slice(insertAt),
+                ]
+                set({ playlist: newPlaylist })
+
+                if (currentIndex === -1) {
+                    set({ currentIndex: insertAt, currentSong: newItem, isPlaying: true })
+                }
+
+                get().syncWithBackend()
+            },
+
+            removeFromQueue: (queueId) => {
+                const { playlist, currentIndex, currentSong } = get()
+                const removeIndex = playlist.findIndex((item) => item.queueId === queueId)
+                if (removeIndex === -1) return
+
+                const newPlaylist = playlist.filter((item) => item.queueId !== queueId)
+
+                if (currentSong?.queueId === queueId) {
+                    if (newPlaylist.length === 0) {
+                        set({
+                            playlist: [],
+                            currentSong: null,
+                            currentIndex: -1,
+                            isPlaying: false,
+                            progress: 0,
+                            unshuffledPlaylist: null,
+                            shuffle: false,
+                        })
+                        get().syncWithBackend()
+                        return
+                    }
+                    const newIndex = Math.min(removeIndex, newPlaylist.length - 1)
+                    set({
+                        playlist: newPlaylist,
+                        currentIndex: newIndex,
+                        currentSong: newPlaylist[newIndex],
+                        isPlaying: true,
+                        progress: 0,
+                    })
+                    get().syncWithBackend()
+                    return
+                }
+
+                const newIndex = removeIndex < currentIndex ? currentIndex - 1 : currentIndex
+                set({ playlist: newPlaylist, currentIndex: newIndex })
+                get().syncWithBackend()
+            },
+
+            toggleShuffle: () => {
+                const { playlist, currentIndex, currentSong, shuffle, unshuffledPlaylist } = get()
+
+                if (shuffle) {
+                    const restored = unshuffledPlaylist ?? playlist
+                    const newIndex = currentSong
+                        ? restored.findIndex((item) => item.queueId === currentSong.queueId)
+                        : 0
+                    set({
+                        shuffle: false,
+                        playlist: restored,
+                        currentIndex: newIndex >= 0 ? newIndex : 0,
+                        unshuffledPlaylist: null,
+                    })
+                } else {
+                    const others = playlist.filter((_, i) => i !== currentIndex)
+                    for (let i = others.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1))
+                        ;[others[i], others[j]] = [others[j], others[i]]
+                    }
+                    const newPlaylist = currentSong ? [currentSong, ...others] : others
+                    set({
+                        shuffle: true,
+                        playlist: newPlaylist,
+                        currentIndex: 0,
+                        unshuffledPlaylist: playlist,
+                    })
+                }
+
+                get().syncWithBackend()
+            },
+
             togglePlay: () => set((state) => ({ isPlaying: !state.isPlaying })),
             setPlaying: (playing) => set({ isPlaying: playing }),
             setRepeatMode: (mode) => set({ repeatMode: mode }),
@@ -176,16 +227,9 @@ export const usePlayerStore = create<PlayerStore>()(
             seekTo: (time) => set({ seekTime: time, progress: time }),
 
             syncWithBackend: async () => {
-                const { currentSong, playlist, lastPlaylistId, recentSongs, isInitialized } = get()
-                if (!isInitialized) return
-
+                if (!get().isInitialized) return
                 try {
-                    await apiService.updateState({
-                        last_song_id: currentSong?.id || null,
-                        current_queue: playlist.map((s) => s.id),
-                        last_playlist_id: lastPlaylistId,
-                        recent_songs: recentSongs.map((s) => s.id),
-                    })
+                    await syncPlayerState(get())
                 } catch (error) {
                     console.error("Failed to sync state with backend", error)
                 }
@@ -193,33 +237,38 @@ export const usePlayerStore = create<PlayerStore>()(
 
             initialize: async () => {
                 try {
-                    const state = await apiService.getState()
-
-                    if (state.last_playlist_id) {
-                        const playlist = await playlistService.getById(state.last_playlist_id)
-                        if (playlist && playlist.songs.length > 0) {
-                            const playlistItems = playlist.songs.map(createPlaylistItem)
-                            const songIndex = state.last_song_id
-                                ? playlist.songs.findIndex((s) => s.id === state.last_song_id)
-                                : 0
-
-                            set({
-                                playlist: playlistItems,
-                                currentIndex: songIndex >= 0 ? songIndex : 0,
-                                currentSong:
-                                    songIndex >= 0 ? playlistItems[songIndex] : playlistItems[0],
-                                lastPlaylistId: state.last_playlist_id,
-                                isInitialized: true,
-                            })
-                            return
-                        }
-                    }
-
-                    set({ isInitialized: true })
+                    const restored = await restorePlayerState()
+                    set((state) => ({
+                        ...restored,
+                        recentSongs: mergeRecentSongs(
+                            state.recentSongs,
+                            restored.recentSongs ?? [],
+                        ),
+                        isInitialized: true,
+                    }))
                 } catch (error) {
                     console.error("Failed to initialize player state from backend", error)
                     set({ isInitialized: true })
                 }
+            },
+
+            reset: () => {
+                usePlayerStore.persist.clearStorage()
+                set({
+                    currentSong: null,
+                    playlist: [],
+                    currentIndex: -1,
+                    isPlaying: false,
+                    repeatMode: "none",
+                    progress: 0,
+                    duration: 0,
+                    seekTime: null,
+                    lastPlaylistId: null,
+                    recentSongs: [],
+                    isInitialized: false,
+                    shuffle: false,
+                    unshuffledPlaylist: null,
+                })
             },
         }),
         {
