@@ -5,16 +5,6 @@ on:
     branches: [main]
   workflow_dispatch:
 
-env:
-  # Non-secret, environment-agnostic config. Everything sensitive comes from
-  # GitHub Secrets and is injected into the server's .env at deploy time.
-  PORT: "8000"
-  DEBUG: "false"
-  REGISTRY_NAMESPACE: "melora-fullstack:latest"
-  REDIS_PORT: "6379"
-  POSTGRES_USER: "melora"
-  POSTGRES_DB: "melora"
-
 jobs:
   deploy:
     name: Deploy to the Server
@@ -45,13 +35,13 @@ jobs:
           # as root, writes the .env (0600), deploys, health-checks, then
           # removes it again (pre/post-deploy cleanup).
           {
-            echo "PORT=$PORT"
-            echo "DEBUG=$DEBUG"
-            echo "REGISTRY_NAMESPACE=$REGISTRY_NAMESPACE"
-            echo "REDIS_PORT=$REDIS_PORT"
-            echo "POSTGRES_USER=$POSTGRES_USER"
+            echo "PORT=${{ secrets.PORT || '8000' }}"
+            echo "DEBUG=${{ secrets.DEBUG || 'false' }}"
+            echo "REGISTRY_NAMESPACE=${{ secrets.REGISTRY_NAMESPACE || 'melora-fullstack:latest' }}"
+            echo "REDIS_PORT=${{ secrets.REDIS_PORT || '6379' }}"
+            echo "POSTGRES_USER=${{ secrets.POSTGRES_USER || 'melora' }}"
             echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}"
-            echo "POSTGRES_DB=$POSTGRES_DB"
+            echo "POSTGRES_DB=${{ secrets.POSTGRES_DB || 'melora' }}"
             echo "JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}"
             echo "FRONTEND_URL=${{ secrets.FRONTEND_URL || 'http://localhost:8000' }}"
             echo "BACKEND_CORS_ORIGINS=${{ secrets.BACKEND_CORS_ORIGINS || '[\"*\"]' }}"
