@@ -12,7 +12,7 @@ trap cleanup SIGTERM SIGINT
 
 # Start FastAPI backend (Uvicorn)
 echo "Starting FastAPI backend on port 8000..."
-cd /app/backend && uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+cd /app/backend && /app/backend/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 &
 BACKEND_PID=$!
 
 # Start Nginx

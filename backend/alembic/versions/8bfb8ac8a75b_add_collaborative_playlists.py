@@ -32,7 +32,7 @@ def upgrade() -> None:
         )
 
     op.execute(
-        "UPDATE playlists SET is_collaborative = 0 WHERE is_collaborative IS NULL"
+        "UPDATE playlists SET is_collaborative = FALSE WHERE is_collaborative IS NULL"
     )
 
     op.create_table(
