@@ -26,7 +26,7 @@ jobs:
           audience: ${{ secrets.TS_AUDIENCE }}
           tags: tag:ci
           ping: ${{ secrets.SERVER_HOST }}
-          version: 1.78.1
+          version: 4.1.3
 
       - name: Test Tailscale SSH
         run: |
