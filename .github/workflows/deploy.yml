@@ -32,9 +32,6 @@ jobs:
           echo "=== Tailscale status ==="
           tailscale status
 
-          echo "=== Whoami ==="
-          tailscale whois
-
           echo "=== NC ==="
           tailscale nc homeserver 22
 
