@@ -33,7 +33,10 @@ jobs:
           tailscale status
 
           echo "=== Whoami ==="
-          tailscale whoami
+          tailscale whois
+
+          echo "=== NC ==="
+          tailscale nc homeserver 22
 
           echo "=== PING ==="
           tailscale ping homeserver || true
