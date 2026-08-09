@@ -32,7 +32,7 @@ jobs:
           echo "=== Tailscale status ==="
           tailscale status
 
-          echo "=== SSH ==="
+          echo "=== SSH test ==="
           tailscale ssh \
             github-deploy@${{ secrets.SERVER_HOST }} \
             "id"
