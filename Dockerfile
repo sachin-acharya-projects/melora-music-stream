@@ -1,27 +1,30 @@
 # Stage 1: Build the React application
 FROM node:24-slim AS build-frontend
 
+RUN npm install -g pnpm@11.17.0
+
 WORKDIR /frontend
-COPY frontend/package*.json ./
-RUN npm install
+COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile
 COPY frontend/ .
 ENV VITE_BASE_URL=""
-RUN npm run build
+RUN pnpm build
 
 # Stage 2: Final image combining Frontend and Backend
 FROM python:3.12-slim
 
-# Install system dependencies (nginx + ffmpeg)
+# Install uv and system dependencies (nginx + ffmpeg for yt-dlp)
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 RUN apt-get update && apt-get install -y --no-install-recommends \
     nginx \
     ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
+WORKDIR /app/backend
 
-# Backend: Install dependencies
-COPY backend/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Backend: Install dependencies from the lockfile
+COPY backend/pyproject.toml backend/uv.lock ./
+RUN uv sync --frozen --no-dev --no-install-project
 
 # Copy Backend code
 COPY backend/ /app/backend/
@@ -37,15 +40,18 @@ COPY scripts/start.sh /app/start.sh
 RUN chmod +x /app/start.sh
 
 # Environment variables
+ENV PATH="/app/backend/.venv/bin:$PATH"
 ENV PYTHONPATH=/app/backend
 ENV DOWNLOADS_DIR=/app/data/downloads
 ENV CACHE_DIR=/app/data/cache
-ENV DATABASE_URL=sqlite:////app/data/melora.db
+ENV MEDIA_DIR=/app/data/media
+ENV LOGS_DIR=/app/data/logs
+ENV DATABASE_URL=postgresql+psycopg://melora:melora@db:5432/melora
 ENV REDIS_URL=redis://redis:6379/0
 
 # Ensure data directory exists
-RUN mkdir -p /app/data /app/data/downloads /app/data/cache
+RUN mkdir -p /app/data /app/data/downloads /app/data/cache /app/data/media/avatars /app/data/logs
 
 # Port mapping is handled in docker-compose.yml or at runtime
-# EXPOSE is intentionally omitted
+# EXPOSE is intentionally omitted as per user request
 ENTRYPOINT ["/app/start.sh"]

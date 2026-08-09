@@ -3,10 +3,21 @@ name: Deploy Melora
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+
+env:
+  # Non-secret, environment-agnostic config. Everything sensitive comes from
+  # GitHub Secrets and is injected into the server's .env at deploy time.
+  PORT: "8000"
+  DEBUG: "false"
+  REGISTRY_NAMESPACE: "melora-fullstack:latest"
+  REDIS_PORT: "6379"
+  POSTGRES_USER: "melora"
+  POSTGRES_DB: "melora"
 
 jobs:
   deploy:
-    name: Deploying to the Server
+    name: Deploy to the Server
     runs-on: ubuntu-latest
 
     # Required for OIDC token exchange with GitHub
@@ -29,5 +40,23 @@ jobs:
 
       - name: Deploy via Tailscale SSH
         run: |
-          tailscale ssh "${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }}" \
-            "cd ${{ secrets.PROJECT_ROOT }} && bash deploy.sh"
+          # Build the .env from GitHub Secrets and pipe it into the server's
+          # sudo-protected deploy script (DEPLOY_SCRIPT_PATH). The script runs
+          # as root, writes the .env (0600), deploys, health-checks, then
+          # removes it again (pre/post-deploy cleanup).
+          {
+            echo "PORT=$PORT"
+            echo "DEBUG=$DEBUG"
+            echo "REGISTRY_NAMESPACE=$REGISTRY_NAMESPACE"
+            echo "REDIS_PORT=$REDIS_PORT"
+            echo "POSTGRES_USER=$POSTGRES_USER"
+            echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}"
+            echo "POSTGRES_DB=$POSTGRES_DB"
+            echo "JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}"
+            echo "FRONTEND_URL=${{ secrets.FRONTEND_URL || 'http://localhost:8000' }}"
+            echo "BACKEND_CORS_ORIGINS=${{ secrets.BACKEND_CORS_ORIGINS || '[\"*\"]' }}"
+            echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}"
+            echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}"
+            echo "GOOGLE_REDIRECT_URI=${{ secrets.GOOGLE_REDIRECT_URI || 'http://localhost:8000/api/v1/auth/google/callback' }}"
+          } | tailscale ssh "${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }}" \
+            "sudo -n \"${{ secrets.DEPLOY_SCRIPT_PATH }}\""

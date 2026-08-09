@@ -1,0 +1,79 @@
+#!/bin/bash
+# melora-deploy — production deployment script.
+#
+# Installed on the server at /usr/local/sbin/melora-deploy (root-owned) and
+# invoked by the CI workflow as:
+#     sudo -n /usr/local/sbin/melora-deploy
+# The CI runner connects as the restricted deploy account (github-deploy) and
+# sudoes to root. The sudoers rule scopes this to that single command, e.g.:
+#     github-deploy ALL=(root) NOPASSWD: /usr/local/sbin/melora-deploy
+# Running as root is required: the repo lives under a private home dir the
+# deploy user cannot access, and docker is not available to it. The app
+# containers themselves run as non-root and self-manage /app/data perms.
+#
+# The CI workflow pipes a fresh .env (built from GitHub Secrets) on STDIN.
+# This script writes it with 0600 perms, pulls code, builds & starts the
+# stack, health-checks it, then removes the .env again so secrets never
+# linger on disk (guaranteed by the EXIT trap, even on failure).
+
+set -e
+
+# Project directory (can be overridden for testing)
+PROJECT="${MELORA_PROJECT_DIR:-/path/to/the/project}"
+ENV_FILE="$PROJECT/.env"
+
+echo "🚀 Starting Melora deployment..."
+
+cleanup() {
+    if [ -f "$ENV_FILE" ]; then
+        rm -f "$ENV_FILE"
+        echo "🧹 Post-deploy cleanup: removed $ENV_FILE"
+    fi
+}
+trap cleanup EXIT
+
+# Go to project directory
+cd "$PROJECT"
+
+# --- Pre-deploy: clean slate ---
+echo "🧹 Pre-deploy cleanup: removing stale $ENV_FILE"
+rm -f "$ENV_FILE"
+
+# --- Write the injected .env ---
+echo "📝 Writing .env from CI (GitHub Secrets)..."
+umask 077
+cat > "$ENV_FILE"
+chmod 600 "$ENV_FILE"
+[ -s "$ENV_FILE" ] || { echo "❌ ERROR: empty .env received on stdin" >&2; exit 1; }
+
+echo "📥 Pulling latest code from origin/main..."
+git pull origin main
+
+echo "🛑 Stopping existing container (if running)..."
+docker compose stop melora-fullstack || true
+
+echo "🧹 Removing old container..."
+docker compose rm -f melora-fullstack || true
+
+echo "🔨 Building latest image..."
+PORT=8000 docker compose build melora-fullstack
+
+echo "▶️ Starting Melora Fullstack..."
+PORT=8000 docker compose up -d melora-fullstack
+
+echo "🔍 Health-checking the app..."
+URL="http://localhost:8000/api/v1/openapi.json"
+for i in $(seq 1 30); do
+    if curl -sf -o /dev/null "$URL"; then
+        echo "✅ Healthy: $URL"
+        break
+    fi
+    if [ "$i" -eq 30 ]; then
+        echo "❌ ERROR: app did not become healthy at $URL" >&2
+        exit 1
+    fi
+    sleep 2
+done
+
+echo "✅ Deployment completed!"
+echo "🌐 App should now be running on port 8000"

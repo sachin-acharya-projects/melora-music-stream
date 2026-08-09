@@ -1,0 +1,16 @@
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache
+.mypy_cache
+melora.db
+melora.db-shm
+melora.db-wal
+cache/
+downloads/
+media/
+logs/
+melora_backend.egg-info
+build/
+dist/

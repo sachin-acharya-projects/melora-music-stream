@@ -12,6 +12,7 @@ dependencies = [
     "pydantic[email]==2.12.5",
     "pydantic-settings==2.13.1",
     "sqlalchemy==2.0.48",
+    "psycopg[binary]==3.2.9",
     "python-dotenv==1.2.2",
     "sqladmin==0.27.2",
     "wtforms==3.1.2",
@@ -21,6 +22,7 @@ dependencies = [
     "python-jose[cryptography]==3.4.0",
     "passlib[bcrypt]==1.7.4",
     "authlib==1.6.0",
+    "itsdangerous==2.2.0",
     "httpx==0.28.1",
     "ytmusicapi==1.12.0",
     # Database migrations

@@ -34,7 +34,7 @@ def get_default_admin_id(connection: sa.Connection) -> str:
     connection.execute(
         text("""
             INSERT INTO users (id, email, username, display_name, role, is_active, favorite_genres, privacy_settings, created_at, updated_at)
-            VALUES (:id, :email, :username, :display_name, :role, :is_active, :favorite_genres, :privacy_settings, datetime('now'), datetime('now'))
+            VALUES (:id, :email, :username, :display_name, :role, :is_active, :favorite_genres, :privacy_settings, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         """),
         {
             "id": admin_id,

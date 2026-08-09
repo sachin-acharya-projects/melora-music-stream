@@ -1,3 +1,35 @@
+# =====================================================================
+# Shared managed configuration.
+# These values are interpolated from the root .env (and any matching
+# environment variables) by `docker compose`, then injected into each
+# service's container environment via the `environment` block.
+# Referenced by services through the YAML anchor (&backend-env).
+# =====================================================================
+x-backend-env: &backend-env
+  # App
+  DEBUG: ${DEBUG:-false}
+  JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-in-production-use-a-random-secret}
+  FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+  BACKEND_CORS_ORIGINS: '${BACKEND_CORS_ORIGINS:-["*"]}'
+  # Database (Postgres)
+  POSTGRES_HOST: db
+  POSTGRES_PORT: 5432
+  POSTGRES_USER: ${POSTGRES_USER:-melora}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-melora}
+  POSTGRES_DB: ${POSTGRES_DB:-melora}
+  DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-melora}:${POSTGRES_PASSWORD:-melora}@db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-melora}
+  # Redis
+  REDIS_URL: redis://redis:6379/0
+  # Storage (mounted from the melora_data volume)
+  DOWNLOADS_DIR: /app/data/downloads
+  CACHE_DIR: /app/data/cache
+  MEDIA_DIR: /app/data/media
+  LOGS_DIR: /app/data/logs
+  # Google OAuth (required for login)
+  GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+  GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+  GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:8000/api/v1/auth/google/callback}
+
 services:
   # Redis for caching
   redis:
@@ -10,59 +42,46 @@ services:
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     restart: always
 
-  # Option 1: Unified Fullstack Container (Single Image)
+  # Postgres database
+  db:
+    container_name: melora-db
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-melora}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-melora}
+      POSTGRES_DB: ${POSTGRES_DB:-melora}
+    volumes:
+      - melora_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-melora} -d ${POSTGRES_DB:-melora}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: always
+
+  # Unified Fullstack Container (Frontend + Backend + Nginx)
   melora-fullstack:
     container_name: melora-fullstack
-    image: ${REGISTRY_NAMESPACE:-melora-app:latest}
+    image: ${REGISTRY_NAMESPACE:-melora-fullstack:latest}
     build:
       context: .
       dockerfile: Dockerfile
     ports:
       - "${PORT:-80}:80"
-    environment:
-      - DEBUG=${DEBUG:-false}
-      - REDIS_URL=redis://redis:6379/0
+    environment: *backend-env
     depends_on:
-      - redis
+      redis:
+        condition: service_started
+      db:
+        condition: service_healthy
     volumes:
       - melora_data:/app/data
-    restart: always
-
-  # Option 2: Separate Backend Only
-  backend:
-    container_name: melora-backend
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    image: melora-backend:latest
-    ports:
-      - "${BACKEND_PORT:-8000}:8000"
-    environment:
-      - DEBUG=${DEBUG:-false}
-      - REDIS_URL=redis://redis:6379/0
-    depends_on:
-      - redis
-    volumes:
-      - melora_data:/app/data
-    restart: always
-
-  # Option 3: Separate Frontend
-  # Note: This frontend container expects a 'backend' service to be reachable at 'backend:8000'
-  # unless you modify frontend/nginx.conf.
-  frontend:
-    container_name: melora-frontend
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    image: melora-frontend:latest
-    ports:
-      - "${FRONTEND_PORT:-8080}:80"
-    depends_on:
-      - backend
     restart: always
 
 volumes:
   melora_data:
     driver: local
   melora_redis:
+    driver: local
+  melora_db:
     driver: local
