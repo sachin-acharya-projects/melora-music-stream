@@ -32,6 +32,12 @@ jobs:
           echo "=== Tailscale status ==="
           tailscale status
 
+          echo "=== Whoami ==="
+          tailscale whoami
+
+          echo "=== PING ==="
+          tailscale ping homeserver || true
+
           echo "=== SSH test ==="
           tailscale ssh \
             github-deploy@${{ secrets.SERVER_HOST }} \
