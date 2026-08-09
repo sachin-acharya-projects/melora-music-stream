@@ -25,28 +25,37 @@ jobs:
           oauth-client-id: ${{ secrets.TS_CLIENT_ID }}
           audience: ${{ secrets.TS_AUDIENCE }}
           tags: tag:ci
-          args: --ssh
           ping: ${{ secrets.SERVER_HOST }}
 
-      - name: Deploy via Tailscale SSH
+      - name: Test Tailscale SSH
         run: |
-          # Build the .env from GitHub Secrets and pipe it into the server's
-          # sudo-protected deploy script (DEPLOY_SCRIPT_PATH). The script runs
-          # as root, writes the .env (0600), deploys, health-checks, then
-          # removes it again (pre/post-deploy cleanup).
-          {
-            echo "PORT=${{ secrets.PORT || '8000' }}"
-            echo "DEBUG=${{ secrets.DEBUG || 'false' }}"
-            echo "REGISTRY_NAMESPACE=${{ secrets.REGISTRY_NAMESPACE || 'melora-fullstack:latest' }}"
-            echo "REDIS_PORT=${{ secrets.REDIS_PORT || '6379' }}"
-            echo "POSTGRES_USER=${{ secrets.POSTGRES_USER || 'melora' }}"
-            echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}"
-            echo "POSTGRES_DB=${{ secrets.POSTGRES_DB || 'melora' }}"
-            echo "JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}"
-            echo "FRONTEND_URL=${{ secrets.FRONTEND_URL || 'http://localhost:8000' }}"
-            echo "BACKEND_CORS_ORIGINS=${{ secrets.BACKEND_CORS_ORIGINS || '[\"*\"]' }}"
-            echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}"
-            echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}"
-            echo "GOOGLE_REDIRECT_URI=${{ secrets.GOOGLE_REDIRECT_URI || 'http://localhost:8000/api/v1/auth/google/callback' }}"
-          } | tailscale ssh "${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }}" \
-            "sudo -n \"${{ secrets.DEPLOY_SCRIPT_PATH }}\""
+          echo "=== Tailscale status ==="
+          tailscale status
+
+          echo "=== SSH ==="
+          tailscale ssh \
+            github-deploy@${{ secrets.SERVER_HOST }} \
+            "id"
+
+      # - name: Deploy via Tailscale SSH
+      #   run: |
+      #     # Build the .env from GitHub Secrets and pipe it into the server's
+      #     # sudo-protected deploy script (DEPLOY_SCRIPT_PATH). The script runs
+      #     # as root, writes the .env (0600), deploys, health-checks, then
+      #     # removes it again (pre/post-deploy cleanup).
+      #     {
+      #       echo "PORT=${{ secrets.PORT || '8000' }}"
+      #       echo "DEBUG=${{ secrets.DEBUG || 'false' }}"
+      #       echo "REGISTRY_NAMESPACE=${{ secrets.REGISTRY_NAMESPACE || 'melora-fullstack:latest' }}"
+      #       echo "REDIS_PORT=${{ secrets.REDIS_PORT || '6379' }}"
+      #       echo "POSTGRES_USER=${{ secrets.POSTGRES_USER || 'melora' }}"
+      #       echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}"
+      #       echo "POSTGRES_DB=${{ secrets.POSTGRES_DB || 'melora' }}"
+      #       echo "JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}"
+      #       echo "FRONTEND_URL=${{ secrets.FRONTEND_URL || 'http://localhost:8000' }}"
+      #       echo "BACKEND_CORS_ORIGINS=${{ secrets.BACKEND_CORS_ORIGINS || '[\"*\"]' }}"
+      #       echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}"
+      #       echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}"
+      #       echo "GOOGLE_REDIRECT_URI=${{ secrets.GOOGLE_REDIRECT_URI || 'http://localhost:8000/api/v1/auth/google/callback' }}"
+      #     } | tailscale ssh "${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }}" \
+      #       "sudo -n \"${{ secrets.DEPLOY_SCRIPT_PATH }}\""
