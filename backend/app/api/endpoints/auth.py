@@ -6,8 +6,9 @@ from fastapi.responses import RedirectResponse
 
 from app.api.deps import CurrentUser, SessionDep
 from app.core.config import settings
-from app.schemas.auth import TokenResponse, UserResponse
+from app.schemas.auth import TokenResponse, UserResponse, UserUpdate
 from app.services.auth import AuthService
+from app.services.users import UserService
 
 router = APIRouter()
 
@@ -60,6 +61,15 @@ async def google_callback(request: Request, db: SessionDep) -> RedirectResponse:
 async def get_me(current_user: CurrentUser) -> UserResponse:
     """Get current user profile."""
     return UserResponse.model_validate(current_user)
+
+
+@router.patch("/me")
+def update_me(
+    data: UserUpdate, db: SessionDep, current_user: CurrentUser
+) -> UserResponse:
+    """Update the current user's profile (display name, bio, favorite genres...)."""
+    updated = UserService.update_profile(db, user=current_user, data=data)
+    return UserResponse.model_validate(updated)
 
 
 @router.post("/refresh")

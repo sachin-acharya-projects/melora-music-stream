@@ -1,9 +1,11 @@
 import Avatar from "@/components/ui/avatar/avatar"
 import { useAuth } from "@/hooks/useAuth"
+import { useUnreadCount } from "@/hooks/useNotifications"
 import { useQueueStore } from "@/hooks/useQueue"
 import { useThemeStore } from "@/hooks/useTheme"
 import {
     BarChart3,
+    Bell,
     History,
     ListEnd,
     ListMusic,
@@ -11,6 +13,8 @@ import {
     Moon,
     Music2,
     Plus,
+    Radio as RadioIcon,
+    Settings,
     Sun,
     User,
     LogOut,
@@ -25,6 +29,7 @@ export default function Navbar() {
     const location = useLocation()
     const { user, logout } = useAuth()
     const [showUserMenu, setShowUserMenu] = useState(false)
+    const { data: unreadCount = 0 } = useUnreadCount()
 
     useEffect(() => {
         if (mode === "dark") {
@@ -82,6 +87,17 @@ export default function Navbar() {
                     <span className='font-medium'>Stats</span>
                 </Link>
                 <Link
+                    to='/radio'
+                    className={`flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 transition-colors ${
+                        location.pathname === "/radio"
+                            ? "bg-red-500 text-white"
+                            : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"
+                    }`}
+                >
+                    <RadioIcon className='h-4 w-4' />
+                    <span className='font-medium'>Radio</span>
+                </Link>
+                <Link
                     to='/now-playing'
                     className={`flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 transition-colors ${
                         location.pathname === "/now-playing"
@@ -120,6 +136,22 @@ export default function Navbar() {
                     <span className='-mt-3 flex h-full items-end font-bold text-red-500'>
                         {queue.length}
                     </span>
+                </Link>
+                <Link
+                    to='/notifications'
+                    className={`relative flex h-13 w-13 cursor-pointer items-center justify-center rounded-full border bg-black/5 transition-colors hover:bg-black/10 dark:border-white/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/20 ${
+                        location.pathname.startsWith("/notifications")
+                            ? "ring-2 ring-red-400"
+                            : ""
+                    }`}
+                    title='Notifications'
+                >
+                    <Bell />
+                    {unreadCount > 0 && (
+                        <span className='absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white'>
+                            {unreadCount > 99 ? "99+" : unreadCount}
+                        </span>
+                    )}
                 </Link>
                 <button
                     onClick={() => toggleTheme()}
@@ -166,6 +198,14 @@ export default function Navbar() {
                                     >
                                         <User className='h-4 w-4' />
                                         Profile
+                                    </Link>
+                                    <Link
+                                        to='/notifications/settings'
+                                        onClick={() => setShowUserMenu(false)}
+                                        className='flex w-full items-center gap-2 px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800'
+                                    >
+                                        <Settings className='h-4 w-4' />
+                                        Notification settings
                                     </Link>
                                     <button
                                         onClick={() => {

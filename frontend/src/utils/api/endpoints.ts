@@ -1,5 +1,8 @@
 export const ENDPOINTS = {
     SEARCH: "/search/",
+    CACHE: {
+        INVALIDATE: "/cache/invalidate",
+    },
     STATE: "/state/",
     STREAM: (videoId: string) => `/stream/${videoId}`,
     DOWNLOAD: (videoId: string) => `/download/${videoId}`,
@@ -46,6 +49,9 @@ export const ENDPOINTS = {
         RECENT: "/history/recent",
         STATS: "/history/stats",
     },
+    DISCOVER: {
+        BASE: "/discover/",
+    },
     STATS: {
         BASE: "/stats/",
         TOP_ARTISTS: "/stats/top-artists",
@@ -53,11 +59,26 @@ export const ENDPOINTS = {
         GENRES: "/stats/genres",
         RECALCULATE: "/stats/recalculate",
     },
+    RECOMMENDATIONS: {
+        BASE: "/recommendations/",
+    },
+    RADIO: {
+        BASE: "/radio/",
+        MOODS: "/radio/moods",
+        SEEDS: "/radio/seeds",
+    },
     AUTH: {
         LOGIN: "/auth/login",
         GOOGLE_CALLBACK: "/auth/google/callback",
         ME: "/auth/me",
         REFRESH: "/auth/refresh",
         LOGOUT: "/auth/logout",
+    },
+    NOTIFICATIONS: {
+        BASE: "/notifications/",
+        UNREAD_COUNT: "/notifications/unread-count",
+        READ: (id: string) => `/notifications/${id}/read`,
+        READ_ALL: "/notifications/read-all",
+        SETTINGS: "/notifications/settings",
     },
 } as const

@@ -42,12 +42,23 @@ export default function AudioPlayer() {
     const recordListen = useRecordListen()
     const updatePlayDuration = useUpdatePlayDuration()
 
+    // The useMutation result is a fresh object every render; keep a stable ref
+    // to its mutate function so the listen effect below only reacts to
+    // progress/currentSong changes (otherwise it re-fires on every render).
+    const recordListenRef = useRef(recordListen.mutateAsync)
+
+    useEffect(() => {
+        recordListenRef.current = recordListen.mutateAsync
+    }, [recordListen.mutateAsync])
+
     // Tracks the history entry for the song currently being listened to. An
     // entry is only created once the user has listened past a threshold, then
     // its play_duration is filled in when the song ends or is skipped.
+    // `recording` guards against a second POST while the first is in flight.
     const pendingListenRef = useRef<{
         songId: string
         entryId: string | null
+        recording: boolean
         failed: boolean
     } | null>(null)
 
@@ -90,11 +101,12 @@ export default function AudioPlayer() {
             pendingListenRef.current = {
                 songId: currentSong.id,
                 entryId: null,
+                recording: false,
                 failed: false,
             }
         }
         const current = pendingListenRef.current
-        if (!current || current.entryId || current.failed) return
+        if (!current || current.entryId || current.recording || current.failed) return
 
         const audioDuration = audioRef.current?.duration
         const threshold = listenThresholdSeconds(
@@ -104,11 +116,16 @@ export default function AudioPlayer() {
         )
         if (progress < threshold) return
 
-        recordListen
-            .mutateAsync({ song: currentSong, playDuration: Math.floor(progress) })
+        // Mark as in-flight synchronously so rapid progress ticks (or React
+        // StrictMode double effects) can't fire duplicate history POSTs.
+        current.recording = true
+        recordListenRef
+            .current({ song: currentSong, playDuration: Math.floor(progress) })
             .then((entry) => {
                 const latest = pendingListenRef.current
-                if (latest === current && entry?.id) {
+                if (latest !== current) return
+                latest.recording = false
+                if (entry?.id) {
                     latest.entryId = entry.id
                 }
             })
@@ -118,7 +135,7 @@ export default function AudioPlayer() {
                     latest.failed = true
                 }
             })
-    }, [progress, isPlaying, currentSong, recordListen])
+    }, [progress, isPlaying, currentSong])
 
     const handleTimeUpdate = useCallback(() => {
         if (audioRef.current) {
@@ -153,6 +170,7 @@ export default function AudioPlayer() {
             pendingListenRef.current = {
                 songId: currentSong.id,
                 entryId: null,
+                recording: false,
                 failed: false,
             }
         }
@@ -175,7 +193,7 @@ export default function AudioPlayer() {
                 })
             }
             pendingListenRef.current = currentSong
-                ? { songId: currentSong.id, entryId: null, failed: false }
+                ? { songId: currentSong.id, entryId: null, recording: false, failed: false }
                 : null
         }
     }, [currentSong, progress, updatePlayDuration])

@@ -564,7 +564,7 @@ export default function NowPlaying() {
                                                     Play something similar
                                                 </h3>
                                                 <p className='text-xs text-gray-500 dark:text-gray-400'>
-                                                    More {currentSong.uploader} from your playlists
+                                                    Similar songs picked for you
                                                 </p>
                                             </div>
                                         </div>

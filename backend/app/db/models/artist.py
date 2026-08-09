@@ -10,6 +10,7 @@ from app.db.base import BaseModel
 from app.db.models.associations import song_artist, user_artist_follows
 
 if TYPE_CHECKING:
+    from app.db.models.release import ReleaseModel
     from app.db.models.song import SongModel
     from app.db.models.user import UserModel
 
@@ -44,5 +45,12 @@ class ArtistModel(BaseModel):
         "UserModel",
         secondary=user_artist_follows,
         back_populates="followed_artists",
+        lazy="selectin",
+    )
+
+    releases: Mapped[list[ReleaseModel]] = relationship(
+        "ReleaseModel",
+        back_populates="artist",
+        cascade="all, delete-orphan",
         lazy="selectin",
     )

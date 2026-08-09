@@ -9,6 +9,7 @@ import {
     useFollowArtist,
 } from "@/hooks/useArtists"
 import { usePlayerStore } from "@/hooks/usePlayer"
+import { useDragScroll } from "@/hooks/useDragScroll"
 import { useTitle } from "@/hooks/useTitle"
 import { cn, formatDuration } from "@/lib/utils"
 import { type ArtistAlbum, type ArtistSong } from "@/types"
@@ -26,7 +27,7 @@ import {
     Shuffle,
     Youtube,
 } from "lucide-react"
-import { useRef, useState } from "react"
+import { useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 
 type ArtistTab = "songs" | "albums"
@@ -55,7 +56,7 @@ export default function ArtistProfile() {
     const recentlyPlayedQuery = useArtistRecentlyPlayed(slug ?? null)
     const followArtist = useFollowArtist()
     const setPlaylist = usePlayerStore((s) => s.setPlaylist)
-    const recentlyPlayedScrollRef = useRef<HTMLDivElement>(null)
+    const { ref: recentlyPlayedScrollRef, isDragging, handlers } = useDragScroll<HTMLDivElement>()
 
     const scrollRecentlyPlayed = (dir: 1 | -1) => {
         recentlyPlayedScrollRef.current?.scrollBy({ left: dir * 300, behavior: "smooth" })
@@ -318,7 +319,10 @@ export default function ArtistProfile() {
                     </div>
                     <div
                         ref={recentlyPlayedScrollRef}
-                        className='flex gap-5 overflow-x-auto px-1 py-2'
+                        {...handlers}
+                        className={`flex gap-5 overflow-x-auto px-1 py-2 ${
+                            isDragging ? "cursor-grabbing select-none" : "cursor-grab"
+                        }`}
                         style={{ scrollbarWidth: "none" }}
                     >
                         {recentlyPlayed.map((song, index) => (

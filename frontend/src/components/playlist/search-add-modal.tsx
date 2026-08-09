@@ -51,8 +51,8 @@ export function SearchAddModal({
         setIsSearching(true)
         setSearchError(false)
         try {
-            const data = await apiService.search(query.trim())
-            setResults(data)
+            const { songs } = await apiService.search(query.trim())
+            setResults(songs)
         } catch {
             setSearchError(true)
             setResults([])

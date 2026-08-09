@@ -50,3 +50,7 @@ class Messages:
     # Songs, history, lyrics
     SONG_NOT_FOUND = "Song not found"
     HISTORY_ENTRY_NOT_FOUND = "History entry not found"
+
+    # Recommendations / radio
+    MOOD_NOT_FOUND = "Mood not found"
+    INVALID_SEED_TYPE = "Seed type must be 'genre', 'artist', or 'mood'"

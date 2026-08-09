@@ -1,15 +1,22 @@
 import SearchForm from "@/components/search-form/search-form"
 import SongSkeleton from "@/components/song-skeleton/song-skeleton"
+import { SongSection } from "@/components/song-section/song-section"
 import BulkActionBar from "@/components/ui/bulk-action-bar/bulk-action-bar"
 import ViewToggle from "@/components/ui/view-toggle/view-toggle"
+import { useDiscover } from "@/hooks/useDiscover"
 import { usePlayerStore } from "@/hooks/usePlayer"
 import { usePlaylists } from "@/hooks/usePlaylists"
 import { useQueueStore } from "@/hooks/useQueue"
+import { useRecommendations } from "@/hooks/useRecommendations"
+import { useRecentHistory } from "@/hooks/useRecentHistory"
 import { useSearch } from "@/hooks/useSearch"
 import { useSongSelection } from "@/hooks/useSongSelection"
 import { useThemeStore } from "@/hooks/useTheme"
 import { useTitle } from "@/hooks/useTitle"
+import { useTopSongs } from "@/hooks/useStats"
 import { formatDuration } from "@/lib/utils"
+import { apiService } from "@/services/api.service"
+import { type HistoryItem, type Song } from "@/types"
 import { openDownload, openDownloads } from "@/utils/download"
 import { MESSAGES } from "@/utils/messages"
 import {
@@ -18,20 +25,42 @@ import {
     ListMusic,
     Music2,
     Play,
+    Radio as RadioIcon,
     Search,
     User,
     type LucideIcon,
 } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { toast } from "react-toastify"
+
+const RECENT_LIMIT = 10
+const TOP_SONGS_LIMIT = 10
+
+const historySongToSong = (item: HistoryItem): Song | null =>
+    item.song
+        ? {
+              id: item.song.id,
+              title: item.song.title ?? "",
+              uploader: item.song.uploader ?? "",
+              thumbnail: item.song.thumbnail ?? "",
+              duration: item.song.duration ?? 0,
+              created_at: item.played_at ?? "",
+          }
+        : null
 
 export default function Home() {
     useTitle("Melora Music")
     const [searchQuery, setSearchQuery] = useState("")
+    const [debouncedQuery, setDebouncedQuery] = useState("")
     const [playlistInput, setPlaylistInput] = useState("")
     const { selectedSongIds, toggleSelect, toggleSelectAll, clearSelection, getSelectedSongs } =
         useSongSelection()
+
+    useEffect(() => {
+        const timer = setTimeout(() => setDebouncedQuery(searchQuery), 300)
+        return () => clearTimeout(timer)
+    }, [searchQuery])
 
     const quickActions: Array<{
         to: string
@@ -48,6 +77,7 @@ export default function Home() {
         { to: "/now-playing", label: "Now Playing", description: "Control playback", icon: Music2 },
         { to: "/queue", label: "Queue", description: "See what's next", icon: ListEnd },
         { to: "/profile", label: "Profile", description: "Your account", icon: User },
+        { to: "/radio", label: "Radio", description: "Tune into moods", icon: RadioIcon },
     ]
 
     const { viewMode, setViewMode } = useThemeStore()
@@ -56,11 +86,104 @@ export default function Home() {
     const addToNowPlaying = usePlayerStore((s) => s.addToQueue)
 
     const { playlists, addSongsBulk, createPlaylist, isAddingBulk, isCreating } = usePlaylists()
-    const { data: videos = [], isLoading: isSearchLoading, isError } = useSearch(searchQuery)
+    const {
+        data: searchResult,
+        isLoading: isSearchLoading,
+        isFetching: isSearchFetching,
+        isError,
+        refetch,
+    } = useSearch(debouncedQuery)
+    const videos = searchResult?.songs ?? []
+    const searchCached = searchResult?.cached ?? false
+
+    const { data: recentData, isLoading: recentLoading } = useRecentHistory(RECENT_LIMIT)
+    const { data: recommendationsData, isLoading: recommendationsLoading } = useRecommendations()
+    const { data: topSongsData, isLoading: topSongsLoading } = useTopSongs(TOP_SONGS_LIMIT)
+    const { data: discoverData, isLoading: discoverLoading } = useDiscover()
+
+    const discoverSongs = useMemo(
+        () =>
+            (discoverData?.top_songs ?? []).map((song) => ({
+                ...song,
+                created_at: song.created_at ?? "",
+            })),
+        [discoverData],
+    )
+    const newReleaseSongs = useMemo(() => {
+        const seen = new Set<string>()
+        const songs: Song[] = []
+        for (const album of discoverData?.new_releases ?? []) {
+            for (const song of album.songs) {
+                if (song.id && !seen.has(song.id)) {
+                    seen.add(song.id)
+                    songs.push({ ...song, created_at: song.created_at ?? "" })
+                }
+            }
+        }
+        return songs
+    }, [discoverData])
+    const moodSongs = useMemo(() => {
+        const seen = new Set<string>()
+        const songs: Song[] = []
+        for (const playlist of discoverData?.mood_playlists ?? []) {
+            for (const song of playlist.songs) {
+                if (song.id && !seen.has(song.id)) {
+                    seen.add(song.id)
+                    songs.push({ ...song, created_at: song.created_at ?? "" })
+                }
+            }
+        }
+        return songs
+    }, [discoverData])
+
+    const recentSongs = useMemo(
+        () =>
+            (recentData ?? [])
+                .map(historySongToSong)
+                .filter((song): song is Song => song !== null),
+        [recentData],
+    )
+    const recommendedSongs = useMemo(
+        () =>
+            (recommendationsData ?? []).map((song) => ({
+                ...song,
+                created_at: song.created_at ?? "",
+            })),
+        [recommendationsData],
+    )
+    const topSongsList = useMemo(
+        () =>
+            (topSongsData ?? []).flatMap((entry) => {
+                const song = entry.song
+                if (!song?.id) return []
+                return [
+                    {
+                        id: song.id,
+                        title: song.title ?? "",
+                        uploader: song.uploader ?? "",
+                        thumbnail: song.thumbnail ?? "",
+                        duration: song.duration ?? 0,
+                        created_at: "",
+                    },
+                ]
+            }),
+        [topSongsData],
+    )
 
     const onSearch = (q: string) => {
         setSearchQuery(q)
+        setDebouncedQuery(q)
         clearSelection()
+    }
+
+    const handleRefreshResults = async () => {
+        try {
+            await apiService.invalidateCache("search", debouncedQuery)
+            await refetch()
+            toast.success("Search results refreshed")
+        } catch {
+            toast.error(MESSAGES.CACHE_REFRESH_FAILED)
+        }
     }
 
     const handleBulkAddToDownloadQueue = () => {
@@ -107,6 +230,10 @@ export default function Home() {
         setPlaylist(videos, index)
     }
 
+    const playSongs = (songs: Song[], index: number, context: string) => {
+        setPlaylist(songs, index, context)
+    }
+
     const handlePlaySelected = () => {
         const selected = getSelectedSongs(videos)
         if (selected.length > 0) {
@@ -129,9 +256,17 @@ export default function Home() {
                     Search, discover, and stream your favorite music
                 </p>
 
-                <SearchForm onSearch={onSearch} isLoading={isSearchLoading} />
+                <SearchForm
+                    value={searchQuery}
+                    onValueChange={setSearchQuery}
+                    onSearch={onSearch}
+                    isLoading={isSearchLoading}
+                    isRefreshing={isSearchFetching}
+                    cached={searchCached && !!debouncedQuery}
+                    onRefresh={handleRefreshResults}
+                />
 
-                <div className='mt-4 grid w-full max-w-4xl grid-cols-2 gap-4 md:grid-cols-4'>
+                <div className='mt-4 grid w-full max-w-4xl grid-cols-2 gap-4 md:grid-cols-5'>
                     {quickActions.map((action) => (
                         <Link
                             key={action.to}
@@ -337,19 +472,108 @@ export default function Home() {
                     </div>
                 )}
 
-                {!isSearchLoading && !searchQuery && (
-                    <div className='-mt-4 flex flex-col items-center gap-4 pt-16 text-center'>
-                        <span className='flex h-20 w-20 items-center justify-center rounded-full bg-red-100 dark:bg-red-950'>
-                            <Music2 className='h-9 w-9 text-red-500' />
-                        </span>
-                        <div className='flex flex-col gap-1'>
-                            <h2 className='text-lg font-semibold dark:text-white'>
-                                Discover new music
-                            </h2>
-                            <p className='text-sm text-gray-500 dark:text-gray-400'>
-                                Search for songs, artists, or albums to start listening
-                            </p>
-                        </div>
+                {!isSearchLoading && !searchQuery && !isError && (
+                    <div className='-mt-4'>
+                        <SongSection
+                            title='Recently played'
+                            subtitle='Jump back into your latest listens'
+                            songs={recentSongs}
+                            isLoading={recentLoading}
+                            onPlay={(songs, index) =>
+                                playSongs(
+                                    songs.map((s) => ({ ...s, created_at: s.created_at ?? "" })),
+                                    index,
+                                    "recent",
+                                )
+                            }
+                            viewAllHref='/history'
+                        />
+                        <SongSection
+                            title='Made for you'
+                            subtitle='Suggested from your listening history'
+                            songs={recommendedSongs}
+                            isLoading={recommendationsLoading}
+                            onPlay={(songs, index) =>
+                                playSongs(
+                                    songs.map((s) => ({ ...s, created_at: s.created_at ?? "" })),
+                                    index,
+                                    "recommendations",
+                                )
+                            }
+                            viewAllHref='/recommendations'
+                        />
+                        <SongSection
+                            title='Top songs'
+                            subtitle='Your most played'
+                            songs={topSongsList}
+                            isLoading={topSongsLoading}
+                            onPlay={(songs, index) =>
+                                playSongs(
+                                    songs.map((s) => ({ ...s, created_at: s.created_at ?? "" })),
+                                    index,
+                                    "top-songs",
+                                )
+                            }
+                        />
+                        <SongSection
+                            title='Trending now'
+                            subtitle='What the world is listening to'
+                            songs={discoverSongs}
+                            isLoading={discoverLoading}
+                            onPlay={(songs, index) =>
+                                playSongs(
+                                    songs.map((s) => ({ ...s, created_at: s.created_at ?? "" })),
+                                    index,
+                                    "discover",
+                                )
+                            }
+                        />
+                        <SongSection
+                            title='New releases'
+                            subtitle='Fresh albums worth a listen'
+                            songs={newReleaseSongs}
+                            isLoading={discoverLoading}
+                            onPlay={(songs, index) =>
+                                playSongs(
+                                    songs.map((s) => ({ ...s, created_at: s.created_at ?? "" })),
+                                    index,
+                                    "discover",
+                                )
+                            }
+                        />
+                        <SongSection
+                            title='Moods'
+                            subtitle='Curated for how you feel'
+                            songs={moodSongs}
+                            isLoading={discoverLoading}
+                            onPlay={(songs, index) =>
+                                playSongs(
+                                    songs.map((s) => ({ ...s, created_at: s.created_at ?? "" })),
+                                    index,
+                                    "discover",
+                                )
+                            }
+                        />
+                        {recentSongs.length === 0 &&
+                            recommendedSongs.length === 0 &&
+                            topSongsList.length === 0 &&
+                            !recentLoading &&
+                            !recommendationsLoading &&
+                            !topSongsLoading && (
+                                <div className='flex flex-col items-center gap-4 pt-16 text-center'>
+                                    <span className='flex h-20 w-20 items-center justify-center rounded-full bg-red-100 dark:bg-red-950'>
+                                        <Music2 className='h-9 w-9 text-red-500' />
+                                    </span>
+                                    <div className='flex flex-col gap-1'>
+                                        <h2 className='text-lg font-semibold dark:text-white'>
+                                            Discover new music
+                                        </h2>
+                                        <p className='text-sm text-gray-500 dark:text-gray-400'>
+                                            Search for songs, artists, or albums to start listening
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
                     </div>
                 )}
 

@@ -8,6 +8,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from app.core.cache import memory_cache, rate_limiter
 from app.db.base import Base, get_db
 from app.db.models.user import UserModel, UserRole
 from app.main import app
@@ -101,6 +102,13 @@ def auth_headers(test_user: UserModel) -> dict[str, str]:
 def clear_artist_suggestions_cache() -> None:
     """Reset the per-user suggestion cache between tests."""
     _SUGGESTIONS_CACHE.clear()
+
+
+@pytest.fixture(autouse=True)
+def clear_cache_layers() -> None:
+    """Reset the shared cache tiers and rate limiter between tests."""
+    memory_cache.clear()
+    rate_limiter.clear()
 
 
 @pytest.fixture(autouse=True)

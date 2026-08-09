@@ -4,10 +4,22 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.db.models.user import UserModel
+from app.schemas.auth import UserUpdate
 
 
 class UserService:
     """User lookups and serialization."""
+
+    @staticmethod
+    def update_profile(
+        db: Session, *, user: UserModel, data: UserUpdate
+    ) -> UserModel:
+        """Apply a partial profile update and persist it."""
+        for key, value in data.model_dump(exclude_unset=True).items():
+            setattr(user, key, value)
+        db.commit()
+        db.refresh(user)
+        return user
 
     @staticmethod
     def search(db: Session, *, query: str, limit: int) -> list[dict[str, Any]]:

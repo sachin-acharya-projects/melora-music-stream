@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     CACHE_DIR: str = "cache"
     MEDIA_DIR: str = "media"
     AVATARS_DIR: str = "avatars"
+    LOGS_DIR: str = "logs"
     MAX_CACHE_SIZE_GB: int = 10
     CACHE_TTL_HOURS: int = 72
     CACHE_ENABLED: bool = True
@@ -66,6 +67,37 @@ class Settings(BaseSettings):
     LYRICS_CACHE_TTL_SECONDS: int = 60 * 60 * 24 * 7
     LYRICS_MISS_TTL_SECONDS: int = 60 * 60
     LRCLIB_URL: str = "https://lrclib.net/api/get"
+    SEARCH_CACHE_TTL_SECONDS: int = 24 * 60 * 60
+
+    # YouTube Music discovery
+    YT_MUSIC_TIMEOUT_SECONDS: int = 12
+    YT_MUSIC_TTL_SECONDS: int = 24 * 60 * 60
+    YT_MUSIC_CATALOG_CATEGORY_LIMIT: int = 8
+
+    # Cache invalidation anti-abuse
+    CACHE_INVALIDATE_LIMIT: int = 10
+    CACHE_INVALIDATE_WINDOW_SECONDS: int = 60 * 60
+    CACHE_INVALIDATE_COOLDOWN_SECONDS: int = 60 * 60
+
+    # Followed-artist release detection
+    RELEASES_RECENCY_DAYS: int = 90
+    RELEASES_PAGE_SIZE_DEFAULT: int = 24
+    RELEASES_PAGE_SIZE_MAX: int = 100
+    NOTIFICATIONS_REFRESH_SECONDS: int = 6 * 60 * 60
+    NOTIFICATIONS_ARTIST_REFRESH_TTL_SECONDS: int = 24 * 60 * 60
+
+    # Email notifications - disabled unless ENABLED + credentials set
+    EMAIL_NOTIFICATIONS_ENABLED: bool = False
+    EMAIL_HOST: str = ""
+    EMAIL_PORT: int = 587
+    EMAIL_USERNAME: str = ""
+    EMAIL_PASSWORD: str = ""
+    EMAIL_FROM: str = ""
+    EMAIL_USE_TLS: bool = True
+
+    # FCM (Firebase) push notifications - disabled unless ENABLED + config set
+    FCM_NOTIFICATIONS_ENABLED: bool = False
+    FCM_CREDENTIALS_FILE: str = ""
 
     @property
     def media_path(self) -> Path:
