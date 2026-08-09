@@ -1,18 +1,28 @@
-import { Search } from "lucide-react"
-import { useState } from "react"
+import { RefreshCw, Search } from "lucide-react"
 
 interface SearchFormProps {
+    value: string
+    onValueChange: (q: string) => void
     onSearch: (q: string) => void
     isLoading?: boolean
+    isRefreshing?: boolean
+    cached?: boolean
+    onRefresh?: () => void
 }
 
-export default function SearchForm({ onSearch, isLoading }: SearchFormProps) {
-    const [q, setQ] = useState("")
-
+export default function SearchForm({
+    value,
+    onValueChange,
+    onSearch,
+    isLoading,
+    isRefreshing,
+    cached,
+    onRefresh,
+}: SearchFormProps) {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
-        if (q.trim()) {
-            onSearch(q)
+        if (value.trim()) {
+            onSearch(value)
         }
     }
 
@@ -23,8 +33,8 @@ export default function SearchForm({ onSearch, isLoading }: SearchFormProps) {
                     type='text'
                     className='w-full rounded-lg border bg-white p-4 dark:bg-black'
                     placeholder='Search music...'
-                    value={q}
-                    onChange={(e) => setQ(e.target.value)}
+                    value={value}
+                    onChange={(e) => onValueChange(e.target.value)}
                 />
             </div>
 
@@ -33,10 +43,25 @@ export default function SearchForm({ onSearch, isLoading }: SearchFormProps) {
                     type='submit'
                     disabled={isLoading}
                     className='bg-secondary text-primary cursor-pointer rounded-lg border p-4 disabled:opacity-50'
+                    title='Search'
                 >
                     <Search />
                 </button>
             </div>
+
+            {cached && onRefresh && (
+                <div>
+                    <button
+                        type='button'
+                        onClick={onRefresh}
+                        disabled={isRefreshing}
+                        className='bg-secondary text-primary cursor-pointer rounded-lg border p-4 disabled:opacity-50'
+                        title='Refresh results'
+                    >
+                        <RefreshCw className={isRefreshing ? "animate-spin" : ""} />
+                    </button>
+                </div>
+            )}
         </form>
     )
 }

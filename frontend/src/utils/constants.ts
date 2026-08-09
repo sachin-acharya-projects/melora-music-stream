@@ -5,4 +5,6 @@ export const API_LIMITS = {
     YOUTUBE_SEARCH: 8,
     DISCOVER_PLAYLISTS: 50,
     RECENT_HISTORY: 50,
+    RECOMMENDATIONS: 20,
+    RADIO_COUNT: 25,
 } as const

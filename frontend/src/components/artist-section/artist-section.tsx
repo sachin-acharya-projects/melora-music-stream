@@ -1,8 +1,8 @@
 import { type Artist } from "@/types"
 import { ChevronLeft, ChevronRight } from "lucide-react"
-import { useRef } from "react"
 import { Link } from "react-router-dom"
 import { ArtistCard } from "../artist-card/artist-card"
+import { useDragScroll } from "@/hooks/useDragScroll"
 
 interface ArtistSectionProps {
     title: string
@@ -23,7 +23,7 @@ export function ArtistSection({
     importingId,
     viewAllHref,
 }: ArtistSectionProps) {
-    const scrollRef = useRef<HTMLDivElement>(null)
+    const { ref: scrollRef, isDragging, handlers } = useDragScroll<HTMLDivElement>()
 
     const scrollBy = (dir: 1 | -1) => {
         scrollRef.current?.scrollBy({ left: dir * 300, behavior: "smooth" })
@@ -64,7 +64,10 @@ export function ArtistSection({
             </div>
             <div
                 ref={scrollRef}
-                className='flex gap-5 overflow-x-auto px-1 py-2'
+                {...handlers}
+                className={`flex gap-5 overflow-x-auto px-1 py-2 ${
+                    isDragging ? "cursor-grabbing select-none" : "cursor-grab"
+                }`}
                 style={{ scrollbarWidth: "none" }}
             >
                 {artists.map((artist) => (

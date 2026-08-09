@@ -11,11 +11,25 @@ export interface UserState {
     last_playlist_id: string | null
 }
 
+export interface SearchResponse {
+    songs: Song[]
+    cached: boolean
+}
+
 export const apiService = {
-    search: async (q: string): Promise<Song[]> => {
-        if (!q) return []
-        const { data } = await http.get<Song[]>(ENDPOINTS.SEARCH, { params: { q } })
-        return data
+    search: async (q: string): Promise<SearchResponse> => {
+        if (!q) return { songs: [], cached: false }
+        const { data, headers } = await http.get<Song[]>(ENDPOINTS.SEARCH, {
+            params: { q },
+        })
+        return {
+            songs: data,
+            cached: headers["x-cache-status"] === "HIT",
+        }
+    },
+
+    invalidateCache: async (scope: "search" | "stream", key: string): Promise<void> => {
+        await http.post(ENDPOINTS.CACHE.INVALIDATE, { scope, key })
     },
 
     getRelatedSongs: async (

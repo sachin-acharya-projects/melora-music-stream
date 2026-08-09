@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import JSON, Boolean, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -38,6 +38,16 @@ class UserModel(BaseModel):
     privacy_settings: Mapped[dict[str, bool]] = mapped_column(
         JSON,
         default=lambda: {"profile_public": True, "listening_history_visible": False},
+    )
+    notification_settings: Mapped[dict[str, Any]] = mapped_column(
+        JSON,
+        default=lambda: {
+            "new_release": {
+                "in_app": True,
+                "email": False,
+                "push": False,
+            }
+        },
     )
 
     playlists: Mapped[list[PlaylistModel]] = relationship(

@@ -93,3 +93,24 @@ class TestUpsertPlaybackState:
         result2 = PlaybackService.get_playback_state(db, user_id="user-2")
         assert result1["last_song_id"] == "song-1"
         assert result2["last_song_id"] == "song-2"
+
+    def test_duplicate_song_in_queue_and_recent_is_deduped(
+        self, db: Session
+    ) -> None:
+        song = Song(
+            id="song-dup",
+            title="Dup",
+            uploader="A",
+            thumbnail="t",
+            duration=100,
+        )
+        data = PlaybackState(
+            last_song_id="song-dup",
+            current_queue=[song, song],
+            recent_songs=[song],
+        )
+        PlaybackService.upsert_playback_state(db, user_id="user-1", data=data)
+
+        result = PlaybackService.get_playback_state(db, user_id="user-1")
+        assert len(result["current_queue"]) == 2
+        assert len(result["recent_songs"]) == 1

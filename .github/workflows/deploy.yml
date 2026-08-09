@@ -9,6 +9,11 @@ jobs:
     name: Deploying to the Server
     runs-on: ubuntu-latest
 
+    # Required for OIDC token exchange with GitHub
+    permissions:
+      id-token: write
+      contents: read
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -16,7 +21,9 @@ jobs:
       - name: Connect to Tailscale
         uses: tailscale/github-action@v2
         with:
-          authkey: ${{ secrets.TAILSCALE_AUTH_KEY }}
+          client-id: ${{ secrets.TS_CLIENT_ID }}
+          audience: ${{ secrets.TS_AUDIENCE }}
+          tags: tag:ci
 
       - name: Setup SSH key
         run: |

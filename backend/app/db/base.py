@@ -4,7 +4,7 @@ from collections.abc import Generator
 from datetime import UTC, datetime
 from typing import Annotated
 
-from sqlalchemy import DateTime, String, create_engine
+from sqlalchemy import DateTime, String, create_engine, event
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
@@ -16,12 +16,38 @@ from sqlalchemy.orm import (
 
 from app.core.config import settings
 
-# For SQLite, check if it's the current DB
+# For SQLite, allow the connection to be shared across threads and wait up to
+# 30s for a busy DB instead of failing fast with SQLITE_BUSY.
+_is_sqlite = settings.DATABASE_URL.startswith("sqlite")
 connect_args = (
-    {"check_same_thread": False} if settings.DATABASE_URL.startswith("sqlite") else {}
+    {"check_same_thread": False, "timeout": 30} if _is_sqlite else {}
 )
 
-engine = create_engine(settings.DATABASE_URL, connect_args=connect_args)
+engine = create_engine(
+    settings.DATABASE_URL,
+    connect_args=connect_args,
+    pool_pre_ping=True,
+)
+
+
+def _set_sqlite_pragmas(dbapi_connection, _connection_record) -> None:  # noqa: ANN001
+    """Tune SQLite for concurrent reads/writes.
+
+    WAL lets readers proceed while a writer holds the lock and keeps our
+    threadpool workers from tripping over each other; busy_timeout is a second
+    line of defense on top of the sqlite3 ``timeout`` above.
+    """
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA journal_mode=WAL")
+    cursor.execute("PRAGMA synchronous=NORMAL")
+    cursor.execute("PRAGMA busy_timeout=30000")
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.close()
+
+
+if _is_sqlite:
+    event.listen(engine, "connect", _set_sqlite_pragmas)
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 

@@ -1,6 +1,7 @@
 from datetime import UTC, datetime, timedelta
 
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.db.models.playlist import PlaylistModel, PlaylistVisibility
@@ -8,6 +9,7 @@ from app.db.models.user import UserModel
 from app.schemas.song import PlaylistUpdate, Song
 from app.services.playlists import PlaylistService
 from app.services.songs import SongService
+from app.services.ytmusic import ytmusic_service
 
 
 @pytest.fixture(name="sample_song")
@@ -590,6 +592,66 @@ class TestRelatedSongs:
 
     def test_unknown_song_returns_empty(self, db: Session) -> None:
         assert SongService.get_related_songs(db, "nonexistent") == []
+
+    def test_endpoint_tops_up_with_ytmusic_when_db_is_short(
+        self,
+        client: TestClient,
+        db: Session,
+        test_user: UserModel,
+        sample_song: Song,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        playlist = make_playlist(db, "Related", test_user)
+        add_song(db, playlist.id, sample_song, test_user)
+
+        yt_song = {
+            "id": "yt-1",
+            "title": "YT Suggestion",
+            "uploader": "Some Artist",
+            "thumbnail": "yt.jpg",
+            "duration": 210,
+        }
+        monkeypatch.setattr(
+            ytmusic_service,
+            "related_songs",
+            lambda video_id, limit: [yt_song],
+        )
+
+        response = client.get("/api/v1/songs/song-1/related", params={"limit": 6})
+        assert response.status_code == 200
+        related = response.json()
+        assert len(related) == 1
+        assert related[0]["id"] == "yt-1"
+
+    def test_endpoint_uses_db_results_without_ytmusic_fallback(
+        self,
+        client: TestClient,
+        db: Session,
+        test_user: UserModel,
+        sample_song: Song,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        playlist = make_playlist(db, "Related", test_user)
+        same_artist = Song(
+            id="song-2",
+            title="Other Track",
+            uploader="Test Artist",
+            thumbnail="",
+            duration=200,
+        )
+        add_song(db, playlist.id, sample_song, test_user)
+        add_song(db, playlist.id, same_artist, test_user)
+
+        def fail(*args: object, **kwargs: object) -> None:
+            raise AssertionError("fallback")
+
+        monkeypatch.setattr(ytmusic_service, "related_songs", fail)
+
+        response = client.get("/api/v1/songs/song-1/related", params={"limit": 1})
+        assert response.status_code == 200
+        related = response.json()
+        ids = [song["id"] for song in related]
+        assert ids == ["song-2"]
 
 
 def make_user(db: Session, user_id: str, username: str) -> UserModel:

@@ -41,7 +41,15 @@ class PlaybackService:
         db: Session, *, user_id: str, data: PlaybackState
     ) -> None:
         """Upsert the playback state for a user."""
-        all_songs = data.current_queue + data.recent_songs
+        # The same song can appear in both the queue and recent songs (or twice
+        # in a queue). De-duplicate by id up front: upserting a duplicate in the
+        # same session would insert two rows for one primary key.
+        seen: set[str] = set()
+        all_songs = [
+            song
+            for song in data.current_queue + data.recent_songs
+            if not (song.id in seen or seen.add(song.id))
+        ]
         for song in all_songs:
             PlaybackService._upsert_song_if_needed(db, song)
         db.commit()

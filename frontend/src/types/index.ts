@@ -199,3 +199,27 @@ export interface StatsData {
     genres: GenreStat[]
     cached: boolean
 }
+
+export type NotificationChannel = "in_app" | "email" | "push"
+
+export interface Notification {
+    id: string
+    channel: NotificationChannel
+    type: string
+    title: string
+    message: string | null
+    data: Record<string, unknown> | null
+    is_read: boolean
+    created_at: string
+}
+
+export interface NotificationListResponse {
+    total: number
+    unread_count: number
+    items: Notification[]
+}
+
+export type NotificationEventSettings = Record<
+    string,
+    Record<NotificationChannel, boolean>
+>

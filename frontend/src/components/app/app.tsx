@@ -9,12 +9,16 @@ import Playlists from "@/pages/Playlists"
 import Profile from "@/pages/Profile"
 import Queue from "@/pages/Queue"
 import SharedPlaylist from "@/pages/SharedPlaylist"
+import Radio from "@/pages/Radio"
 import Artists from "@/pages/Artists"
 import ArtistAlbum from "@/pages/ArtistAlbum"
 import ArtistProfile from "@/pages/ArtistProfile"
 import ArtistRecentlyPlayed from "@/pages/ArtistRecentlyPlayed"
 import ArtistsSuggested from "@/pages/ArtistsSuggested"
 import History from "@/pages/History"
+import Notifications from "@/pages/Notifications"
+import NotificationSettings from "@/pages/NotificationSettings"
+import Recommendations from "@/pages/Recommendations"
 import Stats from "@/pages/Stats"
 import { useEffect } from "react"
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom"
@@ -152,6 +156,14 @@ function AppContent() {
                         }
                     />
                     <Route
+                        path='/recommendations'
+                        element={
+                            <ProtectedRoute>
+                                <Recommendations />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
                         path='/history'
                         element={
                             <ProtectedRoute>
@@ -164,6 +176,14 @@ function AppContent() {
                         element={
                             <ProtectedRoute>
                                 <Stats />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path='/radio'
+                        element={
+                            <ProtectedRoute>
+                                <Radio />
                             </ProtectedRoute>
                         }
                     />
@@ -188,6 +208,22 @@ function AppContent() {
                         element={
                             <ProtectedRoute>
                                 <Profile />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path='/notifications'
+                        element={
+                            <ProtectedRoute>
+                                <Notifications />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path='/notifications/settings'
+                        element={
+                            <ProtectedRoute>
+                                <NotificationSettings />
                             </ProtectedRoute>
                         }
                     />

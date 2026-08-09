@@ -1,5 +1,7 @@
+import asyncio
 from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
+from logging import getLogger
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,8 +11,41 @@ from starlette.middleware.sessions import SessionMiddleware
 from app.admin import setup_admin
 from app.api.api import api_router
 from app.core.config import settings
+from app.core.logging_config import setup_logging
 from app.db import models  # noqa: F401 - import used for registering the models
-from app.db.base import engine
+from app.db.base import SessionLocal, engine
+from app.db.models.user import UserModel
+from app.services.releases import ReleaseService
+
+setup_logging()
+
+
+async def _refresh_releases_loop() -> None:
+    """Periodically re-sync followed artists' releases and notify users.
+
+    Runs as a background task for the life of the app. Each artist's YTMusic
+    payload is cached, so a refresh every few hours costs one upstream call
+    per artist per day.
+    """
+    logger = getLogger(__name__)
+    while True:
+        try:
+            with SessionLocal() as db:
+                ReleaseService.refresh_followed_artists(db)
+                users = db.query(UserModel).all()
+                for user in users:
+                    try:
+                        ReleaseService.notify_new_releases(db, user=user)
+                    except Exception:
+                        db.rollback()
+                        logger.warning(
+                            "Release notification failed for user %s",
+                            user.id,
+                            exc_info=True,
+                        )
+        except Exception:
+            logger.warning("Release refresh job failed", exc_info=True)
+        await asyncio.sleep(settings.NOTIFICATIONS_REFRESH_SECONDS)
 
 
 @asynccontextmanager
@@ -22,7 +57,18 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
 
     alembic_cfg = Config("alembic.ini")
     command.upgrade(alembic_cfg, "head")
-    yield
+    # alembic's env.py calls logging.fileConfig(), which resets the whole
+    # logging tree (root back to WARNING, our handlers removed). Re-apply our
+    # console/file handlers so app logs are visible while the server runs.
+    setup_logging()
+
+    refresh_task = asyncio.create_task(_refresh_releases_loop())
+    try:
+        yield
+    finally:
+        refresh_task.cancel()
+        with suppress(asyncio.CancelledError):
+            await refresh_task
 
 
 app = FastAPI(
@@ -40,6 +86,7 @@ if settings.BACKEND_CORS_ORIGINS:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        expose_headers=["X-Cache-Status"],
     )
 
 app.add_middleware(SessionMiddleware, secret_key=settings.JWT_SECRET_KEY)

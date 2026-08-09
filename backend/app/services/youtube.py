@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 import urllib.parse
 from typing import Any, cast
 
 import yt_dlp
 
+from app.core.cache import cache_get_or_set
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -14,6 +16,14 @@ logger = logging.getLogger(__name__)
 CHANNEL_SEARCH_URL = (
     "https://www.youtube.com/results?search_query={query}&sp=EgIQAg%253D%253D"
 )
+
+
+def search_cache_key(query: str) -> str:
+    """Build the cache key for a search query, normalized so that casing and
+    repeated whitespace hit the same entry."""
+    normalized = re.sub(r"\s+", " ", query.strip().casefold())
+    return f"search:{normalized}"
+
 
 UNAVAILABLE_AVAILABILITY = {"private", "premium", "subscriber_only"}
 UNAVAILABLE_LIVE_STATUS = {"is_live", "is_upcoming"}
@@ -40,6 +50,36 @@ class YoutubeService:
         return isinstance(title, str) and bool(
             UNAVAILABLE_TITLE_PATTERN.match(title.strip())
         )
+
+    @staticmethod
+    def _extract(
+        ydl: yt_dlp.YoutubeDL,
+        target: str,
+        *,
+        operation: str,
+        download: bool = False,
+    ) -> Any:  # noqa: ANN401
+        """Run a yt-dlp extraction against YouTube with request logging.
+
+        Logs every request yt-dlp makes (the URL or search query) plus how long
+        it took, so it is easy to see exactly when the app hits YouTube and for
+        what. These calls only run on cache misses, so the logs also confirm
+        when a cached result avoids the network entirely.
+        """
+        logger.info("[yt-dlp] %s: requesting %s", operation, target)
+        start = time.monotonic()
+        try:
+            result = ydl.extract_info(target, download=download)
+        except Exception:
+            logger.exception("[yt-dlp] %s: failed for %s", operation, target)
+            raise
+        elapsed = time.monotonic() - start
+        entry_count: int | None = None
+        if isinstance(result, dict) and result.get("entries"):
+            entry_count = len(result["entries"])
+        extra = f" ({entry_count} entries)" if entry_count is not None else ""
+        logger.info("[yt-dlp] %s: got %s in %.2fs%s", operation, target, elapsed, extra)
+        return result
 
     @staticmethod
     def _resolve_thumbnail(info: dict[str, Any]) -> str:
@@ -126,7 +166,7 @@ class YoutubeService:
             "playlistend": limit,
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
+            info = YoutubeService._extract(ydl, url, operation="search_artists")
         entries = info.get("entries") if isinstance(info, dict) else None
         return YoutubeService._channels_from_search(entries or [], limit=limit)
 
@@ -144,7 +184,7 @@ class YoutubeService:
         }
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(url, download=False)
+                info = YoutubeService._extract(ydl, url, operation="channel_metadata")
         except Exception:
             logger.warning(
                 "Failed to resolve channel metadata for %s", channel_id, exc_info=True
@@ -168,38 +208,53 @@ class YoutubeService:
         }
 
     @staticmethod
-    def search_songs(query: str) -> list[dict[str, Any]]:
-        ydl_opts = {
-            "quiet": True,
-            "extract_flat": True,
-            "force_generic_extractor": False,
-            "default_search": "ytsearch10",
-            "skip_download": True,
-        }
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            result = ydl.extract_info(f"ytsearch10:{query}", download=False)
-            songs = []
-            if "entries" in result:
-                for entry in result["entries"]:
-                    if not entry or not entry.get("id"):
-                        continue
-                    if YoutubeService._is_unavailable(entry):
-                        continue
-                    songs.append(
-                        {
-                            "id": entry.get("id"),
-                            "title": entry.get("title"),
-                            "uploader": entry.get("uploader", "Unknown"),
-                            "thumbnail": entry.get("thumbnail")
-                            or (
-                                entry.get("thumbnails")[0]["url"]
-                                if entry.get("thumbnails")
-                                else ""
-                            ),
-                            "duration": entry.get("duration", 0),
-                        }
-                    )
-            return songs
+    def search_songs(query: str) -> tuple[list[dict[str, Any]], bool]:
+        """Search YouTube for songs matching a query.
+
+        Returns ``(songs, served_from_cache)``. Results are cached per
+        normalized query; empty results are never cached so a previously empty
+        search can pick up newly uploaded songs after an invalidation.
+        """
+        key = search_cache_key(query)
+
+        def _load() -> list[dict[str, Any]]:
+            ydl_opts = {
+                "quiet": True,
+                "extract_flat": True,
+                "force_generic_extractor": False,
+                "default_search": "ytsearch10",
+                "skip_download": True,
+            }
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                result = YoutubeService._extract(
+                    ydl,
+                    f"ytsearch10:{query}",
+                    operation="search",
+                )
+                songs: list[dict[str, Any]] = []
+                if "entries" in result:
+                    for entry in result["entries"]:
+                        if not entry or not entry.get("id"):
+                            continue
+                        if YoutubeService._is_unavailable(entry):
+                            continue
+                        songs.append(
+                            {
+                                "id": entry.get("id"),
+                                "title": entry.get("title"),
+                                "uploader": entry.get("uploader", "Unknown"),
+                                "thumbnail": entry.get("thumbnail")
+                                or (
+                                    entry.get("thumbnails")[0]["url"]
+                                    if entry.get("thumbnails")
+                                    else ""
+                                ),
+                                "duration": entry.get("duration", 0),
+                            }
+                        )
+                return songs
+
+        return cache_get_or_set(key, settings.SEARCH_CACHE_TTL_SECONDS, _load)
 
     @staticmethod
     def get_channel_uploads(
@@ -214,7 +269,7 @@ class YoutubeService:
             "playlistend": limit,
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
+            info = YoutubeService._extract(ydl, url, operation="channel_uploads")
             if not isinstance(info, dict):
                 return []
             channel_name = info.get("channel") or info.get("uploader")
@@ -260,7 +315,7 @@ class YoutubeService:
             "playlistend": limit,
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
+            info = YoutubeService._extract(ydl, url, operation="channel_playlists")
             entries = info.get("entries") if isinstance(info, dict) else None
             playlists = []
             for entry in entries or []:
@@ -290,7 +345,7 @@ class YoutubeService:
             "playlistend": limit,
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
+            info = YoutubeService._extract(ydl, url, operation="playlist_songs")
             entries = info.get("entries") if isinstance(info, dict) else None
             songs = []
             for entry in entries or []:
@@ -313,32 +368,41 @@ class YoutubeService:
 
     @staticmethod
     def get_stream_info(video_id: str) -> dict[str, Any]:
-        ydl_opts = {
-            "format": "bestaudio/best",
-            "quiet": True,
-            "no_warnings": True,
-            "nocheckcertificate": True,
-            "referer": "https://www.youtube.com/",
-            "user_agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/122.0.0.0 Safari/537.36"
-            ),
-            "extractor_args": {
-                "youtube": {
-                    "player_client": ["android", "web"],
-                    "player_skip": ["webpage", "configs"],
-                }
-            },
-        }
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            # Passing the video ID directly is often more reliable than the full URL
-            info = ydl.extract_info(video_id, download=False)
-            return {
-                "url": info["url"],
-                "title": info["title"],
-                "thumbnail": info.get("thumbnail"),
+        def _load() -> dict[str, Any]:
+            ydl_opts = {
+                "format": "bestaudio/best",
+                "quiet": True,
+                "no_warnings": True,
+                "nocheckcertificate": True,
+                "referer": "https://www.youtube.com/",
+                "user_agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/122.0.0.0 Safari/537.36"
+                ),
+                "extractor_args": {
+                    "youtube": {
+                        "player_client": ["android", "web"],
+                        "player_skip": ["webpage", "configs"],
+                    }
+                },
             }
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                # Passing the video ID directly is often more reliable than the full URL
+                info = YoutubeService._extract(ydl, video_id, operation="stream")
+                return {
+                    "url": info["url"],
+                    "title": info["title"],
+                    "thumbnail": info.get("thumbnail"),
+                }
+
+        stream_info, _ = cache_get_or_set(
+            f"stream:{video_id}",
+            settings.REDIS_STREAM_CACHE_TTL,
+            _load,
+            cache_falsy=True,
+        )
+        return stream_info
 
     @staticmethod
     def download_song(video_id: str) -> dict[str, Any]:
@@ -356,7 +420,9 @@ class YoutubeService:
             ],
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(video_id, download=True)
+            info = YoutubeService._extract(
+                ydl, video_id, operation="download", download=True
+            )
             filename = f"{settings.DOWNLOADS_DIR}/{video_id}.mp3"
             return {
                 "filename": filename,
@@ -371,7 +437,7 @@ class YoutubeService:
             "ignoreerrors": True,
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
+            info = YoutubeService._extract(ydl, url, operation="playlist")
             songs = []
             entries = info.get("entries") if isinstance(info, dict) else None
             if entries:
