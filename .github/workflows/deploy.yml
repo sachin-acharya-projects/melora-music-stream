@@ -23,7 +23,7 @@ jobs:
         uses: tailscale/github-action@v4
         with:
           oauth-client-id: ${{ secrets.TS_CLIENT_ID }}
-          oauth-secret: ${{ secrets.TS_CLIENT_SECRET }}
+          audience: ${{ secrets.TS_AUDIENCE }}
           tags: tag:ci
           ping: ${{ secrets.SERVER_HOST }}
 
@@ -31,12 +31,6 @@ jobs:
         run: |
           echo "=== Tailscale status ==="
           tailscale status
-
-          echo "=== NC ==="
-          tailscale nc homeserver 22
-
-          echo "=== PING ==="
-          tailscale ping homeserver || true
 
           echo "=== SSH test ==="
           tailscale ssh \
