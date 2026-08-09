@@ -24,16 +24,10 @@ jobs:
           oauth-client-id: ${{ secrets.TS_CLIENT_ID }}
           audience: ${{ secrets.TS_AUDIENCE }}
           tags: tag:ci
+          args: --ssh
+          ping: ${{ secrets.SERVER_HOST }}
 
-      - name: Setup SSH key
+      - name: Deploy via Tailscale SSH
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-
-      - name: Deploy via SSH
-        run: |
-          ssh -i ~/.ssh/id_ed25519 \
-            -o StrictHostKeyChecking=no \
-            ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }} \
+          tailscale ssh "${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }}" \
             "cd ${{ secrets.PROJECT_ROOT }} && bash deploy.sh"
