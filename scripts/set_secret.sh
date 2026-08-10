@@ -74,8 +74,13 @@ secret_set() { # set NAME=value, skipping existing unless --force
     echo "  + set $name"
 }
 
-# ---------- Auto-generate strong secrets (override with env vars) ----------
+# ---------- App secrets: env var > .env.production > .env > auto-generated ---
+# A --force re-run must NOT silently rotate these: the db volume and any
+# issued JWTs keep the previous values, so a new random value here would break
+# auth on the next deploy. Honor .env.production/.env first, then generate.
+JWT_SECRET_KEY="${JWT_SECRET_KEY:-$(env_value JWT_SECRET_KEY || true)}"
 JWT_SECRET_KEY="${JWT_SECRET_KEY:-$(openssl rand -hex 32)}"
+POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-$(env_value POSTGRES_PASSWORD || true)}"
 POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-$(openssl rand -hex 24)}"
 
 # ---------- Non-secret defaults from .env ----------
