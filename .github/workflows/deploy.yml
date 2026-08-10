@@ -81,7 +81,7 @@ jobs:
             echo "POSTGRES_DB=${{ secrets.POSTGRES_DB || 'melora' }}"
             echo "JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}"
             echo "FRONTEND_URL=${{ secrets.FRONTEND_URL || 'http://localhost:8000' }}"
-            echo "BACKEND_CORS_ORIGINS=${{ secrets.BACKEND_CORS_ORIGINS || '[\"*\"]' }}"
+            echo 'BACKEND_CORS_ORIGINS=${{ secrets.BACKEND_CORS_ORIGINS || '["*"]' }}'
             echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}"
             echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}"
             echo "GOOGLE_REDIRECT_URI=${{ secrets.GOOGLE_REDIRECT_URI || 'http://localhost:8000/api/v1/auth/google/callback' }}"
