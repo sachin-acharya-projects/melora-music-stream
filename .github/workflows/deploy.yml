@@ -55,10 +55,13 @@ jobs:
       # (nginx.conf, start.sh etc. are baked into the image at build time). It
       # is uploaded to a staging path the deploy account can write; melora-deploy
       # installs it into $PROJECT as root. The server has no git checkout.
+      # Piped over `tailscale ssh` because the runner's tailscale CLI has no
+      # `scp` subcommand.
       - name: Upload docker-compose.yml
         run: |
-          tailscale scp docker-compose.yml \
-            "${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }}:/tmp/melora-docker-compose.yml"
+          cat docker-compose.yml | tailscale ssh \
+            "${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }}" \
+            "cat > /tmp/melora-docker-compose.yml"
 
       - name: Deploy via Tailscale SSH
         run: |
