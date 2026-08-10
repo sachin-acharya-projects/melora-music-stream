@@ -49,6 +49,7 @@ export function MiniPlayer({
                         <img
                             src={currentSong.thumbnail}
                             alt={currentSong.title}
+                            referrerPolicy='no-referrer'
                             className={cn(
                                 "h-full w-full object-cover transition-all group-hover:scale-105",
                                 isLoading ? "opacity-40" : "opacity-100",

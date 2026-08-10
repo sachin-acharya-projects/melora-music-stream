@@ -187,6 +187,9 @@ export default function Stats() {
                                             <img
                                                 src={entry.song.thumbnail}
                                                 alt={entry.song.title ?? ""}
+                                                loading='lazy'
+                                                decoding='async'
+                                                referrerPolicy='no-referrer'
                                                 className='h-10 w-10 shrink-0 rounded-lg object-cover'
                                             />
                                         ) : (

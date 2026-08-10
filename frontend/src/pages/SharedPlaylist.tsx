@@ -87,6 +87,8 @@ export default function SharedPlaylist() {
                                 src={song.thumbnail}
                                 alt={song.title || song.id}
                                 loading='lazy'
+                                decoding='async'
+                                referrerPolicy='no-referrer'
                                 className='h-12 w-12 shrink-0 rounded-lg object-cover'
                             />
                         ) : (

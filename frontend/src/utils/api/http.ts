@@ -2,6 +2,7 @@ import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios"
 import { API_BASE_URL } from "@/config"
 import { authService, type TokenResponse } from "@/services/auth.service"
 import { ENDPOINTS } from "@/utils/api/endpoints"
+import { rewriteThumbnails } from "@/utils/thumbnail"
 
 export const http = axios.create({
     baseURL: API_BASE_URL,
@@ -45,9 +46,12 @@ http.interceptors.request.use(
     },
 )
 
-// Response interceptor - handle token refresh
+// Response interceptor - rewrite thumbnail URLs to the backend proxy
 http.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        response.data = rewriteThumbnails(response.data)
+        return response
+    },
     async (error: AxiosError) => {
         const originalRequest = error.config as InternalAxiosRequestConfig & {
             _retry?: boolean

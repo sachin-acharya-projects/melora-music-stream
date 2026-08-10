@@ -19,6 +19,9 @@ export function YouTubeArtistCard({ artist, isImporting, onOpen }: YouTubeArtist
                     <img
                         src={artist.thumbnail}
                         alt={artist.name}
+                        loading='lazy'
+                        decoding='async'
+                        referrerPolicy='no-referrer'
                         className='h-full w-full object-cover'
                     />
                 ) : (

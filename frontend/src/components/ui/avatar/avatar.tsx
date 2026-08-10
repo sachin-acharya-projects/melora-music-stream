@@ -30,6 +30,7 @@ export default function Avatar({ src, name, size = 40, className = "" }: AvatarP
                 src={src as string}
                 alt={name || "User avatar"}
                 onError={() => setImageError(true)}
+                referrerPolicy='no-referrer'
                 className={`rounded-full object-cover ${className}`}
                 style={{ width: size, height: size }}
             />

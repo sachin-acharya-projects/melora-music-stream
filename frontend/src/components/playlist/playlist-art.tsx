@@ -31,6 +31,7 @@ export function PlaylistArt({
                 alt=''
                 className={`h-full w-full object-cover ${className}`}
                 draggable={false}
+                referrerPolicy='no-referrer'
             />
         )
     }
@@ -45,6 +46,9 @@ export function PlaylistArt({
                         alt=''
                         className='h-full w-full object-cover'
                         draggable={false}
+                        loading='lazy'
+                        decoding='async'
+                        referrerPolicy='no-referrer'
                     />
                 ))}
             </div>
@@ -61,6 +65,9 @@ export function PlaylistArt({
                         alt=''
                         className='h-full w-full object-cover'
                         draggable={false}
+                        loading='lazy'
+                        decoding='async'
+                        referrerPolicy='no-referrer'
                     />
                 ) : (
                     <div key={i} className='h-full w-full bg-gray-200 dark:bg-white/10' />

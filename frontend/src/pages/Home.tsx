@@ -335,6 +335,9 @@ export default function Home() {
                                             <img
                                                 src={video.thumbnail}
                                                 alt={video.title}
+                                                loading='lazy'
+                                                decoding='async'
+                                                referrerPolicy='no-referrer'
                                                 className='h-full w-full object-cover'
                                             />
                                             <div className='absolute inset-0 flex items-center justify-center gap-3 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
@@ -399,6 +402,9 @@ export default function Home() {
                                             <img
                                                 src={video.thumbnail}
                                                 alt={video.title}
+                                                loading='lazy'
+                                                decoding='async'
+                                                referrerPolicy='no-referrer'
                                                 className='h-full w-full object-cover'
                                             />
                                             <div className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>

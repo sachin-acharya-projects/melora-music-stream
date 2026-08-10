@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     DOWNLOADS_DIR: str = "downloads"
     CACHE_DIR: str = "cache"
     MEDIA_DIR: str = "media"
+    MEDIA_URL_PREFIX: str = "/media"
     AVATARS_DIR: str = "avatars"
     LOGS_DIR: str = "logs"
     MAX_CACHE_SIZE_GB: int = 10
@@ -101,7 +102,11 @@ class Settings(BaseSettings):
 
     @property
     def media_path(self) -> Path:
-        """Filesystem path of the media root directory."""
+        """Filesystem path of the media root directory.
+
+        This is a real filesystem location (absolute inside the container), so
+        it must not be used to build URLs. URLs use ``MEDIA_URL_PREFIX``.
+        """
         return Path(self.MEDIA_DIR)
 
     @property
@@ -112,7 +117,7 @@ class Settings(BaseSettings):
     @property
     def avatars_url_prefix(self) -> str:
         """URL prefix for avatars, implicitly under the /media mount."""
-        return f"/{self.MEDIA_DIR}/{self.AVATARS_DIR}"
+        return f"{self.MEDIA_URL_PREFIX}/{self.AVATARS_DIR}"
 
     model_config = {
         "case_sensitive": True,

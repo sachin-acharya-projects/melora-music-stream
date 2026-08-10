@@ -4,6 +4,7 @@ import { type PlayerStore } from "@/store/player/types"
 import { type Song } from "@/types"
 import { create } from "zustand"
 import { createJSONStorage, persist } from "zustand/middleware"
+import { rewriteThumbnails } from "@/utils/thumbnail"
 
 export type { PlaylistItem } from "@/store/player/types"
 
@@ -284,6 +285,15 @@ export const usePlayerStore = create<PlayerStore>()(
                 recentSongs: state.recentSongs,
                 progress: state.progress,
             }),
+            // Persisted state may predate the thumbnail proxy, so route any
+            // stored Google artwork URLs through the backend on rehydrate.
+            merge: (persisted, current) => {
+                const merged = {
+                    ...(current as object),
+                    ...(persisted as object),
+                }
+                return rewriteThumbnails(merged) as PlayerStore
+            },
         },
     ),
 )

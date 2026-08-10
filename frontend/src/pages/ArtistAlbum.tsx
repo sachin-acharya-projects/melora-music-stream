@@ -78,6 +78,7 @@ export default function ArtistAlbum() {
                                     <img
                                         src={album.cover_image_url ?? songs[0]?.thumbnail}
                                         alt={album.name}
+                                        referrerPolicy='no-referrer'
                                         className='h-44 w-44 rounded-2xl object-cover shadow-lg sm:h-56 sm:w-56'
                                     />
                                 ) : (

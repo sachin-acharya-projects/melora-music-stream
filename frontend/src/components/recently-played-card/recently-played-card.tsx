@@ -18,7 +18,7 @@ export function RecentlyPlayedCard({ song, onClick, className }: RecentlyPlayedC
             )}
         >
             <div className='relative aspect-video w-full overflow-hidden'>
-                <img src={song.thumbnail} alt={song.title} className='h-full w-full object-cover' />
+                <img src={song.thumbnail} alt={song.title} loading='lazy' decoding='async' referrerPolicy='no-referrer' className='h-full w-full object-cover' />
                 <div className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
                     <span className='flex h-9 w-9 items-center justify-center rounded-full bg-red-600 text-white shadow-lg'>
                         <Play className='h-4 w-4 translate-x-0.5 fill-current' />

@@ -150,6 +150,9 @@ export default function ArtistProfile() {
                                     <img
                                         src={cover}
                                         alt={album.name}
+                                        loading='lazy'
+                                        decoding='async'
+                                        referrerPolicy='no-referrer'
                                         className='h-full w-full object-cover'
                                     />
                                 ) : (
@@ -186,6 +189,7 @@ export default function ArtistProfile() {
                         <img
                             src={artist.thumbnail_url}
                             alt={artist.name}
+                            referrerPolicy='no-referrer'
                             className='h-44 w-44 rounded-full object-cover shadow-lg sm:h-56 sm:w-56'
                         />
                     ) : (

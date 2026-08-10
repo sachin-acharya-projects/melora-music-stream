@@ -188,6 +188,9 @@ export function SongBrowser({ songs, isLoading, onPlay }: SongBrowserProps) {
                                         <img
                                             src={song.thumbnail}
                                             alt={song.title}
+                                            loading='lazy'
+                                            decoding='async'
+                                            referrerPolicy='no-referrer'
                                             className='h-full w-full object-cover'
                                         />
                                         <div className='absolute inset-0 flex items-center justify-center gap-3 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
@@ -248,6 +251,9 @@ export function SongBrowser({ songs, isLoading, onPlay }: SongBrowserProps) {
                                         <img
                                             src={song.thumbnail}
                                             alt={song.title}
+                                            loading='lazy'
+                                            decoding='async'
+                                            referrerPolicy='no-referrer'
                                             className='h-full w-full object-cover'
                                         />
                                         <div className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>

@@ -39,6 +39,9 @@ export function ArtistCard({
                     <img
                         src={artist.thumbnail_url}
                         alt={artist.name}
+                        loading='lazy'
+                        decoding='async'
+                        referrerPolicy='no-referrer'
                         className='h-full w-full object-cover'
                     />
                 ) : (

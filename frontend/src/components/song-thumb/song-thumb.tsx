@@ -18,6 +18,9 @@ export function SongThumb({ song }: { song: Pick<Song, "thumbnail" | "title"> })
         <img
             src={song.thumbnail}
             alt={song.title}
+            loading='lazy'
+            decoding='async'
+            referrerPolicy='no-referrer'
             onError={() => setFailed(true)}
             className='h-full w-full object-cover'
         />

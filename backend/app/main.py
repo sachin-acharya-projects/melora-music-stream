@@ -94,12 +94,13 @@ app.add_middleware(SessionMiddleware, secret_key=settings.JWT_SECRET_KEY)
 # Setup Admin Panel
 setup_admin(app, engine)
 
-# Serve media (avatars, etc.) under /media
+# Serve media (avatars, etc.) under /media (URL) regardless of where the files
+# live on disk (MEDIA_DIR may be an absolute path inside the container).
 media_path = settings.media_path
 media_path.mkdir(parents=True, exist_ok=True)
 settings.avatars_dir_path.mkdir(parents=True, exist_ok=True)
 app.mount(
-    f"/{settings.MEDIA_DIR}",
+    settings.MEDIA_URL_PREFIX,
     StaticFiles(directory=str(media_path)),
     name="media",
 )

@@ -195,6 +195,9 @@ export function SearchAddModal({
                                         <img
                                             src={song.thumbnail}
                                             alt={song.title}
+                                            loading='lazy'
+                                            decoding='async'
+                                            referrerPolicy='no-referrer'
                                             className='h-11 w-[70px] shrink-0 rounded-lg object-cover'
                                         />
                                         <div className='min-w-0 flex-1'>
