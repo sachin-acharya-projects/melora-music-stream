@@ -96,13 +96,18 @@ secret_set "SERVER_USERNAME"  "${SERVER_USERNAME:-}"
 
 echo ""
 echo "--- Deploy script ---"
-secret_set "DEPLOY_SCRIPT_PATH" "${DEPLOY_SCRIPT_PATH:-/usr/local/sbin/melora-deploy}"
+secret_set "DEPLOY_SCRIPT_PATH"  "${DEPLOY_SCRIPT_PATH:-/usr/local/sbin/melora-deploy}"
+secret_set "MELORA_PROJECT_DIR"  "${MELORA_PROJECT_DIR:-$(env_value MELORA_PROJECT_DIR || true)}"
 
 echo ""
 echo "--- App config (stored as secrets per request; default fallbacks) ---"
 secret_set "PORT"               "${PORT:-$(env_value PORT || true)}"
 secret_set "DEBUG"              "${DEBUG:-$(env_value DEBUG || true)}"
-secret_set "REGISTRY_NAMESPACE" "${REGISTRY_NAMESPACE:-$(env_value REGISTRY_NAMESPACE || true)}"
+# REGISTRY_IMAGE is the image repo:tag (e.g. melora-fullstack:latest). The
+# workflow derives REGISTRY_NAMESPACE (localhost:PORT/IMAGE) for the server
+# from this + REGISTRY_PORT, so there is no separate REGISTRY_NAMESPACE secret.
+secret_set "REGISTRY_IMAGE"     "${REGISTRY_IMAGE:-$(env_value REGISTRY_IMAGE || true)}"
+secret_set "REGISTRY_PORT"      "${REGISTRY_PORT:-$(env_value REGISTRY_PORT || true)}"
 secret_set "REDIS_PORT"         "${REDIS_PORT:-$(env_value REDIS_PORT || true)}"
 secret_set "POSTGRES_USER"      "${POSTGRES_USER:-$(env_value POSTGRES_USER || true)}"
 secret_set "POSTGRES_DB"        "${POSTGRES_DB:-$(env_value POSTGRES_DB || true)}"

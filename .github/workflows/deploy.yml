@@ -15,6 +15,16 @@ jobs:
       id-token: write
       contents: read
 
+    env:
+      # Private docker registry (registry:2) running on the homeserver.
+      # CI pushes to it over Tailscale; the server pulls from localhost.
+      # REGISTRY_IMAGE is the image repo:tag (e.g. melora-fullstack:latest),
+      # set as a GitHub Secret so both the push tag and the server's pull
+      # reference derive from the same value.
+      REGISTRY_HOST: ${{ secrets.SERVER_HOST }}
+      REGISTRY_PORT: ${{ secrets.REGISTRY_PORT || '5000' }}
+      REGISTRY_IMAGE: ${{ secrets.REGISTRY_IMAGE || 'melora-fullstack:latest' }}
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -27,16 +37,41 @@ jobs:
           tags: tag:ci
           ping: ${{ secrets.SERVER_HOST }}
 
+      # The registry is plain HTTP (no TLS), so the runner's docker daemon
+      # must be told to allow it before it will push.
+      - name: Allow insecure registry in Docker
+        run: |
+          echo "{\"insecure-registries\": [\"${REGISTRY_HOST}:${REGISTRY_PORT}\"]}" | sudo tee /etc/docker/daemon.json
+          sudo service docker restart
+          docker info
+
+      - name: Build and push image to the private registry
+        run: |
+          IMAGE="${REGISTRY_HOST}:${REGISTRY_PORT}/${REGISTRY_IMAGE}"
+          docker build -t "${IMAGE}" .
+          docker push "${IMAGE}"
+
+      # docker-compose.yml is the only repo file the server needs at runtime
+      # (nginx.conf, start.sh etc. are baked into the image at build time). It
+      # is uploaded to a staging path the deploy account can write; melora-deploy
+      # installs it into $PROJECT as root. The server has no git checkout.
+      - name: Upload docker-compose.yml
+        run: |
+          tailscale scp docker-compose.yml \
+            "${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }}:/tmp/melora-docker-compose.yml"
+
       - name: Deploy via Tailscale SSH
         run: |
           # Build the .env from GitHub Secrets and pipe it into the server's
           # sudo-protected deploy script (DEPLOY_SCRIPT_PATH). The script runs
-          # as root, writes the .env (0600), deploys, health-checks, then
-          # removes it again (pre/post-deploy cleanup).
+          # as root, writes the .env (0600), pulls the image from the local
+          # registry, starts the stack, health-checks, then removes the .env
+          # again (pre/post-deploy cleanup).
           {
             echo "PORT=${{ secrets.PORT || '8000' }}"
+            echo "MELORA_PROJECT_DIR=${{ secrets.MELORA_PROJECT_DIR || '/opt/melora' }}"
             echo "DEBUG=${{ secrets.DEBUG || 'false' }}"
-            echo "REGISTRY_NAMESPACE=${{ secrets.REGISTRY_NAMESPACE || 'melora-fullstack:latest' }}"
+            echo "REGISTRY_NAMESPACE=localhost:${REGISTRY_PORT}/${REGISTRY_IMAGE}"
             echo "REDIS_PORT=${{ secrets.REDIS_PORT || '6379' }}"
             echo "POSTGRES_USER=${{ secrets.POSTGRES_USER || 'melora' }}"
             echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}"

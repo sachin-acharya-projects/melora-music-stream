@@ -1,79 +1,132 @@
 #!/bin/bash
-# melora-deploy — production deployment script.
+# melora-deploy — production deployment script for Melora.
 #
-# Installed on the server at /usr/local/sbin/melora-deploy (root-owned) and
-# invoked by the CI workflow as:
+# INSTALLED ON THE SERVER at /usr/local/sbin/melora-deploy (root-owned) and
+# invoked by the CI workflow (.github/workflows/deploy.yml) as:
 #     sudo -n /usr/local/sbin/melora-deploy
 # The CI runner connects as the restricted deploy account (github-deploy) and
-# sudoes to root. The sudoers rule scopes this to that single command, e.g.:
+# sudoes to root. The sudoers rule scopes this to that single command:
 #     github-deploy ALL=(root) NOPASSWD: /usr/local/sbin/melora-deploy
-# Running as root is required: the repo lives under a private home dir the
-# deploy user cannot access, and docker is not available to it. The app
-# containers themselves run as non-root and self-manage /app/data perms.
 #
-# The CI workflow pipes a fresh .env (built from GitHub Secrets) on STDIN.
-# This script writes it with 0600 perms, pulls code, builds & starts the
-# stack, health-checks it, then removes the .env again so secrets never
-# linger on disk (guaranteed by the EXIT trap, even on failure).
+# WHAT THE SERVER NEEDS (prerequisites)
+#   - Docker with the compose plugin (`docker compose`), plus a running
+#     registry:2 on this host so the pull can resolve localhost:5000.
+#   - docker-compose.yml is delivered by the CI workflow, not git: the runner
+#     uploads it to /tmp/melora-docker-compose.yml (via `tailscale scp`); this
+#     script installs it into $PROJECT as root. There is NO git checkout on the
+#     server — the compose file pulls the app image from the private registry
+#     (localhost:5000 via REGISTRY_NAMESPACE) instead of building locally.
+#   - No .env file: the CI workflow builds one from GitHub Secrets and pipes it
+#     on STDIN. This script writes it (0600), deploys, then removes it again so
+#     secrets never linger on disk (guaranteed by the EXIT trap).
+#
+# DEPLOYMENT FLOW (what this script does)
+#   0. Consume the injected .env from stdin; derive PROJECT from its
+#      MELORA_PROJECT_DIR (fallback /opt/melora).
+#   1. Validate prerequisites (docker, compose, non-empty .env on stdin with the
+#      required keys).
+#   2. Install the docker-compose.yml uploaded by CI (staged at
+#      /tmp/melora-docker-compose.yml).
+#   3. Write the injected .env (0600) into $PROJECT.
+#   4. Pull the app images (image refs resolved from .env via compose).
+#   5. Recreate & start the stack (melora-fullstack, redis, db).
+#   6. Health-check the API and the SPA.
+#   7. Prune old docker images, then remove the .env.
+#
+# NOTE: after a deploy there is deliberately no .env left in $PROJECT. The
+# running containers keep their env; to run `docker compose` manually on the
+# server, recreate the .env (e.g. from .env.production) or export the vars.
 
-set -e
+set -euo pipefail
 
-# Project directory (can be overridden for testing)
-PROJECT="${MELORA_PROJECT_DIR:-/path/to/the/project}"
+# --- 0. Consume the injected .env from stdin exactly once ---
+# The CI workflow builds it from GitHub Secrets and pipes it here. Read it into
+# memory now so the project dir (MELORA_PROJECT_DIR) can be extracted from it
+# before the file is written in step 3.
+INJECTED="$(cat)"
+[ -n "$INJECTED" ] || die "empty .env received on stdin"
+
+# Project directory: from the injected .env, else the shell env (testing), else
+# a neutral fallback the script creates as root.
+PROJECT="$(printf '%s\n' "$INJECTED" | sed -n 's/^MELORA_PROJECT_DIR=//p' | tail -n1)"
+PROJECT="${PROJECT:-${MELORA_PROJECT_DIR:-/opt/melora}}"
 ENV_FILE="$PROJECT/.env"
+PORT="${MELORA_PORT:-8000}"
 
-echo "🚀 Starting Melora deployment..."
+log()  { printf '🚀 \033[1;32m%s\033[0m\n' "$*"; }
+die()  { printf '❌ \033[1;31m%s\033[0m\n' "$*" >&2; exit 1; }
 
 cleanup() {
     if [ -f "$ENV_FILE" ]; then
         rm -f "$ENV_FILE"
-        echo "🧹 Post-deploy cleanup: removed $ENV_FILE"
+        log "Post-deploy cleanup: removed $ENV_FILE"
     fi
 }
 trap cleanup EXIT
 
-# Go to project directory
+# --- 1. Prerequisites ---
+command -v docker >/dev/null 2>&1 || die "docker is not installed"
+docker compose version >/dev/null 2>&1 || die "docker compose plugin is not installed"
+mkdir -p "$PROJECT"
+[ -d "$PROJECT" ] || die "could not create project dir: $PROJECT"
+[ -f "$PROJECT/docker-compose.yml" ] || [ -f /tmp/melora-docker-compose.yml ] || \
+    die "no docker-compose.yml in $PROJECT and none uploaded (expected /tmp/melora-docker-compose.yml)"
+
+# --- 2. Install the uploaded docker-compose.yml ---
+if [ -f /tmp/melora-docker-compose.yml ]; then
+    log "Installing docker-compose.yml from /tmp/melora-docker-compose.yml..."
+    install -m 0644 /tmp/melora-docker-compose.yml "$PROJECT/docker-compose.yml"
+    rm -f /tmp/melora-docker-compose.yml
+fi
+[ -f "$PROJECT/docker-compose.yml" ] || die "docker-compose.yml not found in $PROJECT"
+
+# --- 3. Write the injected .env ---
+log "Writing .env from CI (GitHub Secrets)..."
+umask 077
+printf '%s\n' "$INJECTED" > "$ENV_FILE"
+chmod 600 "$ENV_FILE"
+for key in REGISTRY_NAMESPACE JWT_SECRET_KEY POSTGRES_PASSWORD; do
+    grep -q "^${key}=" "$ENV_FILE" || die "required key '$key' missing from injected .env"
+done
+
 cd "$PROJECT"
 
-# --- Pre-deploy: clean slate ---
-echo "🧹 Pre-deploy cleanup: removing stale $ENV_FILE"
-rm -f "$ENV_FILE"
+# --- 4. Pull the app images (image refs resolved from .env via compose) ---
+log "Pulling app images from the private registry..."
+docker compose --env-file "$ENV_FILE" pull
 
-# --- Write the injected .env ---
-echo "📝 Writing .env from CI (GitHub Secrets)..."
-umask 077
-cat > "$ENV_FILE"
-chmod 600 "$ENV_FILE"
-[ -s "$ENV_FILE" ] || { echo "❌ ERROR: empty .env received on stdin" >&2; exit 1; }
+# --- 5. Recreate & start the stack (redis/db managed by compose) ---
+log "Recreating Melora stack..."
+docker compose --env-file "$ENV_FILE" up -d --remove-orphans
 
-echo "📥 Pulling latest code from origin/main..."
-git pull origin main
-
-echo "🛑 Stopping existing container (if running)..."
-docker compose stop melora-fullstack || true
-
-echo "🧹 Removing old container..."
-docker compose rm -f melora-fullstack || true
-
-echo "🔨 Building latest image..."
-PORT=8000 docker compose build melora-fullstack
-
-echo "▶️ Starting Melora Fullstack..."
-PORT=8000 docker compose up -d melora-fullstack
-
-echo "🔍 Health-checking the app..."
-URL="http://localhost:8000/api/v1/openapi.json"
-for i in $(seq 1 30); do
-    if curl -sf -o /dev/null "$URL"; then
-        echo "✅ Healthy: $URL"
+# --- 6. Health checks ---
+API_URL="http://localhost:${PORT}/api/v1/openapi.json"
+log "Health-checking the API at $API_URL"
+API_OK=0
+for _ in $(seq 1 30); do
+    if curl -sf -o /dev/null "$API_URL"; then
+        API_OK=1
         break
-    fi
-    if [ "$i" -eq 30 ]; then
-        echo "❌ ERROR: app did not become healthy at $URL" >&2
-        exit 1
     fi
     sleep 2
 done
+[ "$API_OK" = 1 ] || die "API did not become healthy at $API_URL"
 
-echo "✅ Deployment completed!"
-echo "🌐 App should now be running on port 8000"
+SPA_URL="http://localhost:${PORT}/"
+log "Health-checking the SPA at $SPA_URL"
+SPA_OK=0
+for _ in $(seq 1 10); do
+    if curl -sf -o /dev/null "$SPA_URL"; then
+        SPA_OK=1
+        break
+    fi
+    sleep 2
+done
+[ "$SPA_OK" = 1 ] || die "SPA did not become healthy at $SPA_URL"
+
+# --- 7. Housekeeping ---
+log "Pruning old docker images..."
+docker image prune -f >/dev/null
+
+log "Deployment completed!"
+log "App is running at http://localhost:${PORT}"
