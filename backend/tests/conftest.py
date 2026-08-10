@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.core.cache import memory_cache, rate_limiter
+from app.core.redis import get_redis
 from app.db.base import Base, get_db
 from app.db.models.user import UserModel, UserRole
 from app.main import app
@@ -106,9 +107,16 @@ def clear_artist_suggestions_cache() -> None:
 
 @pytest.fixture(autouse=True)
 def clear_cache_layers() -> None:
-    """Reset the shared cache tiers and rate limiter between tests."""
+    """Reset the shared cache tiers and rate limiter between tests.
+
+    The memory tier is process-local, but Redis is shared and persistent (long
+    TTLs), so a value cached by one test would otherwise leak into the next
+    test and even into the next test run. Flushing it here keeps every test
+    deterministic and independent of local Redis state.
+    """
     memory_cache.clear()
     rate_limiter.clear()
+    get_redis().invalidate_pattern("*")
 
 
 @pytest.fixture(autouse=True)

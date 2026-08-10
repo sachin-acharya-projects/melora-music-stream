@@ -4,6 +4,7 @@ from typing import Any, NoReturn, cast
 
 import bcrypt
 import httpx
+from authlib.integrations.base_client.errors import MismatchingStateError
 from fastapi import HTTPException, status
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
@@ -326,6 +327,12 @@ class AuthService:
     @staticmethod
     def handle_oauth_error(e: Exception) -> NoReturn:
         """Wrap OAuth provider errors into HTTPException."""
+        if isinstance(e, MismatchingStateError):
+            raise HTTPException(
+                status_code=400,
+                detail="OAuth login expired or was started more than once. "
+                "Close this page, go back to Melora, and click Continue with Google again.",
+            ) from e
         raise HTTPException(
             status_code=400, detail=Messages.OAUTH_AUTH_FAILED.format(error=e)
         ) from e

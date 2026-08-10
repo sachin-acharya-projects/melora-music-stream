@@ -168,9 +168,9 @@ class ArtistService:
         return or_(
             ArtistModel.id.in_(db.query(threshold_artist_ids.c.artist_id)),
             ArtistModel.id.in_(db.query(followed_artist_ids.c.artist_id)),
-            func.json_extract(ArtistModel.external_ids, "$.youtube_channel_id").isnot(
-                None
-            ),
+            ArtistModel.external_ids["youtube_channel_id"]
+            .as_string()
+            .isnot(None),
         )
 
     @staticmethod
@@ -271,15 +271,13 @@ class ArtistService:
     def _apply_source_filter(query: Query[Any], source: str | None) -> Query[Any]:
         if source == "youtube":
             return query.filter(
-                func.json_extract(
-                    ArtistModel.external_ids, "$.youtube_channel_id"
-                ).isnot(None)
+                ArtistModel.external_ids["youtube_channel_id"]
+                .as_string()
+                .isnot(None)
             )
         if source == "platform":
             return query.filter(
-                func.json_extract(ArtistModel.external_ids, "$.youtube_channel_id").is_(
-                    None
-                )
+                ArtistModel.external_ids["youtube_channel_id"].as_string().is_(None)
             )
         return query
 

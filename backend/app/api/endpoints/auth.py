@@ -1,3 +1,4 @@
+import time
 from urllib.parse import urlencode
 
 from authlib.integrations.starlette_client import OAuth
@@ -26,7 +27,34 @@ oauth.register(
 async def login(request: Request) -> RedirectResponse:
     """Initiate Google OAuth login flow."""
     AuthService.require_oauth_configured()
+    pending_url = _pending_oauth_url(request)
+    if pending_url:
+        return RedirectResponse(url=pending_url)
     return await oauth.google.authorize_redirect(request, settings.GOOGLE_REDIRECT_URI)  # type: ignore[no-any-return]
+
+
+def _pending_oauth_url(request: Request) -> str | None:
+    """Return a still-valid in-flight Google authorization URL, if any.
+
+    authlib wipes every previously stored OAuth state on each call to
+    ``authorize_redirect``, so a second hit to /login (double-click, refresh,
+    another tab) invalidates the state of the in-flight attempt and the
+    callback then dies with a "mismatching_state" error. Reusing the pending
+    URL (same state + nonce) makes repeated clicks harmless.
+    """
+    now = time.time()
+    for key, value in request.session.items():
+        if not key.startswith("_state_google_"):
+            continue
+        if not isinstance(value, dict):
+            continue
+        exp = value.get("exp")
+        if not isinstance(exp, (int, float)) or exp < now:
+            continue
+        data = value.get("data")
+        if isinstance(data, dict) and data.get("url"):
+            return data["url"]
+    return None
 
 
 @router.get("/google/callback")
