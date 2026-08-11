@@ -29,6 +29,8 @@ x-backend-env: &backend-env
   GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
   GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
   GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:8000/api/v1/auth/google/callback}
+  # Proxy and Domains
+  DOMAIN_NAME: ${DOMAIN_NAME:-example.com}
 
 services:
   # Redis for caching
@@ -66,8 +68,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    ports:
-      - "${PORT:-80}:80"
     environment: *backend-env
     depends_on:
       redis:
@@ -76,6 +76,9 @@ services:
         condition: service_healthy
     volumes:
       - melora_data:/app/data
+    labels:
+      caddy: melora.${DOMAIN_NAME}
+      caddy.reverse_proxy: "{{upstreams 8000}}"
     restart: always
 
 volumes:
@@ -85,3 +88,5 @@ volumes:
     driver: local
   melora_db:
     driver: local
+  proxy_net:
+    external: true

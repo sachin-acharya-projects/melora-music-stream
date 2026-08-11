@@ -85,5 +85,6 @@ jobs:
             echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}"
             echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}"
             echo "GOOGLE_REDIRECT_URI=${{ secrets.GOOGLE_REDIRECT_URI || 'http://localhost:8000/api/v1/auth/google/callback' }}"
+            echo "DOMAIN_NAME=${{ secrets.DOMAIN_NAME || 'example.com' }}"
           } | tailscale ssh "${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }}" \
             "sudo -n \"${{ secrets.DEPLOY_SCRIPT_PATH }}\""
