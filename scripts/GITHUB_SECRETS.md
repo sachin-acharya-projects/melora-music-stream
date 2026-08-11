@@ -25,7 +25,7 @@ Value source priority inside `set_secret.sh`: an exported env var → a local
 | ----------------- | -------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | `TS_CLIENT_ID`    | yes      | —       | Tailscale OAuth client ID used by the CI runner (tag `tag:ci`). Create an OAuth client in the Tailscale admin console.                  |
 | `TS_AUDIENCE`     | yes      | —       | Tailscale OAuth audience, format `api.tailscale.com/<TS_CLIENT_ID>`.                                                                    |
-| `SERVER_HOST`     | yes      | —       | Tailscale IP / hostname of the homeserver the stack runs on (e.g. `100.79.128.21`). CI pushes the image to `SERVER_HOST:REGISTRY_PORT`. |
+| `SERVER_HOST`     | yes      | —       | Tailscale IP / hostname of the homeserver the stack runs on (e.g. `100.79.128.21`). Used by the CI runner for the Tailscale `ping` and SSH (`tailscale ssh`). |
 | `SERVER_USERNAME` | yes      | —       | SSH user CI connects as on the server (e.g. `github-deploy`). This account may `sudo -n` only the deploy script.                        |
 
 ## Deploy script
@@ -41,8 +41,9 @@ Value source priority inside `set_secret.sh`: an exported env var → a local
 | ---------------- | -------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `PORT`           | no       | `8000`                    | Host port mapped to the container's nginx (host `PORT` → container `80`).                                                                                                                                                                                                          |
 | `DEBUG`          | no       | `false`                   | Backend `DEBUG` flag.                                                                                                                                                                                                                                                              |
-| `REGISTRY_IMAGE` | no       | `melora-fullstack:latest` | Image `repo:tag` for the private registry. Single source of truth: CI pushes `SERVER_HOST:REGISTRY_PORT/REGISTRY_IMAGE` and the server pulls `localhost:REGISTRY_PORT/REGISTRY_IMAGE` (`REGISTRY_NAMESPACE` is derived from this, so there is **no** `REGISTRY_NAMESPACE` secret). |
-| `REGISTRY_PORT`  | no       | `5000`                    | Port the `registry:2` container listens on at the homeserver.                                                                                                                                                                                                                      |
+| `REGISTRY_IMAGE` | no       | `melora-fullstack:latest` | Image `repo:tag` for the private registry. Single source of truth: CI pushes `REGISTRY_HOST/REGISTRY_IMAGE` and the server pulls the same reference (`REGISTRY_NAMESPACE` is derived from this, so there is **no** `REGISTRY_NAMESPACE` secret). |
+| `REGISTRY_HOST`  | no       | —                         | Registry hostname served by the homelab caddy over the tailnet (HTTPS — no insecure-registry needed), e.g. `registry.sachinacharya.name.np`. |
+| `MELORA_DOMAIN`  | no       | —                         | Public domain the homelab caddy (caddy-docker-proxy) routes to this stack via the compose labels, e.g. `melora.sachinacharya.name.np`. |
 | `REDIS_PORT`     | no       | `6379`                    | Redis host port binding.                                                                                                                                                                                                                                                           |
 | `POSTGRES_USER`  | no       | `melora`                  | Postgres user.                                                                                                                                                                                                                                                                     |
 | `POSTGRES_DB`    | no       | `melora`                  | Postgres database name.                                                                                                                                                                                                                                                            |
@@ -69,7 +70,7 @@ Required only if login is enabled; create the client in the [Google Cloud Consol
 | Secret                 | Required | Default                 | Purpose                                                                            |
 | ---------------------- | -------- | ----------------------- | ---------------------------------------------------------------------------------- |
 | `FRONTEND_URL`         | no       | `http://localhost:8000` | Where the backend redirects after a successful OAuth login (the app's public URL). |
-| `BACKEND_CORS_ORIGINS` | no       | `["*"]`                 | Allowed CORS origins, JSON array string, e.g. `["http://100.79.128.21:8000"]`.     |
+| `BACKEND_CORS_ORIGINS` | no       | `["*"]`                 | Allowed CORS origins, JSON array string, e.g. `["https://melora.sachinacharya.name.np"]`.     |
 
 ---
 
@@ -85,7 +86,8 @@ MELORA_PROJECT_DIR
 PORT
 DEBUG
 REGISTRY_IMAGE
-REGISTRY_PORT
+REGISTRY_HOST
+MELORA_DOMAIN
 REDIS_PORT
 POSTGRES_USER
 POSTGRES_DB
@@ -103,7 +105,7 @@ BACKEND_CORS_ORIGINS
 - Secrets are only written into the server's `.env` **during a deploy**; the deploy
   script removes it again afterwards (the running containers keep their env).
 - `REGISTRY_NAMESPACE` is **not** a secret — the workflow derives
-  `localhost:${REGISTRY_PORT}/${REGISTRY_IMAGE}` from the secrets above.
+  `${REGISTRY_HOST}/${REGISTRY_IMAGE}` from the secrets above.
 - Some values look like they could live in repo variables or `.env.production`;
   they are stored as GitHub Secrets so the workflow can inject them onto the server
   without committing anything. `scripts/set_secret.sh` keeps existing secrets unless

@@ -109,10 +109,13 @@ echo "--- App config (stored as secrets per request; default fallbacks) ---"
 secret_set "PORT"               "${PORT:-$(env_value PORT || true)}"
 secret_set "DEBUG"              "${DEBUG:-$(env_value DEBUG || true)}"
 # REGISTRY_IMAGE is the image repo:tag (e.g. melora-fullstack:latest). The
-# workflow derives REGISTRY_NAMESPACE (localhost:PORT/IMAGE) for the server
-# from this + REGISTRY_PORT, so there is no separate REGISTRY_NAMESPACE secret.
+# workflow derives REGISTRY_NAMESPACE (REGISTRY_HOST/REGISTRY_IMAGE) for the
+# server from this + REGISTRY_HOST, so there is no separate REGISTRY_NAMESPACE
+# secret. REGISTRY_HOST is the registry hostname served by the homelab caddy
+# (HTTPS); MELORA_DOMAIN feeds the caddy reverse-proxy label in the compose file.
 secret_set "REGISTRY_IMAGE"     "${REGISTRY_IMAGE:-$(env_value REGISTRY_IMAGE || true)}"
-secret_set "REGISTRY_PORT"      "${REGISTRY_PORT:-$(env_value REGISTRY_PORT || true)}"
+secret_set "REGISTRY_HOST"      "${REGISTRY_HOST:-$(env_value REGISTRY_HOST || true)}"
+secret_set "MELORA_DOMAIN"      "${MELORA_DOMAIN:-$(env_value MELORA_DOMAIN || true)}"
 secret_set "REDIS_PORT"         "${REDIS_PORT:-$(env_value REDIS_PORT || true)}"
 secret_set "POSTGRES_USER"      "${POSTGRES_USER:-$(env_value POSTGRES_USER || true)}"
 secret_set "POSTGRES_DB"        "${POSTGRES_DB:-$(env_value POSTGRES_DB || true)}"

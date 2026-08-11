@@ -16,14 +16,14 @@ jobs:
       contents: read
 
     env:
-      # Private docker registry (registry:2) running on the homeserver.
-      # CI pushes to it over Tailscale; the server pulls from localhost.
-      # REGISTRY_IMAGE is the image repo:tag (e.g. melora-fullstack:latest),
-      # set as a GitHub Secret so both the push tag and the server's pull
-      # reference derive from the same value.
-      REGISTRY_HOST: ${{ secrets.SERVER_HOST }}
-      REGISTRY_PORT: ${{ secrets.REGISTRY_PORT || '5000' }}
+      # Private docker registry (registry:2) running in the homelab. It is
+      # reached over the tailnet via caddy's reverse-proxy hostname (HTTPS),
+      # so the push needs no insecure-registry configuration. REGISTRY_HOST,
+      # REGISTRY_IMAGE and MELORA_DOMAIN are GitHub Secrets (set from
+      # .env.production via scripts/set_secret.sh).
+      REGISTRY_HOST: ${{ secrets.REGISTRY_HOST }}
       REGISTRY_IMAGE: ${{ secrets.REGISTRY_IMAGE || 'melora-fullstack:latest' }}
+      MELORA_DOMAIN: ${{ secrets.MELORA_DOMAIN }}
 
     steps:
       - name: Checkout repo
@@ -37,17 +37,9 @@ jobs:
           tags: tag:ci
           ping: ${{ secrets.SERVER_HOST }}
 
-      # The registry is plain HTTP (no TLS), so the runner's docker daemon
-      # must be told to allow it before it will push.
-      - name: Allow insecure registry in Docker
-        run: |
-          echo "{\"insecure-registries\": [\"${REGISTRY_HOST}:${REGISTRY_PORT}\"]}" | sudo tee /etc/docker/daemon.json
-          sudo service docker restart
-          docker info
-
       - name: Build and push image to the private registry
         run: |
-          IMAGE="${REGISTRY_HOST}:${REGISTRY_PORT}/${REGISTRY_IMAGE}"
+          IMAGE="${REGISTRY_HOST}/${REGISTRY_IMAGE}"
           docker build -t "${IMAGE}" .
           docker push "${IMAGE}"
 
@@ -67,14 +59,16 @@ jobs:
         run: |
           # Build the .env from GitHub Secrets and pipe it into the server's
           # sudo-protected deploy script (DEPLOY_SCRIPT_PATH). The script runs
-          # as root, writes the .env (0600), pulls the image from the local
+          # as root, writes the .env (0600), pulls the image from the private
           # registry, starts the stack, health-checks, then removes the .env
-          # again (pre/post-deploy cleanup).
+          # again (pre/post-deploy cleanup). MELORA_DOMAIN feeds the caddy
+          # reverse-proxy label in docker-compose.yml.
           {
             echo "PORT=${{ secrets.PORT || '8000' }}"
             echo "MELORA_PROJECT_DIR=${{ secrets.MELORA_PROJECT_DIR || '/opt/melora' }}"
             echo "DEBUG=${{ secrets.DEBUG || 'false' }}"
-            echo "REGISTRY_NAMESPACE=localhost:${REGISTRY_PORT}/${REGISTRY_IMAGE}"
+            echo "REGISTRY_NAMESPACE=${REGISTRY_HOST}/${REGISTRY_IMAGE}"
+            echo "MELORA_DOMAIN=${MELORA_DOMAIN}"
             echo "REDIS_PORT=${{ secrets.REDIS_PORT || '6379' }}"
             echo "POSTGRES_USER=${{ secrets.POSTGRES_USER || 'melora' }}"
             echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}"
@@ -85,6 +79,5 @@ jobs:
             echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}"
             echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}"
             echo "GOOGLE_REDIRECT_URI=${{ secrets.GOOGLE_REDIRECT_URI || 'http://localhost:8000/api/v1/auth/google/callback' }}"
-            echo "DOMAIN_NAME=${{ secrets.DOMAIN_NAME || 'example.com' }}"
           } | tailscale ssh "${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }}" \
             "sudo -n \"${{ secrets.DEPLOY_SCRIPT_PATH }}\""

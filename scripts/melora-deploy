@@ -9,13 +9,15 @@
 #     github-deploy ALL=(root) NOPASSWD: /usr/local/sbin/melora-deploy
 #
 # WHAT THE SERVER NEEDS (prerequisites)
-#   - Docker with the compose plugin (`docker compose`), plus a running
-#     registry:2 on this host so the pull can resolve localhost:5000.
+#   - Docker with the compose plugin (`docker compose`), a running registry:2
+#     on this host, and the shared homelab Postgres reachable on the external
+#     db_net network (the app auto-runs `alembic upgrade head` on startup).
 #   - docker-compose.yml is delivered by the CI workflow, not git: the runner
-#     uploads it to /tmp/melora-docker-compose.yml (via `tailscale scp`); this
+#     uploads it to /tmp/melora-docker-compose.yml (via `tailscale ssh`); this
 #     script installs it into $PROJECT as root. There is NO git checkout on the
 #     server — the compose file pulls the app image from the private registry
-#     (localhost:5000 via REGISTRY_NAMESPACE) instead of building locally.
+#     (REGISTRY_HOST/REGISTRY_IMAGE via REGISTRY_NAMESPACE, served over HTTPS by
+#     the homelab caddy) instead of building locally.
 #   - No .env file: the CI workflow builds one from GitHub Secrets and pipes it
 #     on STDIN. This script writes it (0600), deploys, then removes it again so
 #     secrets never linger on disk (guaranteed by the EXIT trap).
@@ -29,7 +31,7 @@
 #      /tmp/melora-docker-compose.yml).
 #   3. Write the injected .env (0600) into $PROJECT.
 #   4. Pull the app images (image refs resolved from .env via compose).
-#   5. Recreate & start the stack (melora-fullstack, redis, db).
+#   5. Recreate & start the stack (melora-fullstack, redis).
 #   6. Health-check the API and the SPA.
 #   7. Prune old docker images, then remove the .env.
 #
@@ -85,7 +87,7 @@ log "Writing .env from CI (GitHub Secrets)..."
 umask 077
 printf '%s\n' "$INJECTED" > "$ENV_FILE"
 chmod 600 "$ENV_FILE"
-for key in REGISTRY_NAMESPACE JWT_SECRET_KEY POSTGRES_PASSWORD; do
+for key in REGISTRY_NAMESPACE MELORA_DOMAIN JWT_SECRET_KEY POSTGRES_PASSWORD; do
     grep -q "^${key}=" "$ENV_FILE" || die "required key '$key' missing from injected .env"
 done
 
