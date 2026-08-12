@@ -32,7 +32,7 @@
 #   3. Write the injected .env (0600) into $PROJECT.
 #   4. Pull the app images (image refs resolved from .env via compose).
 #   5. Recreate & start the stack (melora-fullstack, redis).
-#   6. Health-check the API and the SPA.
+#   6. Health-check the API and the SPA container-internally (no host ports).
 #   7. Prune old docker images, then remove the .env.
 #
 # NOTE: after a deploy there is deliberately no .env left in $PROJECT. The
@@ -53,7 +53,8 @@ INJECTED="$(cat)"
 PROJECT="$(printf '%s\n' "$INJECTED" | sed -n 's/^MELORA_PROJECT_DIR=//p' | tail -n1)"
 PROJECT="${PROJECT:-${MELORA_PROJECT_DIR:-/opt/melora}}"
 ENV_FILE="$PROJECT/.env"
-PORT="${MELORA_PORT:-8000}"
+# MELORA_DOMAIN is a required key (validated in step 3); used for messaging.
+MELORA_DOMAIN_VALUE="$(printf '%s\n' "$INJECTED" | sed -n 's/^MELORA_DOMAIN=//p' | tail -n1)"
 
 log()  { printf '🚀 \033[1;32m%s\033[0m\n' "$*"; }
 die()  { printf '❌ \033[1;31m%s\033[0m\n' "$*" >&2; exit 1; }
@@ -101,34 +102,36 @@ docker compose --env-file "$ENV_FILE" pull
 log "Recreating Melora stack..."
 docker compose --env-file "$ENV_FILE" up -d --remove-orphans
 
-# --- 6. Health checks ---
-API_URL="http://localhost:${PORT}/api/v1/openapi.json"
-log "Health-checking the API at $API_URL"
+# --- 6. Health checks (container-internal) ---
+# The stack publishes no host ports: the app is only reachable through the
+# caddy reverse proxy on proxy_net (MELORA_DOMAIN). So instead of curling
+# localhost:PORT, exec into the container and hit its nginx (port 80), which
+# proxies /api/v1 to the backend on localhost:8000.
+log "Health-checking the API (container-internal)..."
 API_OK=0
 for _ in $(seq 1 30); do
-    if curl -sf -o /dev/null "$API_URL"; then
+    if docker exec melora-fullstack curl -sf -o /dev/null http://localhost/api/v1/openapi.json; then
         API_OK=1
         break
     fi
     sleep 2
 done
-[ "$API_OK" = 1 ] || die "API did not become healthy at $API_URL"
+[ "$API_OK" = 1 ] || die "API did not become healthy inside melora-fullstack"
 
-SPA_URL="http://localhost:${PORT}/"
-log "Health-checking the SPA at $SPA_URL"
+log "Health-checking the SPA (container-internal)..."
 SPA_OK=0
 for _ in $(seq 1 10); do
-    if curl -sf -o /dev/null "$SPA_URL"; then
+    if docker exec melora-fullstack curl -sf -o /dev/null http://localhost/; then
         SPA_OK=1
         break
     fi
     sleep 2
 done
-[ "$SPA_OK" = 1 ] || die "SPA did not become healthy at $SPA_URL"
+[ "$SPA_OK" = 1 ] || die "SPA did not become healthy inside melora-fullstack"
 
 # --- 7. Housekeeping ---
 log "Pruning old docker images..."
 docker image prune -f >/dev/null
 
 log "Deployment completed!"
-log "App is running at http://localhost:${PORT}"
+log "App is running at https://${MELORA_DOMAIN_VALUE:-<MELORA_DOMAIN>}"
