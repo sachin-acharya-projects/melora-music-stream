@@ -1,7 +1,9 @@
 import { useAuth } from "@/hooks/useAuth"
 import { useTitle } from "@/hooks/useTitle"
+import { BUG_REPORTER_ENABLED } from "@/config"
 import {
     BarChart3,
+    Bug,
     LayoutDashboard,
     ListMusic,
     Mic2,
@@ -15,7 +17,8 @@ const NAV_ITEMS = [
     { to: "/admin/artists", end: false, label: "Artists", icon: Mic2 },
     { to: "/admin/songs", end: false, label: "Songs", icon: ListMusic },
     { to: "/admin/users", end: false, label: "Users", icon: Users },
-] as const
+    { to: "/admin/bugs", end: false, label: "Bug Reports", icon: Bug },
+].filter((item) => item.to !== "/admin/bugs" || BUG_REPORTER_ENABLED)
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const location = useLocation()

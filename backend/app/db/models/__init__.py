@@ -7,6 +7,11 @@ from app.db.models.associations import (
     user_artist_follows,
     user_follows,
 )
+from app.db.models.bug_report import (
+    BugReportModel,
+    BugReportSeverity,
+    BugReportStatus,
+)
 from app.db.models.listening_history import ListeningHistoryModel
 from app.db.models.notification import NotificationModel
 from app.db.models.playback_state import PlaybackStateModel
@@ -20,6 +25,9 @@ from app.db.models.user_stats import UserStatsModel
 __all__ = [
     "AdminSettingsModel",
     "ArtistModel",
+    "BugReportModel",
+    "BugReportSeverity",
+    "BugReportStatus",
     "ListeningHistoryModel",
     "NotificationModel",
     "PlaybackStateModel",

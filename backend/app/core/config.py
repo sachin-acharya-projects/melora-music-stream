@@ -109,6 +109,11 @@ class Settings(BaseSettings):
     FCM_NOTIFICATIONS_ENABLED: bool = False
     FCM_CREDENTIALS_FILE: str = ""
 
+    # Bug reporter - disabled unless ENABLED
+    ENABLE_BUGREPORTER: bool = False
+    BUG_REPORTS_DIR: str = "bug_reports"
+    BUG_REPORT_SCREENSHOT_MAX_MB: int = 10
+
     @property
     def media_path(self) -> Path:
         """Filesystem path of the media root directory.
@@ -128,6 +133,16 @@ class Settings(BaseSettings):
         """URL prefix for avatars, implicitly under the /media mount."""
         return f"{self.MEDIA_URL_PREFIX}/{self.AVATARS_DIR}"
 
+    @property
+    def bug_reports_dir_path(self) -> Path:
+        """Filesystem path of the bug report screenshots dir, under the media root."""
+        return self.media_path / self.BUG_REPORTS_DIR
+
+    @property
+    def bug_reports_url_prefix(self) -> str:
+        """URL prefix for bug report screenshots, under the /media mount."""
+        return f"{self.MEDIA_URL_PREFIX}/{self.BUG_REPORTS_DIR}"
+
     model_config = {
         "case_sensitive": True,
         "env_file": ".env",
@@ -142,3 +157,4 @@ Path(settings.DOWNLOADS_DIR).mkdir(parents=True, exist_ok=True)
 Path(settings.CACHE_DIR).mkdir(parents=True, exist_ok=True)
 settings.media_path.mkdir(parents=True, exist_ok=True)
 settings.avatars_dir_path.mkdir(parents=True, exist_ok=True)
+settings.bug_reports_dir_path.mkdir(parents=True, exist_ok=True)

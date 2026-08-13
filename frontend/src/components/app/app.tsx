@@ -24,7 +24,12 @@ import AdminDashboard from "@/pages/admin/AdminDashboard"
 import AdminArtists from "@/pages/admin/AdminArtists"
 import AdminSongs from "@/pages/admin/AdminSongs"
 import AdminUsers from "@/pages/admin/AdminUsers"
+import AdminBugs from "@/pages/admin/AdminBugs"
+import ReportedBugs from "@/pages/ReportedBugs"
 import AdminRoute from "@/components/admin/admin-route"
+import { BUG_REPORTER_ENABLED, API_BASE_URL } from "@/config"
+import { authService } from "@/services/auth.service"
+import { BugReporter } from "@sachin-acharya-projects/bug-reporter"
 import { useEffect } from "react"
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom"
 import { ToastContainer } from "react-toastify"
@@ -232,6 +237,16 @@ function AppContent() {
                             </ProtectedRoute>
                         }
                     />
+                    {BUG_REPORTER_ENABLED && (
+                        <Route
+                            path='/report-bugs'
+                            element={
+                                <ProtectedRoute>
+                                    <ReportedBugs />
+                                </ProtectedRoute>
+                            }
+                        />
+                    )}
                     <Route
                         path='/admin'
                         element={
@@ -264,10 +279,30 @@ function AppContent() {
                             </AdminRoute>
                         }
                     />
+                    {BUG_REPORTER_ENABLED && (
+                        <Route
+                            path='/admin/bugs'
+                            element={
+                                <AdminRoute>
+                                    <AdminBugs />
+                                </AdminRoute>
+                            }
+                        />
+                    )}
                     <Route path='*' element={<Navigate to='/' replace />} />
                 </Routes>
             </main>
             {isAuthenticated && <AudioPlayer />}
+            {isAuthenticated && BUG_REPORTER_ENABLED && (
+                <BugReporter
+                    config={{
+                        apiBaseUrl: API_BASE_URL,
+                        getAuthHeaders: () => ({
+                            Authorization: `Bearer ${authService.getAccessToken()}`,
+                        }),
+                    }}
+                />
+            )}
             <ToastContainer
                 position='bottom-right'
                 autoClose={3000}

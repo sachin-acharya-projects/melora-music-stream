@@ -1,3 +1,4 @@
+import os
 from collections.abc import Generator
 from contextlib import asynccontextmanager
 
@@ -7,6 +8,10 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
+
+# Register the bug-reporter routes for the whole test suite. Must run before
+# any app import so Settings() picks it up.
+os.environ.setdefault("ENABLE_BUGREPORTER", "true")
 
 from app.core.cache import memory_cache, rate_limiter
 from app.core.redis import get_redis

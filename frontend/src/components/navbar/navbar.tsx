@@ -1,4 +1,5 @@
 import Avatar from "@/components/ui/avatar/avatar"
+import { BUG_REPORTER_ENABLED } from "@/config"
 import { useAuth } from "@/hooks/useAuth"
 import { useUnreadCount } from "@/hooks/useNotifications"
 import { useQueueStore } from "@/hooks/useQueue"
@@ -6,6 +7,7 @@ import { useThemeStore } from "@/hooks/useTheme"
 import {
     BarChart3,
     Bell,
+    Bug,
     History,
     Home,
     ListEnd,
@@ -218,6 +220,16 @@ export default function Navbar() {
                                         <Settings className='h-4 w-4' />
                                         Notification settings
                                     </Link>
+                                    {BUG_REPORTER_ENABLED && (
+                                        <Link
+                                            to='/report-bugs'
+                                            onClick={() => setShowUserMenu(false)}
+                                            className='flex w-full items-center gap-2 px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800'
+                                        >
+                                            <Bug className='h-4 w-4' />
+                                            Reported bugs
+                                        </Link>
+                                    )}
                                     <button
                                         onClick={() => {
                                             setShowUserMenu(false)

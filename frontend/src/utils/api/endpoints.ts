@@ -86,6 +86,12 @@ export const ENDPOINTS = {
         READ_ALL: "/notifications/read-all",
         SETTINGS: "/notifications/settings",
     },
+    BUGS: {
+        BASE: "/bugs/",
+        BY_ID: (id: string) => `/bugs/${encodeURIComponent(id)}`,
+        ADMIN: "/admin/bugs",
+        ADMIN_BY_ID: (id: string) => `/admin/bugs/${encodeURIComponent(id)}`,
+    },
     ADMIN: {
         DASHBOARD: "/admin/dashboard",
         ARTISTS: "/admin/artists",

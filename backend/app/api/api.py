@@ -4,6 +4,7 @@ from app.api.endpoints import (
     admin,
     artists,
     auth,
+    bug_reports,
     cache,
     discover,
     history,
@@ -19,6 +20,7 @@ from app.api.endpoints import (
     stats,
     users,
 )
+from app.core.config import settings
 
 api_router = APIRouter()
 api_router.include_router(admin.router, prefix="/admin", tags=["Admin"])
@@ -38,3 +40,6 @@ api_router.include_router(playlists.router, prefix="/playlists", tags=["Playlist
 api_router.include_router(songs.router, prefix="/songs", tags=["Songs"])
 api_router.include_router(state.router, prefix="/state", tags=["State"])
 api_router.include_router(users.router, prefix="/users", tags=["Users"])
+if settings.ENABLE_BUGREPORTER:
+    api_router.include_router(bug_reports.router, prefix="/bugs", tags=["Bug Reports"])
+    api_router.include_router(bug_reports.admin_router, prefix="/admin/bugs", tags=["Bug Reports"])

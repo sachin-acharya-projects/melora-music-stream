@@ -5,9 +5,12 @@ RUN npm install -g pnpm@11.17.0
 
 WORKDIR /frontend
 COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml ./
+COPY libs/ /libs/
 RUN pnpm install --frozen-lockfile
 COPY frontend/ .
 ENV VITE_BASE_URL=""
+ARG VITE_ENABLE_BUGREPORTER=true
+ENV VITE_ENABLE_BUGREPORTER=$VITE_ENABLE_BUGREPORTER
 RUN pnpm build
 
 # Stage 2: Final image combining Frontend and Backend

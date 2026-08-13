@@ -25,7 +25,12 @@ DEFAULT_EVENT_SETTINGS: dict[str, dict[str, bool]] = {
         "in_app": True,
         "email": False,
         "push": False,
-    }
+    },
+    "bug_report": {
+        "in_app": True,
+        "email": True,
+        "push": False,
+    },
 }
 
 CHANNEL_KEYS = ("in_app", "email", "push")
