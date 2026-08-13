@@ -493,6 +493,112 @@ class TestRemoveSongFromPlaylist:
         assert response.status_code == 404
 
 
+class TestReorderPlaylist:
+    def _add_songs(self, client, playlist_id: str, auth_headers: dict[str, str]) -> None:
+        for song_id in ("s1", "s2", "s3"):
+            client.post(
+                f"/api/v1/playlists/{playlist_id}/add",
+                json={
+                    "id": song_id,
+                    "title": f"Song {song_id}",
+                    "uploader": "Artist",
+                    "thumbnail": "http://example.com/t.jpg",
+                },
+                headers=auth_headers,
+            )
+
+    def test_persists_custom_order(
+        self,
+        client,
+        db: Session,
+        test_user: UserModel,
+        auth_headers: dict[str, str],
+    ) -> None:
+        playlist = make_playlist(db, "Reorder", test_user)
+        self._add_songs(client, playlist.id, auth_headers)
+
+        response = client.post(
+            f"/api/v1/playlists/{playlist.id}/reorder",
+            json={"song_ids": ["s3", "s1", "s2"]},
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+
+        response = client.get(
+            f"/api/v1/playlists/{playlist.id}",
+            params={"sort_by": "position", "order": "asc"},
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        assert [s["id"] for s in response.json()["songs"]] == ["s3", "s1", "s2"]
+
+    def test_missing_song_rejected(
+        self,
+        client,
+        db: Session,
+        test_user: UserModel,
+        auth_headers: dict[str, str],
+    ) -> None:
+        playlist = make_playlist(db, "Reorder", test_user)
+        self._add_songs(client, playlist.id, auth_headers)
+
+        response = client.post(
+            f"/api/v1/playlists/{playlist.id}/reorder",
+            json={"song_ids": ["s1", "s2", "ghost"]},
+            headers=auth_headers,
+        )
+        assert response.status_code == 400
+
+    def test_duplicate_song_rejected(
+        self,
+        client,
+        db: Session,
+        test_user: UserModel,
+        auth_headers: dict[str, str],
+    ) -> None:
+        playlist = make_playlist(db, "Reorder", test_user)
+        self._add_songs(client, playlist.id, auth_headers)
+
+        response = client.post(
+            f"/api/v1/playlists/{playlist.id}/reorder",
+            json={"song_ids": ["s1", "s1", "s2"]},
+            headers=auth_headers,
+        )
+        assert response.status_code == 400
+
+    def test_non_owner_forbidden(
+        self,
+        client,
+        db: Session,
+        admin_user: UserModel,
+        auth_headers: dict[str, str],
+    ) -> None:
+        playlist = make_playlist(db, "Reorder", admin_user)
+
+        response = client.post(
+            f"/api/v1/playlists/{playlist.id}/reorder",
+            json={"song_ids": []},
+            headers=auth_headers,
+        )
+        assert response.status_code == 403
+
+
+class TestSyncPlaylist:
+    def test_sync_without_source_url_rejected(
+        self,
+        client,
+        db: Session,
+        test_user: UserModel,
+        auth_headers: dict[str, str],
+    ) -> None:
+        playlist = make_playlist(db, "No Source", test_user)
+
+        response = client.post(
+            f"/api/v1/playlists/{playlist.id}/sync", headers=auth_headers
+        )
+        assert response.status_code == 400
+
+
 class TestToggleCollaborative:
     def test_toggles(
         self,

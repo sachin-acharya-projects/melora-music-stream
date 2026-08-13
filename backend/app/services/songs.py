@@ -20,6 +20,8 @@ class SongService:
             "uploader": song.uploader,
             "thumbnail": song.thumbnail,
             "duration": song.duration,
+            "is_featured": bool(song.is_featured),
+            "is_published": bool(song.is_published),
             "created_at": song.created_at.isoformat()
             if song.created_at is not None
             else None,
@@ -62,6 +64,7 @@ class SongService:
             .filter(
                 func.lower(SongModel.uploader) == current.uploader.lower(),
                 SongModel.id != song_id,
+                SongModel.is_published.is_(True),
             )
             .order_by(SongModel.created_at.desc())
             .limit(limit)

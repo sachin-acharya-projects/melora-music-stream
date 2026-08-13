@@ -38,6 +38,7 @@ import {
     MoreHorizontal,
     Play,
     Plus,
+    RefreshCw,
     Search,
     Settings,
     Shuffle,
@@ -54,6 +55,7 @@ const ITEMS_PER_PAGE = 10
 const SEARCH_PAGE_SIZE = 500
 
 const SONG_SORT_OPTIONS: SortSelectOption[] = [
+    { value: "position:asc", label: "Manual order" },
     { value: "created_at:desc", label: "Recently added" },
     { value: "title:asc", label: "Title A–Z" },
     { value: "title:desc", label: "Title Z–A" },
@@ -83,6 +85,9 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
         deletePlaylist,
         updatePlaylist,
         isUpdating,
+        reorderPlaylist,
+        syncPlaylist,
+        isSyncing,
     } = usePlaylists()
     const followPlaylist = useFollowPlaylist()
     const toggleCollaborative = useToggleCollaborative()
@@ -92,7 +97,7 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
     const [playlistSearch, setPlaylistSearch] = useState("")
     const [debouncedSearch, setDebouncedSearch] = useState("")
     const [isPaginated, setIsPaginated] = useState(true)
-    const [playlistSort, setPlaylistSort] = useState("created_at:desc")
+    const [playlistSort, setPlaylistSort] = useState("position:asc")
     const [targetPlaylistId, setTargetPlaylistId] = useState("")
 
     const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false)
@@ -113,7 +118,7 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
     })
 
     const [playlistSortBy, playlistSortOrder] = playlistSort.split(":") as [
-        "title" | "uploader" | "duration" | "created_at",
+        "title" | "uploader" | "duration" | "created_at" | "position",
         "asc" | "desc",
     ]
     const detailOptions = {
@@ -235,18 +240,32 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
     }
 
     const handleReorder = (newSongs: Song[]) => {
-        setLocalSongs(newSongs)
+        const start = isPaginated ? (safePage - 1) * ITEMS_PER_PAGE : 0
+        const updatedSongs = [...localSongs]
+        updatedSongs.splice(start, newSongs.length, ...newSongs)
+        setLocalSongs(updatedSongs)
 
         queryClient.setQueryData<PlaylistDetail | null>(
             ["playlist", playlistId, detailOptions],
             (prev) => {
                 if (!prev) return prev
-                const updatedSongs = [...prev.songs]
-                const start = isPaginated ? (safePage - 1) * ITEMS_PER_PAGE : 0
-                updatedSongs.splice(start, newSongs.length, ...newSongs)
-                return { ...prev, songs: updatedSongs }
+                const updatedCacheSongs = [...prev.songs]
+                updatedCacheSongs.splice(start, newSongs.length, ...newSongs)
+                return { ...prev, songs: updatedCacheSongs }
             },
         )
+
+        reorderPlaylist({ playlistId, songIds: updatedSongs.map((s) => s.id) }).catch(() => {
+            // Error toast is handled by the mutation's onError.
+        })
+    }
+
+    const handleSync = async () => {
+        try {
+            await syncPlaylist(playlistId)
+        } catch {
+            // Error toast is handled by the mutation's onError.
+        }
     }
 
     const handleImportMore = async (e: React.FormEvent) => {
@@ -471,6 +490,22 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
                                 className='dark:bg-card flex h-10 cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 text-sm font-medium transition-all hover:border-red-200 dark:border-white/10 dark:text-white'
                             >
                                 <Plus className='h-4 w-4' /> Add Songs
+                            </button>
+                        )}
+
+                        {canEdit && playlist?.source_url && (
+                            <button
+                                onClick={handleSync}
+                                disabled={isSyncing}
+                                title='Fetch new songs from the source URL'
+                                className='dark:bg-card flex h-10 cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 text-sm font-medium transition-all hover:border-red-200 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:text-white'
+                            >
+                                {isSyncing ? (
+                                    <Loader2 className='h-4 w-4 animate-spin' />
+                                ) : (
+                                    <RefreshCw className='h-4 w-4' />
+                                )}
+                                Sync
                             </button>
                         )}
 

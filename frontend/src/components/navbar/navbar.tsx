@@ -15,6 +15,7 @@ import {
     Plus,
     Radio as RadioIcon,
     Settings,
+    Shield,
     Sun,
     User,
     LogOut,
@@ -191,6 +192,16 @@ export default function Navbar() {
                                     </p>
                                 </div>
                                 <div className='py-1'>
+                                    {user?.role === "admin" && (
+                                        <Link
+                                            to='/admin'
+                                            onClick={() => setShowUserMenu(false)}
+                                            className='flex w-full items-center gap-2 px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800'
+                                        >
+                                            <Shield className='h-4 w-4' />
+                                            Admin dashboard
+                                        </Link>
+                                    )}
                                     <Link
                                         to='/profile'
                                         onClick={() => setShowUserMenu(false)}

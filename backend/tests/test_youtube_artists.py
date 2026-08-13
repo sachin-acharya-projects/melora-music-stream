@@ -354,7 +354,7 @@ def test_import_rejects_invalid_channel_id(db: Session) -> None:
 
 
 def test_youtube_search_endpoint(
-    client, db: Session, auth_headers: dict[str, str], monkeypatch
+    client, db: Session, admin_headers: dict[str, str], monkeypatch
 ) -> None:
     ArtistService.get_or_create_artist(db, "Daft Punk", youtube_channel_id=CHANNEL_ONE)
     monkeypatch.setattr(
@@ -364,7 +364,7 @@ def test_youtube_search_endpoint(
     )
 
     response = client.get(
-        "/api/v1/artists/youtube/search?q=daft+punk", headers=auth_headers
+        "/api/v1/artists/youtube/search?q=daft+punk", headers=admin_headers
     )
     assert response.status_code == 200
     data = response.json()
@@ -373,7 +373,34 @@ def test_youtube_search_endpoint(
     assert data["items"][0]["is_in_library"] is True
 
 
+def test_youtube_search_requires_admin(client, auth_headers: dict[str, str]) -> None:
+    response = client.get(
+        "/api/v1/artists/youtube/search?q=daft+punk", headers=auth_headers
+    )
+    assert response.status_code == 403
+
+
 def test_youtube_import_endpoint(
+    client, db: Session, admin_headers: dict[str, str], monkeypatch
+) -> None:
+    monkeypatch.setattr(
+        youtube_service,
+        "get_channel_uploads",
+        lambda channel_id, limit=20: [],
+    )
+
+    response = client.post(
+        "/api/v1/artists/youtube/import",
+        headers=admin_headers,
+        json={"channel_id": CHANNEL_ONE, "name": "Daft Punk", "thumbnail": None},
+    )
+    assert response.status_code == 200
+    assert response.json()["slug"] == "daft-punk"
+    artist = db.query(ArtistModel).filter(ArtistModel.slug == "daft-punk").first()
+    assert artist is not None
+
+
+def test_youtube_import_requires_admin(
     client, db: Session, auth_headers: dict[str, str], monkeypatch
 ) -> None:
     monkeypatch.setattr(
@@ -387,10 +414,7 @@ def test_youtube_import_endpoint(
         headers=auth_headers,
         json={"channel_id": CHANNEL_ONE, "name": "Daft Punk", "thumbnail": None},
     )
-    assert response.status_code == 200
-    assert response.json()["slug"] == "daft-punk"
-    artist = db.query(ArtistModel).filter(ArtistModel.slug == "daft-punk").first()
-    assert artist is not None
+    assert response.status_code == 403
 
 
 def test_get_artist_songs_merges_channel_uploads_and_library(

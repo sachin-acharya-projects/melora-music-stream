@@ -36,6 +36,28 @@ class ArtistEnricher:
             return []
 
     @staticmethod
+    def artist_genres(musicbrainz_id: str) -> list[str]:
+        """Fetch genre tags for a MusicBrainz artist via a lookup call.
+
+        The search endpoint's artist dicts never include ``genres``; they are
+        only returned by a lookup with ``inc=genres``.
+        """
+        try:
+            response = httpx.get(
+                f"{MUSICBRAINZ_API}/{musicbrainz_id}",
+                params={"fmt": "json", "inc": "genres"},
+                headers=HEADERS,
+                timeout=10,
+            )
+            response.raise_for_status()
+            data = response.json()
+        except (httpx.HTTPError, ValueError):
+            logger.warning("MusicBrainz lookup failed for %s", musicbrainz_id)
+            return []
+        genres = [g.get("name") for g in data.get("genres", []) if g.get("name")]
+        return genres[:10]
+
+    @staticmethod
     def enrich(name: str) -> dict[str, Any] | None:
         """Look up an artist and return fields to merge into the ArtistModel."""
         results = ArtistEnricher.search(name, limit=1)
@@ -45,7 +67,7 @@ class ArtistEnricher:
         fields: dict[str, Any] = {"external_ids": {"musicbrainz_id": best.get("id")}}
         if best.get("disambiguation"):
             fields["bio"] = best["disambiguation"]
-        genres = [g.get("name") for g in best.get("genres", []) if g.get("name")]
+        genres = ArtistEnricher.artist_genres(best["id"])
         if genres:
-            fields["genres"] = genres[:10]
+            fields["genres"] = genres
         return fields

@@ -1,5 +1,8 @@
 from sqlalchemy.orm import Session
 
+import pytest
+from fastapi import HTTPException
+
 from app.db.models.playlist import PlaylistModel
 from app.db.models.user import UserModel
 from app.schemas.song import PlaylistImport
@@ -93,3 +96,61 @@ class TestImportPlaylist:
 
         db.refresh(playlist)
         assert len(playlist.songs) == 2
+
+
+class TestSyncPlaylist:
+    def test_sync_requires_source_url(self, db: Session, test_user: UserModel) -> None:
+        playlist = PlaylistModel(name="Mix", user_id=test_user.id)
+        db.add(playlist)
+        db.commit()
+        db.refresh(playlist)
+
+        with pytest.raises(HTTPException) as exc:
+            PlaylistImportService.sync_playlist(
+                db, playlist_id=playlist.id, user=test_user
+            )
+        assert exc.value.status_code == 400
+
+    def test_sync_adds_new_songs_from_source(
+        self, db: Session, test_user: UserModel, monkeypatch
+    ) -> None:
+        playlist = PlaylistModel(
+            name="Mix",
+            user_id=test_user.id,
+            source_url="https://youtube.com/playlist?list=abc",
+        )
+        db.add(playlist)
+        db.commit()
+        db.refresh(playlist)
+
+        monkeypatch.setattr(
+            youtube_service,
+            "extract_playlist_info",
+            lambda url: [_entry("song-1", "One"), _entry("song-2", "Two")],
+        )
+
+        result = PlaylistImportService.sync_playlist(
+            db, playlist_id=playlist.id, user=test_user
+        )
+        assert result["count"] == 2
+
+        db.refresh(playlist)
+        assert len(playlist.songs) == 2
+
+    def test_import_records_source_url(
+        self, db: Session, test_user: UserModel, monkeypatch
+    ) -> None:
+        monkeypatch.setattr(
+            youtube_service,
+            "extract_playlist_info",
+            lambda url: [_entry("song-1", "One")],
+        )
+
+        PlaylistImportService.import_playlist(
+            db,
+            PlaylistImport(url="https://youtube.com/playlist?list=abc", name="Mix"),
+            test_user,
+        )
+        playlist = db.query(PlaylistModel).filter(PlaylistModel.name == "Mix").first()
+        assert playlist is not None
+        assert playlist.source_url == "https://youtube.com/playlist?list=abc"

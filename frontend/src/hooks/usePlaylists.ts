@@ -122,6 +122,30 @@ export function usePlaylists(options: PlaylistSortOptions = {}) {
         onError: () => toast.error("Failed to remove some songs"),
     })
 
+    const reorderPlaylistMutation = useMutation({
+        mutationFn: ({ playlistId, songIds }: { playlistId: string; songIds: string[] }) =>
+            playlistService.reorder(playlistId, songIds),
+        onSuccess: (_data, { playlistId }) => {
+            queryClient.invalidateQueries({ queryKey: ["playlists"] })
+            queryClient.invalidateQueries({ queryKey: ["playlist", playlistId] })
+        },
+        onError: () => toast.error("Failed to save playlist order"),
+    })
+
+    const syncPlaylistMutation = useMutation({
+        mutationFn: (playlistId: string) => playlistService.sync(playlistId),
+        onSuccess: (result, playlistId) => {
+            queryClient.invalidateQueries({ queryKey: ["playlists"] })
+            queryClient.invalidateQueries({ queryKey: ["playlist", playlistId] })
+            if (result.count > 0) {
+                toast.success(`Synced ${result.count} new ${result.count === 1 ? "song" : "songs"}`)
+            } else {
+                toast.success("Playlist is up to date")
+            }
+        },
+        onError: () => toast.error("Failed to sync playlist"),
+    })
+
     return {
         playlists: playlistsQuery.data || [],
         isLoading: playlistsQuery.isLoading,
@@ -144,6 +168,10 @@ export function usePlaylists(options: PlaylistSortOptions = {}) {
         isUpdating: updatePlaylistMutation.isPending,
         removeSongs: removeSongsMutation.mutate,
         isRemoving: removeSongsMutation.isPending,
+        reorderPlaylist: reorderPlaylistMutation.mutateAsync,
+        isReordering: reorderPlaylistMutation.isPending,
+        syncPlaylist: syncPlaylistMutation.mutateAsync,
+        isSyncing: syncPlaylistMutation.isPending,
     }
 }
 

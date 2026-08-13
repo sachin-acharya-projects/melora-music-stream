@@ -8,6 +8,7 @@ from app.db.models.playlist import PlaylistModel
 from app.db.models.song import SongModel
 from app.db.models.user import UserModel
 from app.schemas.song import PlaylistImport, Song
+from app.services.playlists import PlaylistService
 from app.services.youtube import youtube_service
 
 
@@ -22,6 +23,8 @@ class PlaylistImportService:
         db_playlist = PlaylistImportService._get_or_create_playlist_for_import(
             db, data, user
         )
+        db_playlist.source_url = data.url
+        db.flush()
 
         songs_data = youtube_service.extract_playlist_info(data.url)
         # De-duplicate by video id (YouTube playlists may repeat videos) and skip
@@ -65,7 +68,7 @@ class PlaylistImportService:
                     )
                     db.add(db_song)
                     existing_songs[song.id] = db_song
-                db_playlist.songs.append(db_song)
+                PlaylistService.append_song(db, db_playlist, db_song)
             db.commit()
 
         return {
@@ -73,6 +76,28 @@ class PlaylistImportService:
             "count": len(new_songs),
             "playlist_id": db_playlist.id,
         }
+
+    @staticmethod
+    def sync_playlist(db: Session, *, playlist_id: str, user: UserModel) -> dict[str, Any]:
+        """Re-import from a playlist's stored source URL, adding new songs."""
+        db_playlist = (
+            db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id).first()
+        )
+        if db_playlist is None:
+            raise HTTPException(status_code=404, detail=Messages.PLAYLIST_NOT_FOUND)
+
+        PlaylistImportService._ensure_owner(db_playlist, user)
+
+        if not db_playlist.source_url:
+            raise HTTPException(
+                status_code=400, detail=Messages.PLAYLIST_SOURCE_URL_NOT_SET
+            )
+
+        return PlaylistImportService.import_playlist(
+            db,
+            PlaylistImport(url=db_playlist.source_url, id=playlist_id),
+            user,
+        )
 
     @staticmethod
     def _get_or_create_playlist_for_import(

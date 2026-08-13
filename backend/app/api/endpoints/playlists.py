@@ -7,6 +7,7 @@ from app.schemas.song import (
     CollaboratorCreate,
     PlaylistCreate,
     PlaylistImport,
+    PlaylistReorder,
     PlaylistUpdate,
     Song,
 )
@@ -81,7 +82,7 @@ def get_playlist(
     user: OptionalUser,
     q: Annotated[str | None, Query()] = None,
     sort_by: Annotated[
-        str, Query(pattern="^(title|uploader|duration|created_at)$")
+        str, Query(pattern="^(title|uploader|duration|created_at|position)$")
     ] = "created_at",
     order: Annotated[str, Query(pattern="^(asc|desc)$")] = "desc",
     page: Annotated[int, Query(ge=1)] = 1,
@@ -209,3 +210,21 @@ def import_playlist(
     data: PlaylistImport, db: SessionDep, user: CurrentUser
 ) -> dict[str, Any]:
     return PlaylistImportService.import_playlist(db, data, user)
+
+
+@router.post("/{playlist_id}/sync")
+def sync_playlist(
+    playlist_id: str, db: SessionDep, user: CurrentUser
+) -> dict[str, Any]:
+    return PlaylistImportService.sync_playlist(
+        db, playlist_id=playlist_id, user=user
+    )
+
+
+@router.post("/{playlist_id}/reorder")
+def reorder_playlist_songs(
+    playlist_id: str, data: PlaylistReorder, db: SessionDep, user: CurrentUser
+) -> dict[str, Any]:
+    return PlaylistService.reorder_songs(
+        db, playlist_id=playlist_id, song_ids=data.song_ids, user=user
+    )

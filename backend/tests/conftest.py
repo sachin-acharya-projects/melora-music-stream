@@ -15,6 +15,7 @@ from app.db.models.user import UserModel, UserRole
 from app.main import app
 from app.services.artist import _SUGGESTIONS_CACHE, ArtistService
 from app.services.auth import AuthService
+from app.services.genres import GenreService
 
 
 @pytest.fixture(name="db")
@@ -127,6 +128,16 @@ def offline_artist_discovery(monkeypatch: pytest.MonkeyPatch) -> None:
         ArtistService,
         "_discover_related_artists",
         lambda db, user_id: [],
+    )
+
+
+@pytest.fixture(autouse=True)
+def offline_genre_resolution(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Disable MusicBrainz genre lookups; individual tests may re-patch."""
+    monkeypatch.setattr(
+        GenreService,
+        "_resolve_musicbrainz",
+        staticmethod(lambda name: []),
     )
 
 

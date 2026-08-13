@@ -5,6 +5,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.messages import Messages
+from app.db.models.associations import playlist_song
 from app.db.models.playlist import PlaylistModel
 from app.db.models.playlist_share import PlaylistShareModel
 from app.db.models.song import SongModel
@@ -87,9 +88,9 @@ class PlaylistShareService:
 
         songs = (
             db.query(SongModel)
-            .join(PlaylistModel.songs)
-            .filter(PlaylistModel.id == db_playlist.id)
-            .order_by(SongModel.created_at)
+            .join(playlist_song, playlist_song.c.song_id == SongModel.id)
+            .filter(playlist_song.c.playlist_id == db_playlist.id)
+            .order_by(playlist_song.c.position)
             .all()
         )
 

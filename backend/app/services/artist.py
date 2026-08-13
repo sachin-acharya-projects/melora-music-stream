@@ -19,7 +19,7 @@ from app.db.models.artist import ArtistModel
 from app.db.models.associations import song_artist, user_artist_follows
 from app.db.models.listening_history import ListeningHistoryModel
 from app.db.models.song import SongModel
-from app.db.models.user import UserModel
+from app.db.models.user import UserModel, UserRole
 from app.schemas.song import Song
 from app.services.metadata_enrichment import ArtistEnricher
 from app.services.songs import SongService
@@ -202,6 +202,11 @@ class ArtistService:
         }
 
     @staticmethod
+    def _published_filter() -> ColumnElement[bool]:
+        """SQL predicate for content admins have published to the catalog."""
+        return ArtistModel.is_published.is_(True)
+
+    @staticmethod
     def serialize(
         artist: ArtistModel, *, current_user_id: str | None
     ) -> dict[str, Any]:
@@ -220,6 +225,8 @@ class ArtistService:
             "is_from_youtube": bool(
                 (artist.external_ids or {}).get("youtube_channel_id")
             ),
+            "is_featured": bool(artist.is_featured),
+            "is_published": bool(artist.is_published),
             "more_info": ArtistService._more_info(artist),
         }
 
@@ -247,6 +254,7 @@ class ArtistService:
             )
         query = db.query(ArtistModel)
         query = query.filter(ArtistService._registered_filter(db, user.id))
+        query = query.filter(ArtistService._published_filter())
         query = ArtistService._apply_source_filter(query, source)
         if search:
             query = query.filter(ArtistModel.name.ilike(f"%{search}%"))
@@ -295,7 +303,8 @@ class ArtistService:
         top = StatsService.get_stats(db, user_id=user.id)["top_artists"]
         names = [entry["name"] for entry in top]
         artists_query = db.query(ArtistModel).filter(
-            func.lower(ArtistModel.name).in_([n.lower() for n in names])
+            func.lower(ArtistModel.name).in_([n.lower() for n in names]),
+            ArtistModel.is_published.is_(True),
         )
         artists_query = ArtistService._apply_source_filter(artists_query, source)
         artists_by_name = {
@@ -337,7 +346,7 @@ class ArtistService:
         query = (
             db.query(ArtistModel)
             .join(ArtistModel.followers)
-            .filter(UserModel.id == user.id)
+            .filter(UserModel.id == user.id, ArtistModel.is_published.is_(True))
         )
         query = ArtistService._apply_source_filter(query, source)
         if search:
@@ -382,7 +391,10 @@ class ArtistService:
 
         popular = (
             db.query(ArtistModel)
-            .filter(ArtistService._registered_filter(db, user.id))
+            .filter(
+                ArtistService._registered_filter(db, user.id),
+                ArtistModel.is_published.is_(True),
+            )
             .order_by(
                 ArtistModel.monthly_listeners.desc().nulls_last(),
                 ArtistModel.id,
@@ -402,7 +414,8 @@ class ArtistService:
                 (artist.name or "").lower(): artist
                 for artist in db.query(ArtistModel)
                 .filter(
-                    func.lower(ArtistModel.name).in_([name.lower() for name in names])
+                    func.lower(ArtistModel.name).in_([name.lower() for name in names]),
+                    ArtistModel.is_published.is_(True),
                 )
                 .all()
             }
@@ -421,7 +434,10 @@ class ArtistService:
 
         most_followed = (
             db.query(ArtistModel)
-            .filter(ArtistService._registered_filter(db, user.id))
+            .filter(
+                ArtistService._registered_filter(db, user.id),
+                ArtistModel.is_published.is_(True),
+            )
             .order_by(ArtistModel.follower_count.desc(), ArtistModel.id)
             .limit(settings.ARTIST_FEATURED_SECTION_LIMIT)
             .all()
@@ -430,7 +446,10 @@ class ArtistService:
 
         recent = (
             db.query(ArtistModel)
-            .filter(ArtistService._registered_filter(db, user.id))
+            .filter(
+                ArtistService._registered_filter(db, user.id),
+                ArtistModel.is_published.is_(True),
+            )
             .order_by(ArtistModel.created_at.desc(), ArtistModel.id)
             .limit(settings.ARTIST_FEATURED_SECTION_LIMIT)
             .all()
@@ -620,7 +639,11 @@ class ArtistService:
         known_ids = played_artist_ids | followed_artist_ids
 
         scored: list[tuple[int, int, ArtistModel, str]] = []
-        for artist in db.query(ArtistModel).all():
+        for artist in (
+            db.query(ArtistModel)
+            .filter(ArtistModel.is_published.is_(True))
+            .all()
+        ):
             if artist.id in known_ids:
                 continue
             overlaps = [
@@ -660,7 +683,7 @@ class ArtistService:
     @staticmethod
     def _song_dicts(artist: ArtistModel) -> list[dict[str, Any]]:
         songs = sorted(
-            artist.songs,
+            (song for song in artist.songs if song.is_published),
             key=lambda s: s.created_at.isoformat() if s.created_at else "",
             reverse=True,
         )
@@ -898,6 +921,8 @@ class ArtistService:
     ) -> dict[str, Any]:
         db_artist = db.query(ArtistModel).filter(ArtistModel.slug == slug).first()
         if db_artist is None:
+            raise HTTPException(status_code=404, detail=Messages.ARTIST_NOT_FOUND)
+        if not db_artist.is_published and (user is None or user.role != UserRole.ADMIN):
             raise HTTPException(status_code=404, detail=Messages.ARTIST_NOT_FOUND)
 
         if enrich:

@@ -12,7 +12,7 @@ import { http } from "@/utils/api/http"
 import { API_LIMITS } from "@/utils/constants"
 
 export interface PlaylistSortOptions {
-    sort_by?: "name" | "created_at" | "title" | "uploader" | "duration"
+    sort_by?: "name" | "created_at" | "title" | "uploader" | "duration" | "position"
     order?: "asc" | "desc"
     q?: string
     page?: number
@@ -132,6 +132,15 @@ export const playlistService = {
 
     import: async (payload: { url: string; name?: string; id?: string }): Promise<void> => {
         await http.post(ENDPOINTS.PLAYLISTS.IMPORT, payload)
+    },
+
+    sync: async (playlistId: string): Promise<{ count: number }> => {
+        const { data } = await http.post<{ count: number }>(ENDPOINTS.PLAYLISTS.SYNC(playlistId))
+        return data
+    },
+
+    reorder: async (playlistId: string, songIds: string[]): Promise<void> => {
+        await http.post(ENDPOINTS.PLAYLISTS.REORDER(playlistId), { song_ids: songIds })
     },
 
     createShareLink: async (playlistId: string): Promise<string> => {

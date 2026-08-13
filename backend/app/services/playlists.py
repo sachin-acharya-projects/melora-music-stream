@@ -1,10 +1,11 @@
 from typing import Any
 
 from fastapi import HTTPException
-from sqlalchemy import asc, desc, func
+from sqlalchemy import asc, desc, func, select, update
 from sqlalchemy.orm import Query, Session, contains_eager
 
 from app.core.messages import Messages
+from app.db.models.associations import playlist_song
 from app.db.models.playlist import (
     CollaboratorRole,
     PlaylistCollaboratorModel,
@@ -126,11 +127,19 @@ class PlaylistService:
 
         PlaylistService._ensure_can_view(db_playlist, user)
 
-        songs_query = (
-            db.query(SongModel)
-            .join(PlaylistModel.songs)
-            .filter(PlaylistModel.id == playlist_id)
-        )
+        if sort_by == "position":
+            songs_query = (
+                db.query(SongModel)
+                .join(playlist_song, playlist_song.c.song_id == SongModel.id)
+                .filter(playlist_song.c.playlist_id == playlist_id)
+            )
+        else:
+            songs_query = (
+                db.query(SongModel)
+                .join(PlaylistModel.songs)
+                .filter(PlaylistModel.id == playlist_id)
+            )
+            sort_col = getattr(SongModel, sort_by, None)
 
         if search_query:
             songs_query = songs_query.filter(
@@ -138,12 +147,14 @@ class PlaylistService:
                 | (SongModel.uploader.ilike(f"%{search_query}%"))
             )
 
-        sort_col = getattr(SongModel, sort_by)
         order_func = asc if order == "asc" else desc
         total = songs_query.count()
+        if sort_by == "position":
+            songs_query = songs_query.order_by(order_func(playlist_song.c.position))
+        else:
+            songs_query = songs_query.order_by(order_func(sort_col))
         songs = (
-            songs_query.order_by(order_func(sort_col))
-            .offset((page - 1) * page_size)
+            songs_query.offset((page - 1) * page_size)
             .limit(page_size)
             .all()
         )
@@ -441,7 +452,7 @@ class PlaylistService:
 
         song_ids = [str(s.id) for s in db_playlist.songs]
         if str(db_song.id) not in song_ids:
-            db_playlist.songs.append(db_song)
+            PlaylistService.append_song(db, db_playlist, db_song)
             db.commit()
             return {"message": "Song added", "playlist_id": db_playlist.id}
 
@@ -466,7 +477,7 @@ class PlaylistService:
         for song in songs:
             db_song = SongService.upsert_song(db, song)
             if str(db_song.id) not in current_song_ids:
-                db_playlist.songs.append(db_song)
+                PlaylistService.append_song(db, db_playlist, db_song)
                 current_song_ids.add(str(db_song.id))
                 added_count += 1
 
@@ -476,6 +487,69 @@ class PlaylistService:
             "playlist_id": db_playlist.id,
             "count": added_count,
         }
+
+    @staticmethod
+    def reorder_songs(
+        db: Session,
+        *,
+        playlist_id: str,
+        song_ids: list[str],
+        user: UserModel,
+    ) -> dict[str, Any]:
+        """Persist a custom ordering for a playlist's songs. Owner/admin/editor only."""
+        db_playlist = (
+            db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id).first()
+        )
+        if db_playlist is None:
+            raise HTTPException(status_code=404, detail=Messages.PLAYLIST_NOT_FOUND)
+
+        PlaylistService._ensure_can_edit(db_playlist, user)
+
+        if len(song_ids) != len(set(song_ids)):
+            raise HTTPException(
+                status_code=400, detail=Messages.PLAYLIST_ORDER_HAS_DUPLICATES
+            )
+
+        current_ids = {str(s.id) for s in db_playlist.songs}
+        if set(song_ids) != current_ids:
+            raise HTTPException(
+                status_code=400,
+                detail=Messages.PLAYLIST_ORDER_MUST_MATCH_ALL_SONGS,
+            )
+
+        for position, song_id in enumerate(song_ids):
+            db.execute(
+                update(playlist_song)
+                .where(
+                    playlist_song.c.playlist_id == playlist_id,
+                    playlist_song.c.song_id == song_id,
+                )
+                .values(position=position)
+            )
+        db.commit()
+        return {"message": "Playlist reordered", "count": len(song_ids)}
+
+    @staticmethod
+    def append_song(
+        db: Session, db_playlist: PlaylistModel, db_song: SongModel
+    ) -> None:
+        """Append a song to the end of a playlist's custom ordering."""
+        max_position = db.scalar(
+            select(func.max(playlist_song.c.position)).where(
+                playlist_song.c.playlist_id == db_playlist.id
+            )
+        )
+        next_position = (max_position if max_position is not None else -1) + 1
+        db_playlist.songs.append(db_song)
+        db.flush()
+        db.execute(
+            update(playlist_song)
+            .where(
+                playlist_song.c.playlist_id == db_playlist.id,
+                playlist_song.c.song_id == db_song.id,
+            )
+            .values(position=next_position)
+        )
 
     @staticmethod
     def remove_song_from_playlist(
@@ -604,6 +678,7 @@ class PlaylistService:
             "visibility": playlist.visibility,
             "description": playlist.description,
             "cover_image_url": playlist.cover_image_url,
+            "source_url": playlist.source_url,
             "follower_count": playlist.follower_count or 0,
             "is_collaborative": playlist.is_collaborative or False,
             "is_owner": is_owner,

@@ -1,4 +1,5 @@
 import { MiniPlayer } from "@/components/audio-player/mini-player"
+import { useMediaSession } from "@/hooks/useMediaSession"
 import { usePlayerStore } from "@/hooks/usePlayer"
 import { useStreaming } from "@/hooks/useStreaming"
 import { useRecordListen, useUpdatePlayDuration } from "@/hooks/useHistory"
@@ -41,6 +42,8 @@ export default function AudioPlayer() {
     const [isBuffering, setIsBuffering] = useState(false)
     const recordListen = useRecordListen()
     const updatePlayDuration = useUpdatePlayDuration()
+
+    useMediaSession()
 
     // The useMutation result is a fresh object every render; keep a stable ref
     // to its mutate function so the listen effect below only reacts to
@@ -218,6 +221,8 @@ export default function AudioPlayer() {
                 onEnded={handleEnded}
                 onWaiting={() => setIsBuffering(true)}
                 onCanPlay={() => setIsBuffering(false)}
+                onPlay={() => setPlaying(true)}
+                onPause={() => setPlaying(false)}
             />
 
             <AnimatePresence>
