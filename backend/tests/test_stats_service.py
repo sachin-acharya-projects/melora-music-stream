@@ -88,3 +88,34 @@ class TestStatsService:
             == "vid1"
         )
         assert StatsService.get_genres(db, user_id=test_user.id) == []
+
+    def test_genres_resolved_from_uploader(
+        self,
+        db: Session,
+        test_user: UserModel,
+        monkeypatch,
+    ) -> None:
+        record(db, test_user.id, "vid1", "Coldplay", 60)
+        record(db, test_user.id, "vid1", "Coldplay", 30)
+
+        monkeypatch.setattr(
+            "app.services.stats.GenreService.resolve_artist_genres",
+            lambda db, name: ["rock", "pop"] if name.lower() == "coldplay" else [],
+        )
+
+        stats = StatsService.get_stats(db, user_id=test_user.id)
+        assert stats["top_artists"] == [{"name": "Coldplay", "plays": 2}]
+        assert {g["name"] for g in stats["genres"]} == {"rock", "pop"}
+        assert {g["plays"] for g in stats["genres"]} == {2}
+
+    def test_genres_scaled_by_plays(self, db: Session, test_user: UserModel) -> None:
+        make_artist(db, "Radiohead", ["rock"])
+        db_song = SongService.upsert_song(
+            db, Song(id="vid1", title="Creep", uploader="Radiohead", thumbnail="")
+        )
+        ArtistService.sync_song_artists(db, db_song)
+        record(db, test_user.id, "vid1", "Radiohead", 60)
+        record(db, test_user.id, "vid1", "Radiohead", 60)
+
+        stats = StatsService.get_stats(db, user_id=test_user.id)
+        assert stats["genres"] == [{"name": "rock", "plays": 2}]

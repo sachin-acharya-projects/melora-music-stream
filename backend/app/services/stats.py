@@ -8,6 +8,7 @@ from app.core.config import settings
 from app.db.models.listening_history import ListeningHistoryModel
 from app.db.models.song import SongModel
 from app.db.models.user_stats import UserStatsModel
+from app.services.genres import GenreService
 
 
 class StatsService:
@@ -112,20 +113,29 @@ class StatsService:
             )
 
         artist_plays: Counter[str] = Counter()
-        genre_plays: Counter[str] = Counter()
         for entry in entries:
             song = songs.get(entry.song_id or "")
             if song is None:
                 continue
-            for artist in song.artists:
-                artist_plays[artist.name] += 1
-                for genre in artist.genres or []:
-                    genre_plays[genre] += 1
-            if song.uploader and not song.artists:
-                artist_plays[song.uploader] += 1
+            names = [artist.name for artist in song.artists]
+            if not names and song.uploader:
+                names = [song.uploader]
+            for name in names:
+                artist_plays[name] += 1
         top_artists = [
-            {"name": name, "plays": count} for name, count in artist_plays.most_common()
+            {"name": name, "plays": count}
+            for name, count in artist_plays.most_common()
         ]
+
+        # Genres are resolved once per artist (not per play) and only for the
+        # most-played artists, so MusicBrainz lookups stay cheap and cached.
+        genres_by_artist: dict[str, list[str]] = {}
+        for name, _plays in artist_plays.most_common(settings.STATS_GENRES_MAX_ARTISTS):
+            genres_by_artist[name] = GenreService.resolve_artist_genres(db, name)
+        genre_plays: Counter[str] = Counter()
+        for name, plays in artist_plays.items():
+            for genre in genres_by_artist.get(name, []):
+                genre_plays[genre] += plays
         genres = [
             {"name": name, "plays": count} for name, count in genre_plays.most_common()
         ]
