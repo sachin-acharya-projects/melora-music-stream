@@ -1,5 +1,9 @@
 import { API_BASE_URL } from "@/config"
-import { type LyricsResponse, type Song } from "@/types"
+import {
+    type LyricsResponse,
+    type SearchResults,
+    type Song,
+} from "@/types"
 import { ENDPOINTS } from "@/utils/api/endpoints"
 import { http } from "@/utils/api/http"
 import { API_LIMITS } from "@/utils/constants"
@@ -11,21 +15,41 @@ export interface UserState {
     last_playlist_id: string | null
 }
 
-export interface SearchResponse {
-    songs: Song[]
-    cached: boolean
+const EMPTY_SEARCH: SearchResults = {
+    top_result: null,
+    artists: [],
+    songs: [],
+    albums: [],
+    playlists: [],
+    videos: [],
+    cached: false,
 }
 
 export const apiService = {
-    search: async (q: string): Promise<SearchResponse> => {
-        if (!q) return { songs: [], cached: false }
-        const { data, headers } = await http.get<Song[]>(ENDPOINTS.SEARCH, {
+    search: async (q: string): Promise<SearchResults> => {
+        if (!q) return { ...EMPTY_SEARCH }
+        const { data, headers } = await http.get<SearchResults>(ENDPOINTS.SEARCH, {
             params: { q },
         })
         return {
-            songs: data,
+            ...data,
             cached: headers["x-cache-status"] === "HIT",
         }
+    },
+
+    getSearchSuggestions: async (q: string): Promise<string[]> => {
+        if (!q.trim()) return []
+        const { data } = await http.get<string[]>(ENDPOINTS.SEARCH_SUGGESTIONS, {
+            params: { q },
+        })
+        return data
+    },
+
+    getSearchTracks: async (playlistId: string): Promise<Song[]> => {
+        const { data } = await http.get<Song[]>(ENDPOINTS.SEARCH_TRACKS, {
+            params: { playlist_id: playlistId },
+        })
+        return data
     },
 
     invalidateCache: async (scope: "search" | "stream", key: string): Promise<void> => {

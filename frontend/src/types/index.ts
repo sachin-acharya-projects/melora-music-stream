@@ -7,6 +7,53 @@ export interface Song {
     created_at: string
 }
 
+export type SearchResultType = "song" | "video" | "artist" | "album" | "playlist"
+
+export interface SearchArtistItem {
+    id: string | null
+    name: string
+    thumbnail: string
+}
+
+export interface SearchAlbumItem {
+    id: string | null
+    title: string
+    artists: string[]
+    year: number | null
+    thumbnail: string
+    audio_playlist_id: string | null
+}
+
+export interface SearchPlaylistItem {
+    id: string | null
+    title: string
+    thumbnail: string
+    song_count: number | null
+}
+
+export interface SearchTopResult {
+    type: SearchResultType
+    id?: string
+    name?: string
+    title?: string
+    uploader?: string
+    thumbnail?: string
+    duration?: number
+    artists?: string[]
+    year?: number | null
+    audio_playlist_id?: string | null
+}
+
+export interface SearchResults {
+    top_result: SearchTopResult | null
+    artists: SearchArtistItem[]
+    songs: Song[]
+    albums: SearchAlbumItem[]
+    playlists: SearchPlaylistItem[]
+    videos: Song[]
+    cached: boolean
+}
+
 export type PlaylistVisibility = "public" | "private"
 
 export interface Playlist {
@@ -17,6 +64,7 @@ export interface Playlist {
     visibility?: PlaylistVisibility
     description?: string | null
     cover_image_url?: string | null
+    source_url?: string | null
     follower_count?: number
     is_owner?: boolean
     is_following?: boolean
@@ -223,3 +271,68 @@ export type NotificationEventSettings = Record<
     string,
     Record<NotificationChannel, boolean>
 >
+
+export interface AdminArtist extends Artist {
+    is_featured: boolean
+    is_published: boolean
+}
+
+export interface AdminSong extends Omit<Song, "created_at"> {
+    is_featured: boolean
+    is_published: boolean
+    created_at: string | null
+}
+
+export interface AdminUser {
+    id: string
+    email: string
+    username: string
+    display_name: string | null
+    avatar_url: string | null
+    role: string
+    is_active: boolean
+    created_at: string | null
+}
+
+export interface AdminDashboard {
+    artists_total: number
+    artists_published: number
+    artists_hidden: number
+    artists_featured: number
+    songs_total: number
+    songs_published: number
+    songs_hidden: number
+    songs_featured: number
+    users_total: number
+    active_users: number
+    total_plays: number
+    plays_last_30_days: number
+}
+
+export interface AdminListResponse<T> {
+    total: number
+    items: T[]
+}
+
+export interface BatchImportItemResult {
+    input: string
+    status: "imported" | "already_exists" | "failed"
+    name?: string
+    channel_id?: string
+    message?: string
+}
+
+export interface BatchImportResponse {
+    total: number
+    imported: number
+    already_exists: number
+    failed: number
+    items: BatchImportItemResult[]
+}
+
+export interface PlaylistImportResponse {
+    total: number
+    imported: number
+    skipped_existing: number
+    failed: number
+}

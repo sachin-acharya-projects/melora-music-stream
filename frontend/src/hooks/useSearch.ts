@@ -1,4 +1,5 @@
-import { apiService, type SearchResponse } from "@/services/api.service"
+import { apiService } from "@/services/api.service"
+import { type SearchResults } from "@/types"
 import { useQuery } from "@tanstack/react-query"
 
 export function useSearch(query: string) {
@@ -10,4 +11,13 @@ export function useSearch(query: string) {
     })
 }
 
-export type { SearchResponse }
+export function useSearchSuggestions(query: string) {
+    return useQuery({
+        queryKey: ["search", "suggestions", query],
+        queryFn: () => apiService.getSearchSuggestions(query),
+        enabled: query.trim().length >= 2,
+        staleTime: 60_000,
+    })
+}
+
+export type { SearchResults }

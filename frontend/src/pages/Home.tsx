@@ -1,30 +1,27 @@
 import SearchForm from "@/components/search-form/search-form"
-import SongSkeleton from "@/components/song-skeleton/song-skeleton"
+import { SearchResults } from "@/components/search-results/search-results"
 import { SongSection } from "@/components/song-section/song-section"
 import BulkActionBar from "@/components/ui/bulk-action-bar/bulk-action-bar"
-import ViewToggle from "@/components/ui/view-toggle/view-toggle"
 import { useDiscover } from "@/hooks/useDiscover"
 import { usePlayerStore } from "@/hooks/usePlayer"
 import { usePlaylists } from "@/hooks/usePlaylists"
 import { useQueueStore } from "@/hooks/useQueue"
 import { useRecommendations } from "@/hooks/useRecommendations"
 import { useRecentHistory } from "@/hooks/useRecentHistory"
-import { useSearch } from "@/hooks/useSearch"
+import { useSearch, useSearchSuggestions } from "@/hooks/useSearch"
 import { useSongSelection } from "@/hooks/useSongSelection"
 import { useThemeStore } from "@/hooks/useTheme"
 import { useTitle } from "@/hooks/useTitle"
 import { useTopSongs } from "@/hooks/useStats"
-import { formatDuration } from "@/lib/utils"
 import { apiService } from "@/services/api.service"
-import { type HistoryItem, type Song } from "@/types"
+import { type HistoryItem, type SearchTopResult, type Song } from "@/types"
 import { openDownload, openDownloads } from "@/utils/download"
 import { MESSAGES } from "@/utils/messages"
 import {
-    Download,
     ListEnd,
     ListMusic,
+    Loader2,
     Music2,
-    Play,
     Radio as RadioIcon,
     Search,
     User,
@@ -93,8 +90,20 @@ export default function Home() {
         isError,
         refetch,
     } = useSearch(debouncedQuery)
+    const { data: searchSuggestions } = useSearchSuggestions(searchQuery)
     const videos = searchResult?.songs ?? []
     const searchCached = searchResult?.cached ?? false
+    const hasSearchResults = useMemo(() => {
+        if (!searchResult) return false
+        return (
+            searchResult.top_result !== null ||
+            searchResult.artists.length > 0 ||
+            searchResult.songs.length > 0 ||
+            searchResult.albums.length > 0 ||
+            searchResult.playlists.length > 0 ||
+            searchResult.videos.length > 0
+        )
+    }, [searchResult])
 
     const { data: recentData, isLoading: recentLoading } = useRecentHistory(RECENT_LIMIT)
     const { data: recommendationsData, isLoading: recommendationsLoading } = useRecommendations()
@@ -226,19 +235,74 @@ export default function Home() {
         }
     }
 
-    const handlePlay = (index: number) => {
-        setPlaylist(videos, index)
-    }
-
-    const playSongs = (songs: Song[], index: number, context: string) => {
-        setPlaylist(songs, index, context)
+    const playSongs = (songs: Song[], index: number, context?: string) => {
+        setPlaylist(
+            songs.map((s) => ({ ...s, created_at: s.created_at ?? "" })),
+            index,
+            context ?? null,
+        )
     }
 
     const handlePlaySelected = () => {
         const selected = getSelectedSongs(videos)
         if (selected.length > 0) {
-            setPlaylist(selected, 0)
+            setPlaylist(
+                selected.map((s) => ({ ...s, created_at: s.created_at ?? "" })),
+                0,
+            )
             clearSelection()
+        }
+    }
+
+    const handlePlayCollection = async (playlistId: string) => {
+        try {
+            const tracks = await apiService.getSearchTracks(playlistId)
+            if (tracks.length > 0) {
+                playSongs(tracks, 0)
+            }
+        } catch {
+            toast.error(MESSAGES.SEARCH_PLAY_FAILED)
+        }
+    }
+
+    const handlePlayArtist = async (name: string) => {
+        try {
+            const result = await apiService.search(name)
+            const artistSongs = result.songs ?? []
+            if (artistSongs.length > 0) {
+                playSongs(artistSongs, 0)
+            }
+        } catch {
+            toast.error(MESSAGES.SEARCH_PLAY_FAILED)
+        }
+    }
+
+    const handlePlayTopResult = (top: SearchTopResult) => {
+        if (top.type === "song" || top.type === "video") {
+            if (top.id) {
+                playSongs(
+                    [
+                        {
+                            id: top.id,
+                            title: top.title ?? "",
+                            uploader: top.uploader ?? "",
+                            thumbnail: top.thumbnail ?? "",
+                            duration: top.duration ?? 0,
+                            created_at: "",
+                        },
+                    ],
+                    0,
+                )
+            }
+            return
+        }
+        if (top.type === "artist" && top.name) {
+            void handlePlayArtist(top.name)
+            return
+        }
+        const playlistId = top.audio_playlist_id ?? top.id
+        if (playlistId) {
+            void handlePlayCollection(playlistId)
         }
     }
 
@@ -264,6 +328,7 @@ export default function Home() {
                     isRefreshing={isSearchFetching}
                     cached={searchCached && !!debouncedQuery}
                     onRefresh={handleRefreshResults}
+                    suggestions={searchSuggestions}
                 />
 
                 <div className='mt-4 grid w-full max-w-4xl grid-cols-2 gap-4 md:grid-cols-5'>
@@ -289,180 +354,27 @@ export default function Home() {
 
             {/* Content Section */}
             <div className='mx-auto w-full max-w-375 px-4 pb-40'>
-                {videos.length > 0 && (
-                    <>
-                        {/* Toolbar */}
-                        <div className='mb-6 flex items-center justify-between'>
-                            <div className='flex items-center gap-4'>
-                                <button
-                                    onClick={() => toggleSelectAll(videos.map((v) => v.id))}
-                                    className='cursor-pointer rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-red-700 active:scale-95'
-                                >
-                                    {selectedSongIds.length === videos.length
-                                        ? "Deselect All"
-                                        : "Select All"}
-                                </button>
-                                <p className='text-sm text-gray-600 dark:text-gray-400'>
-                                    {selectedSongIds.length} selected
-                                </p>
-                            </div>
-
-                            <ViewToggle view={viewMode} onChange={setViewMode} />
-                        </div>
-
-                        {/* Video Display */}
-                        <div
-                            className={
-                                viewMode === "grid"
-                                    ? "grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
-                                    : "flex flex-col gap-2"
-                            }
-                        >
-                            {videos.map((video, index) => {
-                                const selected = selectedSongIds.includes(video.id)
-
-                                return viewMode === "grid" ? (
-                                    <div
-                                        key={video.id}
-                                        onClick={(e) => toggleSelect(video.id, e, videos)}
-                                        className={`group relative cursor-pointer overflow-hidden rounded-xl border transition-all hover:-translate-y-1 hover:shadow-md ${
-                                            selected
-                                                ? "border-red-500 bg-red-50 ring-2 ring-red-500/50 dark:bg-red-950"
-                                                : "dark:bg-card border-gray-200 bg-white dark:border-white/10"
-                                        } `}
-                                    >
-                                        <div className='relative aspect-video w-full overflow-hidden'>
-                                            <img
-                                                src={video.thumbnail}
-                                                alt={video.title}
-                                                loading='lazy'
-                                                decoding='async'
-                                                referrerPolicy='no-referrer'
-                                                className='h-full w-full object-cover'
-                                            />
-                                            <div className='absolute inset-0 flex items-center justify-center gap-3 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
-                                                <button
-                                                    onClick={() => handlePlay(index)}
-                                                    className='flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-red-600 text-white shadow-lg transition-transform hover:scale-110'
-                                                    title='Play Now'
-                                                >
-                                                    <Play className='h-5 w-5 translate-x-0.5 fill-current' />
-                                                </button>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation()
-                                                        addToNowPlaying(video)
-                                                        toast.success(MESSAGES.QUEUE_ADDED)
-                                                    }}
-                                                    className='flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white/20 text-white shadow-lg backdrop-blur-md transition-transform hover:scale-110'
-                                                    title='Add to Queue'
-                                                >
-                                                    <ListMusic className='h-5 w-5' />
-                                                </button>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation()
-                                                        openDownload(video.id)
-                                                    }}
-                                                    className='flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white/20 text-white shadow-lg backdrop-blur-md transition-transform hover:scale-110'
-                                                    title='Download MP3'
-                                                >
-                                                    <Download className='h-5 w-5' />
-                                                </button>
-                                            </div>
-                                            {selected && (
-                                                <div className='absolute top-2 left-2 flex h-6 w-6 items-center justify-center rounded bg-red-600 text-xs text-white shadow-lg'>
-                                                    ✓
-                                                </div>
-                                            )}
-                                            <span className='absolute right-2 bottom-2 rounded bg-black/80 px-2 py-1 text-xs text-white'>
-                                                {formatDuration(video.duration)}
-                                            </span>
-                                        </div>
-                                        <div className='flex flex-col gap-1 p-3'>
-                                            <h2 className='line-clamp-2 text-sm font-semibold dark:text-white'>
-                                                {video.title || "Unknown Title"}
-                                            </h2>
-                                            <p className='text-xs text-gray-600 dark:text-gray-400'>
-                                                {video.uploader || "Unknown Artist"}
-                                            </p>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div
-                                        key={video.id}
-                                        onClick={(e) => toggleSelect(video.id, e, videos)}
-                                        className={`group flex cursor-pointer items-center gap-4 rounded-xl border p-2 transition-all select-none ${
-                                            selected
-                                                ? "border-red-500 bg-red-50 dark:bg-red-950"
-                                                : "dark:bg-card border-gray-100 bg-white hover:border-red-200 dark:border-white/10"
-                                        }`}
-                                    >
-                                        <div className='relative h-14 w-24 shrink-0 overflow-hidden rounded-lg'>
-                                            <img
-                                                src={video.thumbnail}
-                                                alt={video.title}
-                                                loading='lazy'
-                                                decoding='async'
-                                                referrerPolicy='no-referrer'
-                                                className='h-full w-full object-cover'
-                                            />
-                                            <div className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
-                                                <button
-                                                    onClick={() => handlePlay(index)}
-                                                    className='cursor-pointer rounded-full bg-red-600 p-1.5 text-white shadow-lg'
-                                                >
-                                                    <Play className='h-4 w-4 translate-x-0.5 fill-current' />
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <div className='min-w-0 flex-1'>
-                                            <h3 className='truncate text-sm font-semibold dark:text-white'>
-                                                {video.title || "Unknown Title"}
-                                            </h3>
-                                            <p className='truncate text-xs text-gray-500 dark:text-gray-400'>
-                                                {video.uploader || "Unknown Artist"}
-                                            </p>
-                                        </div>
-                                        <div className='flex items-center gap-2 pr-2'>
-                                            <span className='mr-2 text-xs font-medium text-gray-400'>
-                                                {formatDuration(video.duration)}
-                                            </span>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation()
-                                                    addToNowPlaying(video)
-                                                    toast.success(MESSAGES.QUEUE_ADDED)
-                                                }}
-                                                className='flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-black/5 hover:text-red-500 dark:hover:bg-white/5'
-                                                title='Add to Queue'
-                                            >
-                                                <ListMusic className='h-4 w-4' />
-                                            </button>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation()
-                                                    openDownload(video.id)
-                                                }}
-                                                className='flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-black/5 hover:text-red-500 dark:hover:bg-white/5'
-                                                title='Download'
-                                            >
-                                                <Download className='h-4 w-4' />
-                                            </button>
-                                            {selected && (
-                                                <div className='ml-2 flex h-5 w-5 items-center justify-center rounded bg-red-600 text-[10px] text-white'>
-                                                    ✓
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                )
-                            })}
-                        </div>
-                    </>
+                {debouncedQuery && searchResult && hasSearchResults && (
+                    <SearchResults
+                        results={searchResult}
+                        viewMode={viewMode}
+                        onViewModeChange={setViewMode}
+                        selectedSongIds={selectedSongIds}
+                        onToggleSelect={toggleSelect}
+                        onToggleSelectAll={toggleSelectAll}
+                        onPlaySongs={playSongs}
+                        onPlayTopResult={handlePlayTopResult}
+                        onPlayCollection={handlePlayCollection}
+                        onPlayArtist={handlePlayArtist}
+                        onAddToQueue={(song) => {
+                            addToNowPlaying(song)
+                            toast.success(MESSAGES.QUEUE_ADDED)
+                        }}
+                        onDownload={openDownload}
+                    />
                 )}
 
-                {!isSearchLoading && videos.length === 0 && searchQuery && !isError && (
+                {!isSearchLoading && debouncedQuery && !hasSearchResults && !isError && (
                     <div className='-mt-4 flex flex-col items-center gap-4 pt-16 text-center'>
                         <span className='flex h-20 w-20 items-center justify-center rounded-full bg-red-100 dark:bg-red-950'>
                             <Search className='h-9 w-9 text-red-500' />
@@ -584,16 +496,8 @@ export default function Home() {
                 )}
 
                 {isSearchLoading && (
-                    <div
-                        className={
-                            viewMode === "grid"
-                                ? "grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
-                                : "flex flex-col gap-2"
-                        }
-                    >
-                        {Array.from({ length: 10 }).map((_, i) => (
-                            <SongSkeleton key={i} view={viewMode} />
-                        ))}
+                    <div className='flex justify-center py-20'>
+                        <Loader2 className='h-10 w-10 animate-spin text-red-600' />
                     </div>
                 )}
 

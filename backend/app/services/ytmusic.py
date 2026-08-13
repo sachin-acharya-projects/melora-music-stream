@@ -108,6 +108,85 @@ def _normalize_tracks(items: Any) -> list[dict[str, Any]]:  # noqa: ANN401
     return songs
 
 
+def _normalize_search_artist(item: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": item.get("browseId"),
+        "name": item.get("artist") or item.get("title") or "Unknown",
+        "thumbnail": _pick_thumbnail(item.get("thumbnails")),
+    }
+
+
+def _normalize_search_album(item: dict[str, Any]) -> dict[str, Any]:
+    artists = item.get("artists") or []
+    return {
+        "id": item.get("browseId"),
+        "title": item.get("title") or "Untitled",
+        "artists": [a.get("name") for a in artists if a.get("name")],
+        "year": item.get("year"),
+        "thumbnail": _pick_thumbnail(item.get("thumbnails")),
+        "audio_playlist_id": item.get("audioPlaylistId"),
+    }
+
+
+def _normalize_search_playlist(item: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": item.get("playlistId"),
+        "title": item.get("title") or "Untitled",
+        "thumbnail": _pick_thumbnail(item.get("thumbnails")),
+        "song_count": item.get("videoCount"),
+    }
+
+
+def _normalize_top_result(item: dict[str, Any]) -> dict[str, Any] | None:
+    """Normalize the top search result, tagged with its result type."""
+    result_type = str(item.get("resultType") or "video").lower()
+    if result_type in ("song", "video"):
+        return {"type": result_type, **_normalize_track(item)}
+    if result_type == "artist":
+        return {"type": "artist", **_normalize_search_artist(item)}
+    if result_type == "album":
+        return {"type": "album", **_normalize_search_album(item)}
+    if result_type == "playlist":
+        return {"type": "playlist", **_normalize_search_playlist(item)}
+    return None
+
+
+def _partition_search_results(items: Any) -> dict[str, Any]:  # noqa: ANN401
+    """Partition a YTMusic search payload into music-app style groups.
+
+    Auto-generated stations, profiles, and podcasts are skipped; the first
+    item becomes the ``top_result`` and is not duplicated into its group.
+    """
+    groups: dict[str, Any] = {
+        "top_result": None,
+        "artists": [],
+        "songs": [],
+        "albums": [],
+        "playlists": [],
+        "videos": [],
+    }
+    seen_song_ids: set[str] = set()
+    for index, item in enumerate(items or []):
+        if not isinstance(item, dict):
+            continue
+        if index == 0:
+            groups["top_result"] = _normalize_top_result(item)
+            continue
+        result_type = str(item.get("resultType") or "video").lower()
+        if result_type == "artist":
+            groups["artists"].append(_normalize_search_artist(item))
+        elif result_type in ("song", "video"):
+            song = _normalize_track(item)
+            if song["id"] and song["id"] not in seen_song_ids:
+                seen_song_ids.add(song["id"])
+                groups["songs" if result_type == "song" else "videos"].append(song)
+        elif result_type in ("album", "single"):
+            groups["albums"].append(_normalize_search_album(item))
+        elif result_type == "playlist":
+            groups["playlists"].append(_normalize_search_playlist(item))
+    return groups
+
+
 class YTMusicService:
     """Cached, failure-safe access to YouTube Music discovery endpoints."""
 
@@ -143,6 +222,62 @@ class YTMusicService:
             logger.warning("YTMusic search failed for %r", query, exc_info=True)
             return []
         return _normalize_tracks(results)
+
+    def search_all(self, query: str, limit: int = 30) -> dict[str, Any]:
+        """One YTMusic search partitioned into music-app style groups.
+
+        Returns ``{top_result, artists, songs, albums, playlists, videos,
+        cached}``. Empty (falsy) payloads are not cached so a later retry can
+        pick up results.
+        """
+        key = f"ytmusic:search-all:{query.strip().casefold()}"
+        value, served_from_cache = cache_get_or_set(
+            key,
+            settings.YT_MUSIC_TTL_SECONDS,
+            lambda: self._search_all(query, limit),
+        )
+        return {
+            "top_result": None,
+            "artists": [],
+            "songs": [],
+            "albums": [],
+            "playlists": [],
+            "videos": [],
+            "cached": served_from_cache,
+            **(value or {}),
+        }
+
+    def _search_all(self, query: str, limit: int = 30) -> dict[str, Any] | None:
+        try:
+            results = self._client().search(query, limit=limit)
+        except Exception:
+            logger.warning("YTMusic grouped search failed for %r", query, exc_info=True)
+            return None
+        return _partition_search_results(results)
+
+    def search_suggestions(self, query: str, limit: int = 10) -> list[str]:
+        """Query completions for the search box."""
+        key = f"ytmusic:suggestions:{query.strip().casefold()}"
+        value, _ = cache_get_or_set(
+            key,
+            settings.YT_MUSIC_TTL_SECONDS,
+            lambda: self._search_suggestions(query, limit),
+            cache_falsy=True,
+        )
+        return value or []
+
+    def _search_suggestions(self, query: str, limit: int = 10) -> list[str]:
+        try:
+            suggestions = self._client().get_search_suggestions(query)
+        except Exception:
+            logger.warning(
+                "YTMusic search suggestions failed for %r", query, exc_info=True
+            )
+            return []
+        if not isinstance(suggestions, list):
+            return []
+        cleaned = [str(s) for s in suggestions if isinstance(s, str) and s.strip()]
+        return cleaned[:limit]
 
     def related_songs(self, video_id: str, limit: int = 10) -> list[dict[str, Any]]:
         """Songs YouTube Music suggests for ``video_id`` (excluding it)."""
@@ -221,6 +356,28 @@ class YTMusicService:
     def playlist_songs(self, playlist_id: str, limit: int = 10) -> list[dict[str, Any]]:
         """Tracks of a regular (non-album) playlist."""
         return self.album_songs(playlist_id, limit=limit)
+
+    def browse_album_songs(
+        self, browse_id: str, limit: int = 30
+    ) -> list[dict[str, Any]]:
+        """Tracks of an album fetched via its browse id."""
+        key = f"ytmusic:album:{browse_id}"
+        value, _ = cache_get_or_set(
+            key,
+            settings.YT_MUSIC_TTL_SECONDS,
+            lambda: self._browse_album_songs(browse_id, limit),
+        )
+        return value
+
+    def _browse_album_songs(
+        self, browse_id: str, limit: int = 30
+    ) -> list[dict[str, Any]]:
+        try:
+            data = self._client().get_album(browse_id)
+        except Exception:
+            logger.warning("YTMusic album failed for %s", browse_id, exc_info=True)
+            return []
+        return _normalize_tracks(data.get("tracks") or [])[:limit]
 
     def _playlist_songs(
         self, playlist_id: str, limit: int = 10

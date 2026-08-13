@@ -1,4 +1,5 @@
 import { RefreshCw, Search } from "lucide-react"
+import { useState } from "react"
 
 interface SearchFormProps {
     value: string
@@ -8,6 +9,7 @@ interface SearchFormProps {
     isRefreshing?: boolean
     cached?: boolean
     onRefresh?: () => void
+    suggestions?: string[]
 }
 
 export default function SearchForm({
@@ -18,24 +20,54 @@ export default function SearchForm({
     isRefreshing,
     cached,
     onRefresh,
+    suggestions,
 }: SearchFormProps) {
+    const [focused, setFocused] = useState(false)
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
         if (value.trim()) {
             onSearch(value)
         }
+        setFocused(false)
     }
+
+    const showSuggestions = focused && !!value.trim() && (suggestions?.length ?? 0) > 0
 
     return (
         <form className='flex gap-2' onSubmit={handleSubmit}>
             <div className='w-140'>
-                <input
-                    type='text'
-                    className='w-full rounded-lg border bg-white p-4 dark:bg-black'
-                    placeholder='Search music...'
-                    value={value}
-                    onChange={(e) => onValueChange(e.target.value)}
-                />
+                <div className='relative'>
+                    <input
+                        type='text'
+                        className='w-full rounded-lg border bg-white p-4 dark:bg-black'
+                        placeholder='Search music, artists, albums...'
+                        value={value}
+                        onChange={(e) => onValueChange(e.target.value)}
+                        onFocus={() => setFocused(true)}
+                        onBlur={() => setTimeout(() => setFocused(false), 150)}
+                    />
+                    {showSuggestions && (
+                        <ul className='dark:bg-card absolute top-full right-0 left-0 z-20 mt-1 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-white/10'>
+                            {suggestions!.map((suggestion) => (
+                                <li key={suggestion}>
+                                    <button
+                                        type='button'
+                                        onMouseDown={(e) => {
+                                            e.preventDefault()
+                                            onValueChange(suggestion)
+                                            onSearch(suggestion)
+                                        }}
+                                        className='flex w-full cursor-pointer items-center gap-2 px-4 py-2.5 text-left text-sm transition-colors hover:bg-red-50 dark:text-white dark:hover:bg-red-950'
+                                    >
+                                        <Search className='h-4 w-4 shrink-0 text-gray-400' />
+                                        <span className='truncate'>{suggestion}</span>
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
             </div>
 
             <div>
