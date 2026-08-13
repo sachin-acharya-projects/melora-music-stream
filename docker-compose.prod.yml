@@ -1,17 +1,14 @@
 # =====================================================================
-# LOCAL DEVELOPMENT / QUICK-START stack.
+# PRODUCTION DEPLOYMENT — do not edit by hand.
 # =====================================================================
-# This is the default compose file used by `make docker-run-fullstack` and
-# bare `docker compose up`. It runs its own Postgres + Redis and publishes
-# host ports so the app is reachable at http://localhost:${PORT:-80},
-# Postgres at POSTGRES_PORT, and Redis at REDIS_PORT. No homelab coupling:
-# no external networks, no reverse-proxy labels.
+# This is the pinned production stack. It is uploaded to the server by the
+# CI workflow (.github/workflows/deploy.yml) as
+# /tmp/melora-docker-compose.prod.yml and installed by scripts/melora-deploy
+# into $MELORA_PROJECT_DIR/docker-compose.prod.yml.
 #
-# For the production deployment use docker-compose.prod.yml — the pinned
-# file uploaded by CI (.github/workflows/deploy.yml) and installed by
-# scripts/melora-deploy. That stack publishes NO host ports, uses the shared
-# homelab Postgres (db_net), and is reached through the homelab caddy
-# reverse proxy (proxy_net).
+# Compared to the local-dev docker-compose.yml, this stack publishes NO host
+# ports: the app is only reachable through the homelab caddy reverse proxy
+# (proxy_net, ${MELORA_DOMAIN}) and uses the shared homelab Postgres (db_net).
 # =====================================================================
 # Shared managed configuration.
 # These values are interpolated from the root .env (and any matching
@@ -25,9 +22,10 @@ x-backend-env: &backend-env
   JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-in-production-use-a-random-secret}
   FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
   BACKEND_CORS_ORIGINS: '${BACKEND_CORS_ORIGINS:-["*"]}'
-  # Database (standalone Postgres, the `postgres` service in this file).
-  # POSTGRES_HOST defaults to the compose service name `postgres`; the app
-  # auto-runs `alembic upgrade head` on startup, so an empty DB self-migrates.
+  # Database (shared homelab Postgres, reached via networks.db_net).
+  # The homelab "postgres" service exposes no host port; it is reachable
+  # by name on the external db_net network. The app auto-runs
+  # `alembic upgrade head` on startup, so an empty DB self-migrates.
   POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
   POSTGRES_PORT: 5432
   POSTGRES_USER: ${POSTGRES_USER:-melora}
@@ -47,31 +45,10 @@ x-backend-env: &backend-env
   GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:8000/api/v1/auth/google/callback}
 
 services:
-  # PostgreSQL database (standalone, for local development)
-  postgres:
-    container_name: melora-postgres
-    image: postgres:17-alpine
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-melora}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-melora}
-      POSTGRES_DB: ${POSTGRES_DB:-melora}
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
-    volumes:
-      - melora_postgres:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    restart: always
-
   # Redis for caching
   redis:
     container_name: melora-redis
     image: redis:7-alpine
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - melora_redis:/data
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
@@ -84,26 +61,51 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    ports:
-      - "${PORT:-80}:80"
     environment: *backend-env
     depends_on:
       redis:
         condition: service_started
-      postgres:
-        condition: service_healthy
     volumes:
       - melora_data:/app/data
+    # ----------------------------------------------------------------------
+    # Homelab coupling (PRODUCTION DEPLOY TARGET)
+    #
+    #   db_net:    the shared homelab Postgres (server-configs "postgres"
+    #              service); the app auto-runs `alembic upgrade head`.
+    #   proxy_net: the homelab caddy (caddy-docker-proxy) reverse-proxies
+    #              ${MELORA_DOMAIN} to this container via the labels below.
+    #
+    # `caddy.import: authentik-auth` puts this site behind the homelab
+    # Authentik SSO gate: the `(authentik-auth)` snippet is defined in the
+    # homelab caddy's labels (server-configs), so reaching melora requires an
+    # Authentik session with access to the melora application. Removing this
+    # label re-exposes melora on 443, so only do it deliberately.
+    #
+    # Other deploy targets without this reverse proxy / shared Postgres
+    # should drop these networks and labels and run their own DB instead.
+    # ----------------------------------------------------------------------
+    networks:
+      - default
+      - db_net
+      - proxy_net
+    labels:
+      caddy: ${MELORA_DOMAIN}
+      caddy.reverse_proxy: "{{upstreams 80}}"
+      caddy.import: authentik-auth
     restart: always
 
 networks:
   default:
     name: melora-music-stream_default
+  db_net:
+    name: db_net
+    external: true
+  proxy_net:
+    name: proxy_net
+    external: true
 
 volumes:
   melora_data:
     driver: local
   melora_redis:
-    driver: local
-  melora_postgres:
     driver: local

@@ -11,10 +11,10 @@ The easiest way to run Melora is using Docker. We provide a **Unified Fullstack 
 # Build the unified image
 make docker-build-fullstack
 
-# Run the unified container (Defaults to port 80)
+# Run the unified container (binds $PORT on the host, defaults to 80)
 make docker-run-fullstack
 ```
-Once running, you can access the app at `http://localhost`.
+Once running, you can access the app at `http://localhost:${PORT}` (`PORT` comes from `.env`, default 8000).
 
 ### 2. Available Endpoints
 - **Frontend**: `http://localhost/`
@@ -61,8 +61,20 @@ BACKEND_PORT=9000 make docker-run-backend
 - `backend/`: FastAPI application code.
 - `frontend/`: React + Vite application code.
 - `nginx.conf`: Nginx configuration for the unified full-stack image.
-- `docker-compose.yml`: Orchestration for different deployment scenarios.
+- `docker-compose.yml`: Local development / quick-start orchestration (publishes host ports).
+- `docker-compose.prod.yml`: Production deployment file used by CI (`scripts/melora-deploy`).
 - `Makefile`: Convenient shortcuts for common tasks.
 
 ## 💾 Data Persistence
 By default, Docker uses a volume named `melora_data` to persist your SQLite database and downloaded music files. This ensures your data survives container restarts and updates.
+
+## 🛡️ Admin Dashboard
+
+Users with the `admin` role get a dedicated area at `/admin` (visible from the user menu) to manage the catalog and accounts:
+
+- **Dashboard** – global metrics: catalog size, published/hidden/featured counts, users, and play activity.
+- **Artists** – search/filter/sort the full catalog (including hidden artists), import single artists from YouTube, batch-import artists (names, channel IDs, or channel URLs), edit metadata, feature, publish/hide, and delete.
+- **Songs** – browse the catalog, import a song from a YouTube ID/URL, import a full YouTube playlist into the catalog, edit titles/uploaders/thumbnails, feature, publish/hide, and delete.
+- **Users** – search accounts, grant/revoke the `admin` role, and activate/deactivate accounts (you cannot demote or deactivate yourself).
+
+Only content marked **published** is shown to regular users on browse/search/discover/recommendations. Hidden items remain in the library (e.g. playable in existing playlists) but are excluded from all user-facing discovery surfaces. Artist/song imports are admin-only; database browsing is available to admins at `/admin` (sqladmin) on the backend.
