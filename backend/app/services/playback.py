@@ -105,10 +105,12 @@ class PlaybackService:
 
     @staticmethod
     def _upsert_song_if_needed(db: Session, song: Song) -> None:
-        """Create a song record if it doesn't already exist.
+        """Create or refresh a song record from playback data.
 
         Note: artists are intentionally not synced here. Playing from a search
         queue must not register every channel that merely appears in results.
+        Existing rows are refreshed (title/uploader/thumbnail/duration) so
+        durations recorded as zero by older sources heal as songs are played.
         """
         db_song = db.query(SongModel).filter(SongModel.id == song.id).first()
         if db_song is None:
@@ -120,3 +122,20 @@ class PlaybackService:
                 duration=song.duration,
             )
             db.add(db_song)
+            return
+
+        dirty = False
+        if song.title and song.title != db_song.title:
+            db_song.title = song.title
+            dirty = True
+        if song.uploader and song.uploader != db_song.uploader:
+            db_song.uploader = song.uploader
+            dirty = True
+        if song.thumbnail and song.thumbnail != db_song.thumbnail:
+            db_song.thumbnail = song.thumbnail
+            dirty = True
+        if song.duration and song.duration != db_song.duration:
+            db_song.duration = song.duration
+            dirty = True
+        if dirty:
+            db.flush()

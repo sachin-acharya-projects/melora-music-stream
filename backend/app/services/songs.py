@@ -48,6 +48,27 @@ class SongService:
             db.add(db_song)
             db.commit()
             db.refresh(db_song)
+            return db_song
+
+        # Refresh stale metadata: rows created from flat extraction (or before
+        # durations were populated) may carry a zero duration, so heal them
+        # whenever a fresher value comes through any add/play/import path.
+        dirty = False
+        if song.title and song.title != db_song.title:
+            db_song.title = song.title
+            dirty = True
+        if song.uploader and song.uploader != db_song.uploader:
+            db_song.uploader = song.uploader
+            dirty = True
+        if song.thumbnail and song.thumbnail != db_song.thumbnail:
+            db_song.thumbnail = song.thumbnail
+            dirty = True
+        if song.duration and song.duration != db_song.duration:
+            db_song.duration = song.duration
+            dirty = True
+        if dirty:
+            db.commit()
+            db.refresh(db_song)
         return db_song
 
     @staticmethod

@@ -114,3 +114,34 @@ class TestUpsertPlaybackState:
         result = PlaybackService.get_playback_state(db, user_id="user-1")
         assert len(result["current_queue"]) == 2
         assert len(result["recent_songs"]) == 1
+
+    def test_reupsert_refreshes_zero_duration(self, db: Session) -> None:
+        stale = Song(
+            id="song-heal",
+            title="Song",
+            uploader="A",
+            thumbnail="t",
+            duration=0,
+        )
+        PlaybackService.upsert_playback_state(
+            db,
+            user_id="user-1",
+            data=PlaybackState(last_song_id="song-heal", current_queue=[stale]),
+        )
+
+        fresh = Song(
+            id="song-heal",
+            title="Song (Remastered)",
+            uploader="A",
+            thumbnail="t",
+            duration=245,
+        )
+        PlaybackService.upsert_playback_state(
+            db,
+            user_id="user-1",
+            data=PlaybackState(last_song_id="song-heal", current_queue=[fresh]),
+        )
+
+        result = PlaybackService.get_playback_state(db, user_id="user-1")
+        assert result["current_queue"][0]["duration"] == 245
+        assert result["current_queue"][0]["title"] == "Song (Remastered)"

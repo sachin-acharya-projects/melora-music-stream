@@ -530,6 +530,21 @@ class TestUpsertSong:
         s2 = SongService.upsert_song(db, sample_song)
         assert s1.id == s2.id
 
+    def test_refreshes_zero_duration(self, db: Session, sample_song: Song) -> None:
+        stale = sample_song.model_copy(update={"duration": 0})
+        SongService.upsert_song(db, stale)
+        db_song = SongService.upsert_song(db, sample_song)
+        assert db_song.duration == sample_song.duration
+
+    def test_does_not_overwrite_with_zero_duration(
+        self, db: Session, sample_song: Song
+    ) -> None:
+        SongService.upsert_song(db, sample_song)
+        db_song = SongService.upsert_song(
+            db, sample_song.model_copy(update={"duration": 0})
+        )
+        assert db_song.duration == sample_song.duration
+
 
 class TestGetPlaylistPagination:
     def test_returns_page_and_total(self, db: Session, test_user: UserModel) -> None:

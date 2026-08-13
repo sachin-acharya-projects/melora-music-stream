@@ -1,5 +1,6 @@
 import { PlaylistArt } from "@/components/playlist/playlist-art"
 import { CollaboratorsModal } from "@/components/playlist/collaborators-modal"
+import { PlaylistMoreInfoModal } from "@/components/playlist-more-info/playlist-more-info-modal"
 import { SearchAddModal } from "@/components/playlist/search-add-modal"
 import BulkActionBar from "@/components/ui/bulk-action-bar/bulk-action-bar"
 import ConfirmationDialog from "@/components/ui/confirmation-dialog/confirmation-dialog"
@@ -32,6 +33,7 @@ import {
     EyeOff,
     Heart,
     Import,
+    Info,
     LayoutList,
     ListMusic,
     Loader2,
@@ -112,6 +114,7 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
     const [importUrl, setImportUrl] = useState("")
     const [isSearchAddOpen, setIsSearchAddOpen] = useState(false)
     const [isCollaboratorsOpen, setIsCollaboratorsOpen] = useState(false)
+    const [showMoreInfo, setShowMoreInfo] = useState(false)
     const [isManageOpen, setIsManageOpen] = useState(false)
     const { moreMenuFor, setMoreMenuFor, renderMoreMenu, renderDialogs } = usePlaylistMenu({
         playlists,
@@ -464,9 +467,17 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
                         )}
                     </p>
                     {playlist?.description && (
-                        <p className='mt-2 max-w-xl text-sm text-gray-500 dark:text-gray-400'>
+                        <p className='mt-2 line-clamp-2 max-w-xl text-sm text-gray-500 dark:text-gray-400'>
                             {playlist.description}
                         </p>
+                    )}
+                    {playlist?.description && (
+                        <button
+                            onClick={() => setShowMoreInfo(true)}
+                            className='dark:bg-card mt-2 flex cursor-pointer items-center gap-2 rounded-lg border bg-white px-3 py-1.5 text-xs font-medium transition-all hover:border-red-200 dark:border-white/10 dark:text-white'
+                        >
+                            <Info className='h-3.5 w-3.5' /> More Info
+                        </button>
                     )}
 
                     <div className='mt-4 flex flex-wrap items-center gap-2'>
@@ -1041,6 +1052,13 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
                         setIsSearchAddOpen(false)
                         setIsImportModalOpen(true)
                     }}
+                />
+            )}
+
+            {showMoreInfo && playlist && (
+                <PlaylistMoreInfoModal
+                    playlist={playlist}
+                    onClose={() => setShowMoreInfo(false)}
                 />
             )}
         </div>
