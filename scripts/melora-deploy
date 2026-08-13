@@ -134,6 +134,27 @@ for _ in $(seq 1 10); do
 done
 [ "$SPA_OK" = 1 ] || die "SPA did not become healthy inside melora-fullstack"
 
+# --- 6.5 Promote the root admin (if ROOT_ADMIN_EMAIL is set) ---
+# The startup bootstrap also promotes this email whenever the container
+# starts; running the CLI here means a deploy promotes the account even if
+# the user registered after the container came up. Both paths are idempotent.
+ROOT_ADMIN_EMAIL_VALUE="$(printf '%s\n' "$INJECTED" | sed -n 's/^ROOT_ADMIN_EMAIL=//p' | tail -n1)"
+if [ -n "$ROOT_ADMIN_EMAIL_VALUE" ]; then
+    log "Ensuring ${ROOT_ADMIN_EMAIL_VALUE} has the admin role..."
+    set +e
+    docker exec melora-fullstack python -m app.scripts.make_admin "$ROOT_ADMIN_EMAIL_VALUE" >/tmp/melora-make-admin.log 2>&1
+    MAKE_ADMIN_RC=$?
+    set -e
+    case "$MAKE_ADMIN_RC" in
+        0)  log "Admin role ensured for ${ROOT_ADMIN_EMAIL_VALUE}" ;;
+        2)  log "ROOT_ADMIN_EMAIL (${ROOT_ADMIN_EMAIL_VALUE}) is not registered yet - it will be promoted on a later deploy" ;;
+        *)  cat /tmp/melora-make-admin.log >&2
+            rm -f /tmp/melora-make-admin.log
+            die "make_admin for ROOT_ADMIN_EMAIL failed (exit $MAKE_ADMIN_RC)" ;;
+    esac
+    rm -f /tmp/melora-make-admin.log
+fi
+
 # --- 7. Housekeeping ---
 log "Pruning old docker images..."
 docker image prune -f >/dev/null

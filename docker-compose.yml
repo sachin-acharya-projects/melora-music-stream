@@ -23,6 +23,7 @@ x-backend-env: &backend-env
   # App
   DEBUG: ${DEBUG:-false}
   JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-in-production-use-a-random-secret}
+  ROOT_ADMIN_EMAIL: ${ROOT_ADMIN_EMAIL:-}
   FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
   BACKEND_CORS_ORIGINS: '${BACKEND_CORS_ORIGINS:-["*"]}'
   # Database (standalone Postgres, the `postgres` service in this file).

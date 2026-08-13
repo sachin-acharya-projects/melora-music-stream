@@ -75,6 +75,7 @@ jobs:
             echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}"
             echo "POSTGRES_DB=${{ secrets.POSTGRES_DB || 'melora' }}"
             echo "JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}"
+            echo "ROOT_ADMIN_EMAIL=${{ secrets.ROOT_ADMIN_EMAIL }}"
             echo "FRONTEND_URL=${{ secrets.FRONTEND_URL || 'http://localhost:8000' }}"
             echo 'BACKEND_CORS_ORIGINS=${{ secrets.BACKEND_CORS_ORIGINS || '["*"]' }}'
             echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}"

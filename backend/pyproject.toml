@@ -91,6 +91,7 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"] # Unused imports in __init__.py are common for exports
 "app/core/messages.py" = ["S105"] # Token-named string constants are messages, not secrets
+"app/scripts/*" = ["T201"] # CLI scripts print to stdout/stderr by design
 "tests/**" = ["S101", "ANN", "PLR2004", "PT011", "B017", "ARG002", "S105", "ARG005", "ARG001", "SLF001"]
 
 [tool.ruff.format]

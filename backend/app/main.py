@@ -16,6 +16,7 @@ from app.db import models  # noqa: F401 - import used for registering the models
 from app.db.base import SessionLocal, engine
 from app.db.models.user import UserModel
 from app.services.releases import ReleaseService
+from app.services.roles import ensure_admin_role
 
 setup_logging()
 
@@ -48,6 +49,29 @@ async def _refresh_releases_loop() -> None:
         await asyncio.sleep(settings.NOTIFICATIONS_REFRESH_SECONDS)
 
 
+def _bootstrap_root_admin() -> None:
+    """Grant the admin role to ``ROOT_ADMIN_EMAIL`` at startup (idempotent).
+
+    Gives the operator a way to create the first admin without an existing
+    admin in the system. No-op when the setting is unset or the account has
+    not registered yet (it will be promoted on a later start).
+    """
+    email = settings.ROOT_ADMIN_EMAIL.strip()
+    if not email:
+        return
+    logger = getLogger(__name__)
+    with SessionLocal() as db:
+        outcome = ensure_admin_role(db, email)
+    if outcome == "not_found":
+        logger.warning(
+            "ROOT_ADMIN_EMAIL %s is not registered yet; skipping promotion", email
+        )
+    elif outcome == "already_admin":
+        logger.info("ROOT_ADMIN_EMAIL %s is already an admin", email)
+    else:
+        logger.info("Promoted ROOT_ADMIN_EMAIL %s to admin", email)
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
     # Run migrations on startup - using lazy import to avoid circular imports
@@ -61,6 +85,8 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
     # logging tree (root back to WARNING, our handlers removed). Re-apply our
     # console/file handlers so app logs are visible while the server runs.
     setup_logging()
+
+    _bootstrap_root_admin()
 
     refresh_task = asyncio.create_task(_refresh_releases_loop())
     try:

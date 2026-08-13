@@ -42,6 +42,11 @@ class Settings(BaseSettings):
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
+    # Auth - root admin bootstrap
+    # If set, this email is granted the admin role on startup (idempotent).
+    # Used to create the first admin without an existing admin in the system.
+    ROOT_ADMIN_EMAIL: str = ""
+
     # Frontend
     FRONTEND_URL: str = "http://localhost:5173"
 
