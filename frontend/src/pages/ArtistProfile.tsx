@@ -11,7 +11,7 @@ import {
 import { usePlayerStore } from "@/hooks/usePlayer"
 import { useDragScroll } from "@/hooks/useDragScroll"
 import { useTitle } from "@/hooks/useTitle"
-import { cn, formatDuration } from "@/lib/utils"
+import { cn, formatDuration, slugify } from "@/lib/utils"
 import { type ArtistAlbum, type ArtistSong } from "@/types"
 import { AnimatePresence, motion } from "framer-motion"
 import {
@@ -31,12 +31,6 @@ import { useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 
 type ArtistTab = "songs" | "albums"
-
-const slugify = (name: string) =>
-    name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, "")
 
 const albumKey = (album: ArtistAlbum) =>
     album.id ? encodeURIComponent(album.id) : slugify(album.name)

@@ -928,12 +928,15 @@ class ArtistService:
         if enrich:
             ArtistService.enrich_artist(db, db_artist.id)
 
-        return {
-            **ArtistService.serialize(
-                db_artist, current_user_id=user.id if user else None
-            ),
-            "songs": ArtistService._song_dicts(db_artist),
-        }
+        songs = ArtistService._song_dicts(db_artist)
+        serialized = ArtistService.serialize(
+            db_artist, current_user_id=user.id if user else None
+        )
+        if not serialized.get("thumbnail_url"):
+            serialized["thumbnail_url"] = next(
+                (song["thumbnail"] for song in songs if song["thumbnail"]), None
+            )
+        return {**serialized, "songs": songs}
 
     @staticmethod
     def get_recently_played(

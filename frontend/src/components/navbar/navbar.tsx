@@ -7,12 +7,12 @@ import {
     BarChart3,
     Bell,
     History,
+    Home,
     ListEnd,
     ListMusic,
     Mic2,
     Moon,
     Music2,
-    Plus,
     Radio as RadioIcon,
     Settings,
     Shield,
@@ -121,7 +121,7 @@ export default function Navbar() {
                     }`}
                     title='Search & Add'
                 >
-                    <Plus className='h-6 w-6' />
+                    <Home className='h-6 w-6' />
                 </Link>
             </div>
 

@@ -136,6 +136,50 @@ def test_get_artist_by_slug(client, db: Session, auth_headers: dict[str, str]) -
     assert [s["id"] for s in data["songs"]] == ["vid1"]
 
 
+def test_get_artist_by_slug_falls_back_to_song_thumbnail(
+    client, db: Session, auth_headers: dict[str, str]
+) -> None:
+    make_artist(db, "Radiohead")
+    db_song = SongService.upsert_song(
+        db,
+        Song(
+            id="vid1",
+            title="Creep",
+            uploader="Radiohead",
+            thumbnail="https://i.ytimg.com/vi/vid1/hqdefault.jpg",
+        ),
+    )
+    ArtistService.sync_song_artists(db, db_song)
+
+    response = client.get("/api/v1/artists/radiohead", headers=auth_headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["thumbnail_url"] == "https://i.ytimg.com/vi/vid1/hqdefault.jpg"
+
+
+def test_get_artist_by_slug_keeps_own_thumbnail(
+    client, db: Session, auth_headers: dict[str, str]
+) -> None:
+    artist = make_artist(db, "Radiohead")
+    artist.thumbnail_url = "https://yt3.googleusercontent.com/radiohead-avatar"
+    db.commit()
+    db_song = SongService.upsert_song(
+        db,
+        Song(
+            id="vid1",
+            title="Creep",
+            uploader="Radiohead",
+            thumbnail="https://i.ytimg.com/vi/vid1/hqdefault.jpg",
+        ),
+    )
+    ArtistService.sync_song_artists(db, db_song)
+
+    response = client.get("/api/v1/artists/radiohead", headers=auth_headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["thumbnail_url"] == "https://yt3.googleusercontent.com/radiohead-avatar"
+
+
 def test_get_artist_not_found(client, auth_headers: dict[str, str]) -> None:
     response = client.get("/api/v1/artists/nope", headers=auth_headers)
     assert response.status_code == 404

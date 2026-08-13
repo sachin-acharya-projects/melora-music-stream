@@ -2,17 +2,12 @@ import { SongBrowser } from "@/components/song-browser/song-browser"
 import { useArtist, useArtistAlbums } from "@/hooks/useArtists"
 import { usePlayerStore } from "@/hooks/usePlayer"
 import { useTitle } from "@/hooks/useTitle"
+import { slugify } from "@/lib/utils"
 import { type ArtistSong } from "@/types"
 import { AnimatePresence, motion } from "framer-motion"
 import { ChevronLeft, Disc3, Loader2 } from "lucide-react"
 import { useMemo } from "react"
 import { useNavigate, useParams } from "react-router-dom"
-
-const slugify = (name: string) =>
-    name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, "")
 
 export default function ArtistAlbum() {
     const navigate = useNavigate()

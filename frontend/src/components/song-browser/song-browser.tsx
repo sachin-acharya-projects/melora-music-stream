@@ -2,6 +2,7 @@ import { usePlayerStore } from "@/hooks/usePlayer"
 import { useThemeStore } from "@/hooks/useTheme"
 import { formatDuration } from "@/lib/utils"
 import { apiService } from "@/services/api.service"
+import { SongThumb } from "@/components/song-thumb/song-thumb"
 import { type ArtistSong } from "@/types"
 import SortSelect, { type SortSelectOption } from "@/components/ui/sort-select/sort-select"
 import ViewToggle from "@/components/ui/view-toggle/view-toggle"
@@ -185,14 +186,7 @@ export function SongBrowser({ songs, isLoading, onPlay }: SongBrowserProps) {
                                     onClick={() => handlePlay(globalIndex)}
                                 >
                                     <div className='relative aspect-video w-full overflow-hidden'>
-                                        <img
-                                            src={song.thumbnail}
-                                            alt={song.title}
-                                            loading='lazy'
-                                            decoding='async'
-                                            referrerPolicy='no-referrer'
-                                            className='h-full w-full object-cover'
-                                        />
+                                        <SongThumb song={song} />
                                         <div className='absolute inset-0 flex items-center justify-center gap-3 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
                                             <button
                                                 onClick={(e) => {
@@ -248,14 +242,7 @@ export function SongBrowser({ songs, isLoading, onPlay }: SongBrowserProps) {
                                     className='group dark:bg-card flex cursor-pointer items-center gap-4 rounded-xl border border-gray-100 bg-white p-2 transition-all hover:border-red-200 dark:border-white/10'
                                 >
                                     <div className='relative h-14 w-24 shrink-0 overflow-hidden rounded-lg'>
-                                        <img
-                                            src={song.thumbnail}
-                                            alt={song.title}
-                                            loading='lazy'
-                                            decoding='async'
-                                            referrerPolicy='no-referrer'
-                                            className='h-full w-full object-cover'
-                                        />
+                                        <SongThumb song={song} />
                                         <div className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
                                             <button
                                                 onClick={(e) => {

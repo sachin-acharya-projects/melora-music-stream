@@ -2,14 +2,16 @@ import { AddToPlaylistModal } from "@/components/playlist/add-to-playlist-modal"
 import { LyricsPanel } from "@/components/now-playing/lyrics-panel"
 import { ReorderItem } from "@/components/now-playing/reorder-item"
 import { ShortcutHelp } from "@/components/now-playing/shortcut-help"
+import { SongInfoModal } from "@/components/song-info/song-info-modal"
 import { SongThumb } from "@/components/song-thumb/song-thumb"
 import { type PlaylistItem, usePlayerStore } from "@/hooks/usePlayer"
 import { useRelatedSongs } from "@/hooks/useRelatedSongs"
 import { useTitle } from "@/hooks/useTitle"
-import { cn, formatDuration } from "@/lib/utils"
+import { cn, formatDuration, slugify } from "@/lib/utils"
 import { apiService } from "@/services/api.service"
 import { motion, Reorder } from "framer-motion"
 import {
+    Info,
     ListMusic,
     ListPlus,
     MicVocal,
@@ -30,9 +32,11 @@ import {
     VolumeX,
 } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { toast } from "react-toastify"
 
 export default function NowPlaying() {
+    const navigate = useNavigate()
     const {
         currentSong,
         playlist,
@@ -71,6 +75,7 @@ export default function NowPlaying() {
     const [addToPlaylistTarget, setAddToPlaylistTarget] = useState<PlaylistItem | null>(null)
     const [isCurrentOffscreen, setIsCurrentOffscreen] = useState(false)
     const [rightTab, setRightTab] = useState<"queue" | "lyrics">("queue")
+    const [showSongInfo, setShowSongInfo] = useState(false)
 
     // Auto-scroll to active item
     useEffect(() => {
@@ -281,11 +286,26 @@ export default function NowPlaying() {
                             <h1 className='truncate text-2xl font-bold dark:text-white'>
                                 {currentSong.title}
                             </h1>
-                            <p className='truncate text-lg text-gray-500 dark:text-gray-400'>
+                            <button
+                                onClick={() =>
+                                    navigate(`/artists/${slugify(currentSong.uploader)}`)
+                                }
+                                className='max-w-full cursor-pointer truncate text-lg text-gray-500 transition-colors hover:text-red-500 dark:text-gray-400'
+                                title={`View ${currentSong.uploader}`}
+                            >
                                 {currentSong.uploader}
-                            </p>
+                            </button>
                         </div>
-                        <ShortcutHelp />
+                        <div className='flex shrink-0 items-center gap-2'>
+                            <button
+                                onClick={() => setShowSongInfo(true)}
+                                className='cursor-pointer rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-red-500 dark:hover:bg-white/5'
+                                title='View music info'
+                            >
+                                <Info className='h-5 w-5' />
+                            </button>
+                            <ShortcutHelp />
+                        </div>
                     </div>
 
                     <div className='flex flex-col gap-4'>
@@ -629,6 +649,13 @@ export default function NowPlaying() {
                 <AddToPlaylistModal
                     song={addToPlaylistTarget}
                     onClose={() => setAddToPlaylistTarget(null)}
+                />
+            )}
+
+            {showSongInfo && (
+                <SongInfoModal
+                    song={currentSong}
+                    onClose={() => setShowSongInfo(false)}
                 />
             )}
         </motion.div>

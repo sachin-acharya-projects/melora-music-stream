@@ -102,6 +102,7 @@ export function PlaylistCollection({
     const [playlistToDelete, setPlaylistToDelete] = useState<Playlist | null>(null)
     const [isSearchAddOpen, setIsSearchAddOpen] = useState(false)
     const [selectedPlaylistIds, setSelectedPlaylistIds] = useState<string[]>([])
+    const [expandedDescriptionId, setExpandedDescriptionId] = useState<string | null>(null)
     const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false)
     const { moreMenuFor, setMoreMenuFor, renderMoreMenu, renderDialogs } = usePlaylistMenu({
         playlists,
@@ -515,9 +516,29 @@ export function PlaylistCollection({
                                                 {formatDuration(totalDuration)}
                                             </p>
                                             {playlist.description && (
-                                                <p className='mt-1 line-clamp-1 text-xs text-gray-400 dark:text-gray-500'>
+                                                <button
+                                                    type='button'
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        setExpandedDescriptionId(
+                                                            expandedDescriptionId === playlist.id
+                                                                ? null
+                                                                : playlist.id,
+                                                        )
+                                                    }}
+                                                    className={`mt-1 cursor-pointer text-left text-xs text-gray-400 transition-colors hover:text-red-500 dark:text-gray-500 ${
+                                                        expandedDescriptionId === playlist.id
+                                                            ? ""
+                                                            : "line-clamp-2"
+                                                    }`}
+                                                    title={
+                                                        expandedDescriptionId === playlist.id
+                                                            ? "Show less"
+                                                            : "Show more"
+                                                    }
+                                                >
                                                     {playlist.description}
-                                                </p>
+                                                </button>
                                             )}
                                         </>
                                     )}

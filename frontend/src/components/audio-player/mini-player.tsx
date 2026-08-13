@@ -1,5 +1,5 @@
 import { type PlaylistItem } from "@/hooks/usePlayer"
-import { cn } from "@/lib/utils"
+import { cn, slugify } from "@/lib/utils"
 import { motion } from "framer-motion"
 import { Loader2, Pause, Play, Repeat, Repeat1, SkipBack, SkipForward, X } from "lucide-react"
 import { useNavigate } from "react-router-dom"
@@ -65,9 +65,16 @@ export function MiniPlayer({
                         <h4 className='truncate text-sm font-semibold transition-colors group-hover:text-red-500 dark:text-white'>
                             {currentSong.title}
                         </h4>
-                        <p className='text-xs text-gray-500 dark:text-gray-400'>
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation()
+                                navigate(`/artists/${slugify(currentSong.uploader)}`)
+                            }}
+                            className='max-w-full cursor-pointer truncate text-xs text-gray-500 transition-colors hover:text-red-500 dark:text-gray-400'
+                            title={`View ${currentSong.uploader}`}
+                        >
                             {currentSong.uploader}
-                        </p>
+                        </button>
                     </div>
                 </div>
                 <button

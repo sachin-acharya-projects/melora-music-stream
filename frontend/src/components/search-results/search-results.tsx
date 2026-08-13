@@ -148,150 +148,6 @@ export function SearchResults({
                 </div>
             )}
 
-            {artists.length > 0 && (
-                <SearchRow title='Artists' icon={UserRound}>
-                    {artists.map((artist) => (
-                        <div key={artist.id ?? artist.name} className='w-36 shrink-0'>
-                            <button
-                                type='button'
-                                onClick={() => playArtist(artist.name, artist.name)}
-                                className='group flex w-full cursor-pointer flex-col items-center gap-2'
-                                title={`Play ${artist.name}`}
-                            >
-                                <span className='relative block overflow-hidden rounded-full'>
-                                    {artist.thumbnail ? (
-                                        <img
-                                            src={artist.thumbnail}
-                                            alt={artist.name}
-                                            loading='lazy'
-                                            decoding='async'
-                                            referrerPolicy='no-referrer'
-                                            className='h-28 w-28 object-cover'
-                                        />
-                                    ) : (
-                                        <span className='flex h-28 w-28 items-center justify-center bg-gray-100 dark:bg-white/10'>
-                                            <Mic2 className='h-8 w-8 text-gray-400' />
-                                        </span>
-                                    )}
-                                    <span className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
-                                        {playingKey === artist.name ? (
-                                            <Loader2 className='h-6 w-6 animate-spin text-white' />
-                                        ) : (
-                                            <Play className='h-6 w-6 translate-x-0.5 fill-current text-white' />
-                                        )}
-                                    </span>
-                                </span>
-                                <span className='line-clamp-2 w-full text-center text-sm font-semibold dark:text-white'>
-                                    {artist.name}
-                                </span>
-                            </button>
-                        </div>
-                    ))}
-                </SearchRow>
-            )}
-
-            {albums.length > 0 && (
-                <SearchRow title='Albums' icon={Disc3}>
-                    {albums.map((album) => (
-                        <div key={album.id ?? album.title} className='w-40 shrink-0'>
-                            <button
-                                type='button'
-                                onClick={() =>
-                                    playCollection(
-                                        album.audio_playlist_id ?? album.id ?? album.title,
-                                        album.audio_playlist_id ?? album.id,
-                                    )
-                                }
-                                className='group flex w-full cursor-pointer flex-col gap-2 text-left'
-                                title={`Play ${album.title}`}
-                            >
-                                <span className='relative block aspect-square w-full overflow-hidden rounded-lg'>
-                                    {album.thumbnail ? (
-                                        <img
-                                            src={album.thumbnail}
-                                            alt={album.title}
-                                            loading='lazy'
-                                            decoding='async'
-                                            referrerPolicy='no-referrer'
-                                            className='h-full w-full object-cover'
-                                        />
-                                    ) : (
-                                        <span className='flex h-full w-full items-center justify-center bg-gray-100 dark:bg-white/10'>
-                                            <Disc3 className='h-8 w-8 text-gray-400' />
-                                        </span>
-                                    )}
-                                    <span className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
-                                        {playingKey === (album.id ?? album.title) ? (
-                                            <Loader2 className='h-6 w-6 animate-spin text-white' />
-                                        ) : (
-                                            <Play className='h-6 w-6 translate-x-0.5 fill-current text-white' />
-                                        )}
-                                    </span>
-                                </span>
-                                <span className='line-clamp-1 text-sm font-semibold dark:text-white'>
-                                    {album.title}
-                                </span>
-                                <span className='line-clamp-1 text-xs text-gray-500 dark:text-gray-400'>
-                                    {(album.artists ?? []).join(", ")}
-                                    {album.year ? ` · ${album.year}` : ""}
-                                </span>
-                            </button>
-                        </div>
-                    ))}
-                </SearchRow>
-            )}
-
-            {playlists.length > 0 && (
-                <SearchRow title='Playlists' icon={Library}>
-                    {playlists.map((playlist) => (
-                        <div key={playlist.id ?? playlist.title} className='w-40 shrink-0'>
-                            <button
-                                type='button'
-                                onClick={() =>
-                                    playCollection(
-                                        playlist.id ?? playlist.title,
-                                        playlist.id,
-                                    )
-                                }
-                                className='group flex w-full cursor-pointer flex-col gap-2 text-left'
-                                title={`Play ${playlist.title}`}
-                            >
-                                <span className='relative block aspect-square w-full overflow-hidden rounded-lg'>
-                                    {playlist.thumbnail ? (
-                                        <img
-                                            src={playlist.thumbnail}
-                                            alt={playlist.title}
-                                            loading='lazy'
-                                            decoding='async'
-                                            referrerPolicy='no-referrer'
-                                            className='h-full w-full object-cover'
-                                        />
-                                    ) : (
-                                        <span className='flex h-full w-full items-center justify-center bg-gray-100 dark:bg-white/10'>
-                                            <ListMusic className='h-8 w-8 text-gray-400' />
-                                        </span>
-                                    )}
-                                    <span className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
-                                        {playingKey === (playlist.id ?? playlist.title) ? (
-                                            <Loader2 className='h-6 w-6 animate-spin text-white' />
-                                        ) : (
-                                            <Play className='h-6 w-6 translate-x-0.5 fill-current text-white' />
-                                        )}
-                                    </span>
-                                </span>
-                                <span className='line-clamp-1 text-sm font-semibold dark:text-white'>
-                                    {playlist.title}
-                                </span>
-                                <span className='text-xs text-gray-500 dark:text-gray-400'>
-                                    {playlist.song_count ?? ""}
-                                    {playlist.song_count ? " songs" : ""}
-                                </span>
-                            </button>
-                        </div>
-                    ))}
-                </SearchRow>
-            )}
-
             {(songs.length > 0 || videos.length > 0) && (
                 <div className='flex flex-col gap-6'>
                     <div className='flex items-center justify-between'>
@@ -450,6 +306,150 @@ export function SearchResults({
                     </div>
                 </div>
             )}
+            {artists.length > 0 && (
+                <SearchRow title='Artists' icon={UserRound}>
+                    {artists.map((artist) => (
+                        <div key={artist.id ?? artist.name} className='w-36 shrink-0'>
+                            <button
+                                type='button'
+                                onClick={() => playArtist(artist.name, artist.name)}
+                                className='group flex w-full cursor-pointer flex-col items-center gap-2'
+                                title={`Play ${artist.name}`}
+                            >
+                                <span className='relative block overflow-hidden rounded-full'>
+                                    {artist.thumbnail ? (
+                                        <img
+                                            src={artist.thumbnail}
+                                            alt={artist.name}
+                                            loading='lazy'
+                                            decoding='async'
+                                            referrerPolicy='no-referrer'
+                                            className='h-28 w-28 object-cover'
+                                        />
+                                    ) : (
+                                        <span className='flex h-28 w-28 items-center justify-center bg-gray-100 dark:bg-white/10'>
+                                            <Mic2 className='h-8 w-8 text-gray-400' />
+                                        </span>
+                                    )}
+                                    <span className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
+                                        {playingKey === artist.name ? (
+                                            <Loader2 className='h-6 w-6 animate-spin text-white' />
+                                        ) : (
+                                            <Play className='h-6 w-6 translate-x-0.5 fill-current text-white' />
+                                        )}
+                                    </span>
+                                </span>
+                                <span className='line-clamp-2 w-full text-center text-sm font-semibold dark:text-white'>
+                                    {artist.name}
+                                </span>
+                            </button>
+                        </div>
+                    ))}
+                </SearchRow>
+            )}
+
+            {albums.length > 0 && (
+                <SearchRow title='Albums' icon={Disc3}>
+                    {albums.map((album) => (
+                        <div key={album.id ?? album.title} className='w-40 shrink-0'>
+                            <button
+                                type='button'
+                                onClick={() =>
+                                    playCollection(
+                                        album.audio_playlist_id ?? album.id ?? album.title,
+                                        album.audio_playlist_id ?? album.id,
+                                    )
+                                }
+                                className='group flex w-full cursor-pointer flex-col gap-2 text-left'
+                                title={`Play ${album.title}`}
+                            >
+                                <span className='relative block aspect-square w-full overflow-hidden rounded-lg'>
+                                    {album.thumbnail ? (
+                                        <img
+                                            src={album.thumbnail}
+                                            alt={album.title}
+                                            loading='lazy'
+                                            decoding='async'
+                                            referrerPolicy='no-referrer'
+                                            className='h-full w-full object-cover'
+                                        />
+                                    ) : (
+                                        <span className='flex h-full w-full items-center justify-center bg-gray-100 dark:bg-white/10'>
+                                            <Disc3 className='h-8 w-8 text-gray-400' />
+                                        </span>
+                                    )}
+                                    <span className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
+                                        {playingKey === (album.id ?? album.title) ? (
+                                            <Loader2 className='h-6 w-6 animate-spin text-white' />
+                                        ) : (
+                                            <Play className='h-6 w-6 translate-x-0.5 fill-current text-white' />
+                                        )}
+                                    </span>
+                                </span>
+                                <span className='line-clamp-1 text-sm font-semibold dark:text-white'>
+                                    {album.title}
+                                </span>
+                                <span className='line-clamp-1 text-xs text-gray-500 dark:text-gray-400'>
+                                    {(album.artists ?? []).join(", ")}
+                                    {album.year ? ` · ${album.year}` : ""}
+                                </span>
+                            </button>
+                        </div>
+                    ))}
+                </SearchRow>
+            )}
+
+            {playlists.length > 0 && (
+                <SearchRow title='Playlists' icon={Library}>
+                    {playlists.map((playlist) => (
+                        <div key={playlist.id ?? playlist.title} className='w-40 shrink-0'>
+                            <button
+                                type='button'
+                                onClick={() =>
+                                    playCollection(
+                                        playlist.id ?? playlist.title,
+                                        playlist.id,
+                                    )
+                                }
+                                className='group flex w-full cursor-pointer flex-col gap-2 text-left'
+                                title={`Play ${playlist.title}`}
+                            >
+                                <span className='relative block aspect-square w-full overflow-hidden rounded-lg'>
+                                    {playlist.thumbnail ? (
+                                        <img
+                                            src={playlist.thumbnail}
+                                            alt={playlist.title}
+                                            loading='lazy'
+                                            decoding='async'
+                                            referrerPolicy='no-referrer'
+                                            className='h-full w-full object-cover'
+                                        />
+                                    ) : (
+                                        <span className='flex h-full w-full items-center justify-center bg-gray-100 dark:bg-white/10'>
+                                            <ListMusic className='h-8 w-8 text-gray-400' />
+                                        </span>
+                                    )}
+                                    <span className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
+                                        {playingKey === (playlist.id ?? playlist.title) ? (
+                                            <Loader2 className='h-6 w-6 animate-spin text-white' />
+                                        ) : (
+                                            <Play className='h-6 w-6 translate-x-0.5 fill-current text-white' />
+                                        )}
+                                    </span>
+                                </span>
+                                <span className='line-clamp-1 text-sm font-semibold dark:text-white'>
+                                    {playlist.title}
+                                </span>
+                                <span className='text-xs text-gray-500 dark:text-gray-400'>
+                                    {playlist.song_count ?? ""}
+                                    {playlist.song_count ? " songs" : ""}
+                                </span>
+                            </button>
+                        </div>
+                    ))}
+                </SearchRow>
+            )}
+
         </div>
     )
 }

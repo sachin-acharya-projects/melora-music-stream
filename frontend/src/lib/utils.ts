@@ -41,3 +41,10 @@ export function formatCount(count: number): string {
     if (count >= 1_000) return `${(count / 1_000).toFixed(1)}K`
     return count.toLocaleString()
 }
+
+export function slugify(name: string): string {
+    return name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "")
+}
