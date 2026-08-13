@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import String
+from sqlalchemy import Boolean, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import BaseModel
@@ -22,6 +22,8 @@ class SongModel(BaseModel):
     uploader: Mapped[str | None] = mapped_column(String, nullable=True)
     thumbnail: Mapped[str | None] = mapped_column(String, nullable=True)
     duration: Mapped[int | None] = mapped_column(nullable=True)
+    is_featured: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_published: Mapped[bool] = mapped_column(Boolean, default=True)
 
     playlists: Mapped[list[PlaylistModel]] = relationship(
         "PlaylistModel",

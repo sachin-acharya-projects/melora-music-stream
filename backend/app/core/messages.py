@@ -46,10 +46,25 @@ class Messages:
         "You do not have permission to modify this playlist"
     )
     SONG_NOT_FOUND_IN_PLAYLIST = "Song not found in playlist"
+    PLAYLIST_ORDER_MUST_MATCH_ALL_SONGS = (
+        "Song order must include every song in the playlist"
+    )
+    PLAYLIST_ORDER_HAS_DUPLICATES = "Song order must not contain duplicate IDs"
+    PLAYLIST_SOURCE_URL_NOT_SET = "This playlist has no source URL to sync from"
+    PLAYLIST_SYNC_FAILED = "Failed to sync playlist: {error}"
 
     # Songs, history, lyrics
     SONG_NOT_FOUND = "Song not found"
     HISTORY_ENTRY_NOT_FOUND = "History entry not found"
+
+    # Admin / catalog curation
+    INVALID_YOUTUBE_VIDEO = "Invalid YouTube video id or URL"
+    COULD_NOT_RESOLVE_SONG = "Could not resolve the song from YouTube"
+    PLAYLIST_IMPORT_FAILED = "Could not resolve the playlist from YouTube"
+    BATCH_IMPORT_TOO_MANY = "Batch import supports at most 50 items"
+    INVALID_ROLE = "Role must be 'admin' or 'user'"
+    CANNOT_DEMOTE_SELF = "You cannot remove your own admin role"
+    CANNOT_DEACTIVATE_SELF = "You cannot deactivate your own account"
 
     # Recommendations / radio
     MOOD_NOT_FOUND = "Mood not found"

@@ -51,6 +51,7 @@ class PlaylistModel(BaseModel):
     )
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     cover_image_url: Mapped[str | None] = mapped_column(String, nullable=True)
+    source_url: Mapped[str | None] = mapped_column(String, nullable=True)
     follower_count: Mapped[int] = mapped_column(default=0)
     is_collaborative: Mapped[bool] = mapped_column(Boolean, default=False)
 
@@ -58,7 +59,7 @@ class PlaylistModel(BaseModel):
         "SongModel",
         secondary=playlist_song,
         back_populates="playlists",
-        order_by=SongModel.created_at,
+        order_by=playlist_song.c.position,
     )
 
     followers: Mapped[list[UserModel]] = relationship(

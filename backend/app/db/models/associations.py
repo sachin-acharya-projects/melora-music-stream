@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import Column, DateTime, ForeignKey, String, Table
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Table
 
 from app.db.base import Base
 
@@ -20,6 +20,7 @@ playlist_song = Table(
         ForeignKey("songs.id"),
         primary_key=True,
     ),
+    Column("position", Integer, nullable=False, server_default="0"),
 )
 
 # Association table for user follows (self-referential many-to-many)

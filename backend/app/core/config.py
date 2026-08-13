@@ -75,6 +75,10 @@ class Settings(BaseSettings):
     YT_MUSIC_TTL_SECONDS: int = 24 * 60 * 60
     YT_MUSIC_CATALOG_CATEGORY_LIMIT: int = 8
 
+    # Genre resolution (MusicBrainz)
+    GENRES_CACHE_TTL_SECONDS: int = 30 * 24 * 60 * 60
+    STATS_GENRES_MAX_ARTISTS: int = 40
+
     # Cache invalidation anti-abuse
     CACHE_INVALIDATE_LIMIT: int = 10
     CACHE_INVALIDATE_WINDOW_SECONDS: int = 60 * 60

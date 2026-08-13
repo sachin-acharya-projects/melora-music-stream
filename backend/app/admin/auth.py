@@ -1,11 +1,17 @@
-from fastapi import Request
+from fastapi import HTTPException, Request
 from sqladmin.authentication import AuthenticationBackend
 
+from app.db.base import SessionLocal
+from app.db.models.user import UserRole
 from app.services.auth import AuthService
 
 
 class AdminAuth(AuthenticationBackend):
-    """Admin authentication using JWT from cookie or Authorization header."""
+    """Admin authentication using JWT from cookie or Authorization header.
+
+    A valid access token is not enough: the authenticated user must also have
+    the ``admin`` role, otherwise the sqladmin panel is off-limits.
+    """
 
     async def authenticate(self, request: Request) -> bool:
         token = request.cookies.get("access_token")
@@ -17,5 +23,9 @@ class AdminAuth(AuthenticationBackend):
         if not token:
             return False
 
-        payload = AuthService.decode_token(token)
-        return payload is not None
+        with SessionLocal() as db:
+            try:
+                user = AuthService.get_current_user_from_token(token, db=db)
+            except HTTPException:
+                return False
+            return user.is_active and user.role == UserRole.ADMIN.value

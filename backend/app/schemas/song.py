@@ -35,6 +35,10 @@ class PlaylistImport(BaseModel):
     id: str | None = None
 
 
+class PlaylistReorder(BaseModel):
+    song_ids: list[str]
+
+
 class PlaybackState(BaseModel):
     last_song_id: str | None = None
     current_queue: list[Song] = []

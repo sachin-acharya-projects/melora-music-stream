@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime  # noqa: TC003 - runtime-evaluated by SQLAlchemy
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import JSON, Integer, String
+from sqlalchemy import JSON, Boolean, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import BaseModel
@@ -33,6 +33,8 @@ class ArtistModel(BaseModel):
     channel_metadata: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     monthly_listeners: Mapped[int | None] = mapped_column(Integer, nullable=True)
     follower_count: Mapped[int] = mapped_column(default=0)
+    is_featured: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_published: Mapped[bool] = mapped_column(Boolean, default=True)
     enriched_at: Mapped[datetime | None] = mapped_column(nullable=True)
 
     songs: Mapped[list[SongModel]] = relationship(

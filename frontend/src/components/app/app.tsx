@@ -20,6 +20,11 @@ import Notifications from "@/pages/Notifications"
 import NotificationSettings from "@/pages/NotificationSettings"
 import Recommendations from "@/pages/Recommendations"
 import Stats from "@/pages/Stats"
+import AdminDashboard from "@/pages/admin/AdminDashboard"
+import AdminArtists from "@/pages/admin/AdminArtists"
+import AdminSongs from "@/pages/admin/AdminSongs"
+import AdminUsers from "@/pages/admin/AdminUsers"
+import AdminRoute from "@/components/admin/admin-route"
 import { useEffect } from "react"
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom"
 import { ToastContainer } from "react-toastify"
@@ -225,6 +230,38 @@ function AppContent() {
                             <ProtectedRoute>
                                 <NotificationSettings />
                             </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path='/admin'
+                        element={
+                            <AdminRoute>
+                                <AdminDashboard />
+                            </AdminRoute>
+                        }
+                    />
+                    <Route
+                        path='/admin/artists'
+                        element={
+                            <AdminRoute>
+                                <AdminArtists />
+                            </AdminRoute>
+                        }
+                    />
+                    <Route
+                        path='/admin/songs'
+                        element={
+                            <AdminRoute>
+                                <AdminSongs />
+                            </AdminRoute>
+                        }
+                    />
+                    <Route
+                        path='/admin/users'
+                        element={
+                            <AdminRoute>
+                                <AdminUsers />
+                            </AdminRoute>
                         }
                     />
                     <Route path='*' element={<Navigate to='/' replace />} />
