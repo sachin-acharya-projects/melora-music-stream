@@ -1,7 +1,6 @@
-from sqlalchemy.orm import Session
-
 import pytest
 from fastapi import HTTPException
+from sqlalchemy.orm import Session
 
 from app.db.models.playlist import PlaylistModel
 from app.db.models.user import UserModel
@@ -154,3 +153,48 @@ class TestSyncPlaylist:
         playlist = db.query(PlaylistModel).filter(PlaylistModel.name == "Mix").first()
         assert playlist is not None
         assert playlist.source_url == "https://youtube.com/playlist?list=abc"
+
+    def test_import_returns_502_when_extraction_fails(
+        self, db: Session, test_user: UserModel, monkeypatch
+    ) -> None:
+        def boom(url: str):
+            raise RuntimeError("boom")
+
+        monkeypatch.setattr(youtube_service, "extract_playlist_info", boom)
+
+        with pytest.raises(HTTPException) as exc:
+            PlaylistImportService.import_playlist(
+                db,
+                PlaylistImport(url="https://youtube.com/playlist?list=abc", name="Mix"),
+                test_user,
+            )
+        assert exc.value.status_code == 502
+        assert (
+            db.query(PlaylistModel)
+            .filter(PlaylistModel.name == "Mix")
+            .first()
+            is None
+        )
+
+    def test_import_returns_400_when_no_songs_resolved(
+        self, db: Session, test_user: UserModel, monkeypatch
+    ) -> None:
+        monkeypatch.setattr(
+            youtube_service,
+            "extract_playlist_info",
+            lambda url: [],
+        )
+
+        with pytest.raises(HTTPException) as exc:
+            PlaylistImportService.import_playlist(
+                db,
+                PlaylistImport(url="https://youtube.com/playlist?list=abc", name="Mix"),
+                test_user,
+            )
+        assert exc.value.status_code == 400
+        assert (
+            db.query(PlaylistModel)
+            .filter(PlaylistModel.name == "Mix")
+            .first()
+            is None
+        )

@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 
 from fastapi import HTTPException
@@ -11,6 +12,8 @@ from app.schemas.song import PlaylistImport, Song
 from app.services.playlists import PlaylistService
 from app.services.youtube import youtube_service
 
+logger = logging.getLogger(__name__)
+
 
 class PlaylistImportService:
     """Import playlists from YouTube into a Melora playlist."""
@@ -20,13 +23,24 @@ class PlaylistImportService:
         db: Session, data: PlaylistImport, user: UserModel
     ) -> dict[str, Any]:
         """Import a playlist from YouTube. Raises HTTPException on failure."""
+        try:
+            songs_data = youtube_service.extract_playlist_info(data.url)
+        except Exception:
+            logger.warning("Playlist import extraction failed", exc_info=True)
+            raise HTTPException(
+                status_code=502, detail=Messages.PLAYLIST_IMPORT_FAILED
+            ) from None
+        if not songs_data:
+            raise HTTPException(
+                status_code=400, detail=Messages.PLAYLIST_IMPORT_FAILED
+            )
+
         db_playlist = PlaylistImportService._get_or_create_playlist_for_import(
             db, data, user
         )
         db_playlist.source_url = data.url
         db.flush()
 
-        songs_data = youtube_service.extract_playlist_info(data.url)
         # De-duplicate by video id (YouTube playlists may repeat videos) and skip
         # malformed entries that failed to resolve an id.
         songs_by_id: dict[str, Song] = {}
@@ -36,10 +50,10 @@ class PlaylistImportService:
                 continue
             songs_by_id[song_id] = Song(
                 id=song_id,
-                title=s_data["title"],
-                uploader=s_data["uploader"],
-                thumbnail=s_data["thumbnail"],
-                duration=s_data["duration"],
+                title=s_data.get("title") or "Unknown Title",
+                uploader=s_data.get("uploader") or "Unknown Artist",
+                thumbnail=s_data.get("thumbnail") or "",
+                duration=s_data.get("duration") or 0,
             )
 
         current_song_ids = {str(s.id) for s in db_playlist.songs}
