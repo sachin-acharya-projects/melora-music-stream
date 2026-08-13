@@ -17,10 +17,14 @@ def generate_radio(
     db: SessionDep,
     current_user: CurrentUser,
     seed_type: Annotated[Literal["genre", "artist", "mood"], Query()],
-    seed_value: Annotated[str, Query(min_length=1, max_length=100)],
+    seed_value: Annotated[str, Query(min_length=1, max_length=200)],
     count: Annotated[int, Query(ge=1, le=RADIO_MAX_COUNT)] = RADIO_DEFAULT_COUNT,
 ) -> dict[str, Any]:
-    """Generate a shuffled batch of songs from a genre/artist/mood seed."""
+    """Generate a shuffled batch of songs from a genre/artist/mood seed.
+
+    ``seed_type="genre"`` accepts a comma-separated list (e.g. ``pop,rock``)
+    to mix multiple genres into one station.
+    """
     return RecommendationsService.get_radio_songs(
         db,
         user_id=current_user.id,
@@ -28,6 +32,12 @@ def generate_radio(
         seed_value=seed_value,
         count=count,
     )
+
+
+@router.get("/genres")
+def get_genres() -> list[dict[str, Any]]:
+    """Global genre catalog (from YTMusic) for radio seeding."""
+    return RecommendationsService.get_genres()
 
 
 @router.get("/moods")

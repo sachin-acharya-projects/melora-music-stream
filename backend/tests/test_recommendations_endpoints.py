@@ -94,6 +94,32 @@ def test_radio_moods_endpoint(client: TestClient, auth_headers: dict[str, str]) 
     assert response.json() == MOODS
 
 
+def test_radio_genres_endpoint(
+    client: TestClient, auth_headers: dict[str, str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    playlists = [
+        {"playlistId": "PL1", "title": "Rock", "thumbnail": "t1", "category": "Mood", "genre": "rock"},
+        {"playlistId": "PL2", "title": "Rock", "thumbnail": "t2", "category": "Mood", "genre": "rock"},
+        {"playlistId": "PL3", "title": "Chill", "thumbnail": "t3", "category": "Mood", "genre": "chill"},
+        {"playlistId": "PL4", "title": "Focus", "thumbnail": "", "category": "Mood", "genre": "focus"},
+        {"playlistId": None, "title": "Broken", "thumbnail": "t4", "category": "Mood", "genre": "broken"},
+    ]
+    monkeypatch.setattr(ytmusic_service, "mood_catalog", lambda: playlists)
+
+    response = client.get("/api/v1/radio/genres", headers=auth_headers)
+    assert response.status_code == 200
+    data = response.json()
+    names = [g["name"] for g in data]
+    assert names == sorted(names, key=str.casefold)
+
+    rock = next(g for g in data if g["name"] == "Rock")
+    assert len(rock["playlists"]) == 2
+    assert {p["id"] for p in rock["playlists"]} == {"PL1", "PL2"}
+    assert all("title" in p and "thumbnail" in p for p in rock["playlists"])
+
+    assert {g["name"] for g in data} == {"Rock", "Chill", "Focus"}
+
+
 def test_radio_seeds_endpoint(
     client: TestClient, db: Session, test_user: UserModel, auth_headers: dict[str, str]
 ) -> None:

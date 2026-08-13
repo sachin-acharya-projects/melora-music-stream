@@ -1,5 +1,7 @@
 export const ENDPOINTS = {
     SEARCH: "/search/",
+    SEARCH_SUGGESTIONS: "/search/suggestions",
+    SEARCH_TRACKS: "/search/tracks",
     CACHE: {
         INVALIDATE: "/cache/invalidate",
     },
@@ -24,6 +26,8 @@ export const ENDPOINTS = {
         REMOVE_SONG: (playlistId: string, songId: string) =>
             `/playlists/${playlistId}/songs/${songId}`,
         IMPORT: "/playlists/import",
+        SYNC: (playlistId: string) => `/playlists/${playlistId}/sync`,
+        REORDER: (playlistId: string) => `/playlists/${playlistId}/reorder`,
         SHARE: (playlistId: string) => `/playlists/${playlistId}/share`,
         SHARED_BY_TOKEN: (token: string) => `/playlists/shared/${token}`,
     },
@@ -66,6 +70,7 @@ export const ENDPOINTS = {
         BASE: "/radio/",
         MOODS: "/radio/moods",
         SEEDS: "/radio/seeds",
+        GENRES: "/radio/genres",
     },
     AUTH: {
         LOGIN: "/auth/login",
@@ -80,5 +85,25 @@ export const ENDPOINTS = {
         READ: (id: string) => `/notifications/${id}/read`,
         READ_ALL: "/notifications/read-all",
         SETTINGS: "/notifications/settings",
+    },
+    ADMIN: {
+        DASHBOARD: "/admin/dashboard",
+        ARTISTS: "/admin/artists",
+        ARTIST: (id: string) => `/admin/artists/${encodeURIComponent(id)}`,
+        ARTIST_FEATURE: (id: string) => `/admin/artists/${encodeURIComponent(id)}/feature`,
+        ARTIST_UNFEATURE: (id: string) => `/admin/artists/${encodeURIComponent(id)}/unfeature`,
+        ARTIST_PUBLISH: (id: string) => `/admin/artists/${encodeURIComponent(id)}/publish`,
+        ARTIST_HIDE: (id: string) => `/admin/artists/${encodeURIComponent(id)}/hide`,
+        ARTIST_BATCH_IMPORT: "/admin/artists/batch-import",
+        SONGS: "/admin/songs",
+        SONG: (id: string) => `/admin/songs/${encodeURIComponent(id)}`,
+        SONG_IMPORT: "/admin/songs/import",
+        SONG_FEATURE: (id: string) => `/admin/songs/${encodeURIComponent(id)}/feature`,
+        SONG_UNFEATURE: (id: string) => `/admin/songs/${encodeURIComponent(id)}/unfeature`,
+        SONG_PUBLISH: (id: string) => `/admin/songs/${encodeURIComponent(id)}/publish`,
+        SONG_HIDE: (id: string) => `/admin/songs/${encodeURIComponent(id)}/hide`,
+        PLAYLIST_IMPORT: "/admin/playlists/import",
+        USERS: "/admin/users",
+        USER: (id: string) => `/admin/users/${encodeURIComponent(id)}`,
     },
 } as const

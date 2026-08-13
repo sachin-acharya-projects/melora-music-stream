@@ -53,6 +53,33 @@ class RecommendationsService:
         return MOODS
 
     @staticmethod
+    def get_genres() -> list[dict[str, Any]]:
+        """Global genre picker built from YTMusic's curated mood/genre catalog.
+
+        Each genre groups a few playlists so the UI can preview (and seed)
+        it independently of the user's listening history.
+        """
+        playlists = ytmusic_service.mood_catalog()
+        by_name: dict[str, dict[str, Any]] = {}
+        for playlist in playlists:
+            name = (playlist.get("title") or "").strip()
+            if not name or not playlist.get("playlistId"):
+                continue
+            entry = by_name.setdefault(name.casefold(), {"name": name, "playlists": []})
+            entry["playlists"].append(
+                {
+                    "id": playlist.get("playlistId"),
+                    "title": playlist.get("title") or "Untitled",
+                    "thumbnail": playlist.get("thumbnail") or "",
+                }
+            )
+        genres = [entry for entry in by_name.values() if entry["playlists"]]
+        for entry in genres:
+            entry["playlists"] = entry["playlists"][:4]
+        genres.sort(key=lambda entry: entry["name"].casefold())
+        return genres
+
+    @staticmethod
     def get_user_seeds(db: Session, user: UserModel) -> dict[str, Any]:
         """Genres and artists the UI can offer as radio seeds.
 
@@ -134,7 +161,9 @@ class RecommendationsService:
                 _collect_genre_songs(db, genre, candidates, seen)
             _enrich_mood_playlist(mood, candidates, seen)
         elif seed_type == "genre":
-            _collect_genre_songs(db, seed_value, candidates, seen)
+            for genre in _split_genre_seed(seed_value):
+                _collect_genre_songs(db, genre, candidates, seen)
+                _enrich_genre_playlists(genre, candidates, seen)
         elif seed_type == "artist":
             artist = _resolve_artist(db, seed_value)
             if artist is not None:
@@ -227,13 +256,20 @@ def _recent_played_ids(
 def _resolve_artist(db: Session, seed_value: str) -> ArtistModel | None:
     """Resolve an artist by slug, id, or case-insensitive name."""
     artist = (
-        db.query(ArtistModel).filter(ArtistModel.slug == seed_value).first()
-        or db.query(ArtistModel).filter(ArtistModel.id == seed_value).first()
+        db.query(ArtistModel)
+        .filter(ArtistModel.slug == seed_value, ArtistModel.is_published.is_(True))
+        .first()
+        or db.query(ArtistModel)
+        .filter(ArtistModel.id == seed_value, ArtistModel.is_published.is_(True))
+        .first()
     )
     if artist is None:
         artist = (
             db.query(ArtistModel)
-            .filter(func.lower(ArtistModel.name) == seed_value.lower())
+            .filter(
+                func.lower(ArtistModel.name) == seed_value.lower(),
+                ArtistModel.is_published.is_(True),
+            )
             .first()
         )
     return artist
@@ -248,7 +284,10 @@ def _artists_for_genre(
         return []
     artists = (
         db.query(ArtistModel)
-        .filter(ArtistModel.genres.isnot(None))
+        .filter(
+            ArtistModel.genres.isnot(None),
+            ArtistModel.is_published.is_(True),
+        )
         .order_by(ArtistModel.follower_count.desc())
         .limit(200)
         .all()
@@ -283,6 +322,42 @@ def _collect_genre_songs(
             if song["id"] not in seen:
                 seen.add(song["id"])
                 candidates.append(song)
+
+
+def _split_genre_seed(seed_value: str) -> list[str]:
+    """Split a (possibly comma-separated) genre seed into unique genres."""
+    genres: list[str] = []
+    seen: set[str] = set()
+    for part in seed_value.split(","):
+        genre = part.strip()
+        key = genre.casefold()
+        if key and key not in seen:
+            seen.add(key)
+            genres.append(genre)
+    return genres
+
+
+def _enrich_genre_playlists(
+    genre: str,
+    candidates: list[dict[str, Any]],
+    seen: set[str],
+) -> None:
+    """Append tracks from curated YTMusic playlists matching ``genre``."""
+    target = genre.strip().casefold()
+    if not target:
+        return
+    matched = 0
+    for playlist in ytmusic_service.mood_catalog():
+        title = (playlist.get("title") or "").casefold()
+        if not title or target not in title:
+            continue
+        for song in ytmusic_service.playlist_songs(playlist["playlistId"], limit=10):
+            if song["id"] not in seen:
+                seen.add(song["id"])
+                candidates.append(song)
+        matched += 1
+        if matched >= 2:
+            break
 
 
 def _enrich_mood_playlist(

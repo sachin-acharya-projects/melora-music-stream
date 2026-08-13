@@ -14,6 +14,17 @@ export interface RadioSeedResponse {
     top_artists: Array<{ name: string; plays: number }>
 }
 
+export interface RadioGenrePlaylist {
+    id: string | null
+    title: string
+    thumbnail: string
+}
+
+export interface RadioGenre {
+    name: string
+    playlists: RadioGenrePlaylist[]
+}
+
 export interface RadioResponse {
     seed_type: "genre" | "artist" | "mood"
     seed_value: string
@@ -33,6 +44,11 @@ export const recommendationsService = {
 
     getRadioMoods: async (): Promise<RadioMood[]> => {
         const { data } = await http.get<RadioMood[]>(ENDPOINTS.RADIO.MOODS)
+        return data
+    },
+
+    getRadioGenres: async (): Promise<RadioGenre[]> => {
+        const { data } = await http.get<RadioGenre[]>(ENDPOINTS.RADIO.GENRES)
         return data
     },
 

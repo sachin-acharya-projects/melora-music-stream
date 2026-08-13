@@ -81,6 +81,10 @@ def mock_youtube_search(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(youtube_service, "search_songs", fake_search)
     monkeypatch.setattr(ytmusic_service, "search_songs", lambda query: [])
     monkeypatch.setattr(ytmusic_service, "find_mood_playlist", lambda mood: None)
+    monkeypatch.setattr(ytmusic_service, "mood_catalog", lambda: [])
+    monkeypatch.setattr(
+        ytmusic_service, "playlist_songs", lambda playlist_id, limit: []
+    )
     _rec_cache.clear()
     yield
     _rec_cache.clear()
@@ -152,6 +156,30 @@ class TestGetForUser:
         assert [s["id"] for s in first] == [s["id"] for s in second]
 
 
+class TestGetGenres:
+    def test_groups_catalog_by_playlist_title(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(
+            ytmusic_service,
+            "mood_catalog",
+            lambda: [
+                {"playlistId": "pl-pop-1", "title": "Pop", "thumbnail": "a.jpg"},
+                {"playlistId": "pl-pop-2", "title": "Pop", "thumbnail": "b.jpg"},
+                {"playlistId": "pl-rock", "title": "Rock", "thumbnail": "c.jpg"},
+                {"playlistId": "", "title": "Untitled"},
+            ],
+        )
+        genres = RecommendationsService.get_genres()
+        by_name = {g["name"]: g for g in genres}
+        assert set(by_name) == {"Pop", "Rock"}
+        assert [p["id"] for p in by_name["Pop"]["playlists"]] == [
+            "pl-pop-1",
+            "pl-pop-2",
+        ]
+        assert genres == sorted(genres, key=lambda g: g["name"].casefold())
+
+
 class TestGetRadioSongs:
     def test_mood_seed(self, db: Session, test_user: UserModel) -> None:
         result = RecommendationsService.get_radio_songs(
@@ -170,6 +198,48 @@ class TestGetRadioSongs:
         assert result["seed_type"] == "genre"
         assert len(result["songs"]) == 1
         assert result["songs"][0]["id"] == "dance-1"
+
+    def test_genre_seed_mixes_multiple_genres(
+        self, db: Session, test_user: UserModel
+    ) -> None:
+        result = RecommendationsService.get_radio_songs(
+            db, user_id=test_user.id, seed_type="genre", seed_value="dance,jazz", count=25
+        )
+        assert {s["id"] for s in result["songs"]} == {"dance-1", "jazz-1"}
+
+    def test_genre_seed_dedupes_repeated_genres(
+        self, db: Session, test_user: UserModel
+    ) -> None:
+        result = RecommendationsService.get_radio_songs(
+            db, user_id=test_user.id, seed_type="genre", seed_value="pop,pop", count=25
+        )
+        assert len(result["songs"]) == 1
+
+    def test_genre_seed_enriches_from_curated_playlists(
+        self, db: Session, test_user: UserModel, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(
+            ytmusic_service,
+            "mood_catalog",
+            lambda: [
+                {"playlistId": "pl-pop", "title": "Pop Hits", "thumbnail": ""},
+                {"playlistId": "pl-other", "title": "Rock Classics", "thumbnail": ""},
+            ],
+        )
+        monkeypatch.setattr(
+            ytmusic_service,
+            "playlist_songs",
+            lambda playlist_id, limit: (
+                [{"id": "curated-1", "title": "Curated", "uploader": "DJ", "thumbnail": "", "duration": 180}]
+                if playlist_id == "pl-pop"
+                else []
+            ),
+        )
+        result = RecommendationsService.get_radio_songs(
+            db, user_id=test_user.id, seed_type="genre", seed_value="pop", count=25
+        )
+        ids = {s["id"] for s in result["songs"]}
+        assert ids == {"pop-1", "curated-1"}
 
     def test_artist_seed(self, db: Session, test_user: UserModel) -> None:
         ArtistService.get_or_create_artist(db, "Radiohead")

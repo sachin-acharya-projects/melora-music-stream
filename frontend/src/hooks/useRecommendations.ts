@@ -18,6 +18,14 @@ export function useRadioMoods() {
     })
 }
 
+export function useRadioGenres() {
+    return useQuery({
+        queryKey: ["radio", "genres"],
+        queryFn: () => recommendationsService.getRadioGenres(),
+        staleTime: Infinity,
+    })
+}
+
 export function useRadioSeeds() {
     return useQuery({
         queryKey: ["radio", "seeds"],

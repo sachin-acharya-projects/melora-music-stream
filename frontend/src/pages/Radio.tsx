@@ -1,24 +1,53 @@
 import { SongSection } from "@/components/song-section/song-section"
-import { useGenerateRadio, useRadioMoods, useRadioSeeds } from "@/hooks/useRecommendations"
+import {
+    useGenerateRadio,
+    useRadioGenres,
+    useRadioMoods,
+    useRadioSeeds,
+} from "@/hooks/useRecommendations"
 import { usePlayerStore } from "@/hooks/usePlayer"
 import { useTitle } from "@/hooks/useTitle"
 import type { RadioResponse, RadioSeedType } from "@/services/recommendations.service"
 import { type ArtistSong } from "@/types"
 import { MESSAGES } from "@/utils/messages"
-import { Loader2, Radio as RadioIcon, Shuffle } from "lucide-react"
-import { useState } from "react"
+import {
+    Loader2,
+    Play,
+    Radio as RadioIcon,
+    Shuffle,
+    Sparkles,
+    X,
+} from "lucide-react"
+import { useMemo, useState } from "react"
 import { toast } from "react-toastify"
 
 const toPlayable = (songs: ArtistSong[]) => songs.map((s) => ({ ...s, created_at: s.created_at ?? "" }))
+
+const SURPRISE_MAX_GENRES = 3
 
 export default function Radio() {
     useTitle("Radio")
     const setPlaylist = usePlayerStore((s) => s.setPlaylist)
     const { data: moods, isLoading: moodsLoading } = useRadioMoods()
+    const { data: genres, isLoading: genresLoading } = useRadioGenres()
     const { data: seeds } = useRadioSeeds()
     const generate = useGenerateRadio()
     const [station, setStation] = useState<RadioResponse | null>(null)
     const [generatingFor, setGeneratingFor] = useState<string | null>(null)
+    const [selectedGenres, setSelectedGenres] = useState<string[]>([])
+
+    const genreNames = useMemo(
+        () => (genres ?? []).map((genre) => genre.name),
+        [genres],
+    )
+
+    const toggleGenre = (name: string) => {
+        setSelectedGenres((current) =>
+            current.includes(name)
+                ? current.filter((g) => g !== name)
+                : [...current, name],
+        )
+    }
 
     const handleGenerate = async (seedType: RadioSeedType, seedValue: string) => {
         setGeneratingFor(`${seedType}:${seedValue}`)
@@ -34,6 +63,20 @@ export default function Radio() {
         } finally {
             setGeneratingFor(null)
         }
+    }
+
+    const handleStartMix = () => {
+        if (selectedGenres.length > 0) {
+            void handleGenerate("genre", selectedGenres.join(","))
+        }
+    }
+
+    const handleSurprise = () => {
+        if (genreNames.length === 0) return
+        const shuffled = [...genreNames].sort(() => Math.random() - 0.5)
+        const picks = shuffled.slice(0, SURPRISE_MAX_GENRES)
+        setSelectedGenres(picks)
+        void handleGenerate("genre", picks.join(","))
     }
 
     const handleShuffle = () => {
@@ -56,7 +99,7 @@ export default function Radio() {
                     Melora <span className='text-red-500'>Radio</span>
                 </h1>
                 <p className='mt-1 text-sm text-gray-500 dark:text-gray-400'>
-                    Pick a mood or a seed from your library to start a station
+                    Pick a mood, a genre (or a few), or a seed from your library to start a station
                 </p>
             </div>
 
@@ -96,6 +139,90 @@ export default function Radio() {
                                 )
                             })}
                         </div>
+                    </section>
+
+                    <section className='mb-10'>
+                        <div className='mb-4 flex flex-wrap items-center justify-between gap-3'>
+                            <div>
+                                <h2 className='text-lg font-bold dark:text-white'>Browse genres</h2>
+                                <p className='mt-0.5 text-xs text-gray-500 dark:text-gray-400'>
+                                    Pick one or several genres to mix into a single station
+                                </p>
+                            </div>
+                            {selectedGenres.length > 0 && (
+                                <div className='flex items-center gap-2'>
+                                    <button
+                                        type='button'
+                                        onClick={() => setSelectedGenres([])}
+                                        className='dark:bg-card flex h-9 cursor-pointer items-center gap-1 rounded-xl border bg-white px-3 text-sm font-medium transition-all hover:border-red-200 dark:border-white/10 dark:text-white'
+                                        title='Clear selection'
+                                    >
+                                        <X className='h-4 w-4' />
+                                        Clear
+                                    </button>
+                                    <button
+                                        type='button'
+                                        onClick={handleStartMix}
+                                        disabled={generatingFor === `genre:${selectedGenres.join(",")}`}
+                                        className='flex h-9 cursor-pointer items-center gap-2 rounded-xl bg-red-600 px-4 text-sm font-semibold text-white transition-all hover:bg-red-700 active:scale-95 disabled:cursor-wait disabled:opacity-60'
+                                    >
+                                        {generatingFor === `genre:${selectedGenres.join(",")}` ? (
+                                            <Loader2 className='h-4 w-4 animate-spin' />
+                                        ) : (
+                                            <Play className='h-4 w-4 fill-current' />
+                                        )}
+                                        Start mix ({selectedGenres.length})
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        {genresLoading ? (
+                            <div className='flex justify-center py-10'>
+                                <Loader2 className='h-8 w-8 animate-spin text-red-600' />
+                            </div>
+                        ) : (genres ?? []).length === 0 ? (
+                            <p className='text-sm text-gray-500 dark:text-gray-400'>
+                                Genre catalog unavailable right now.
+                            </p>
+                        ) : (
+                            <>
+                                <div className='flex flex-wrap items-center gap-2'>
+                                    {genreNames.map((genre) => {
+                                        const selected = selectedGenres.includes(genre)
+                                        const active = generatingFor === `genre:${genre}`
+                                        return (
+                                            <button
+                                                key={genre}
+                                                type='button'
+                                                disabled={active}
+                                                onClick={() => toggleGenre(genre)}
+                                                className={`flex cursor-pointer items-center gap-1 rounded-full border px-3 py-1.5 text-sm font-medium transition-all disabled:cursor-wait disabled:opacity-60 ${
+                                                    selected
+                                                        ? "border-red-500 bg-red-600 text-white"
+                                                        : "dark:bg-card border bg-white hover:border-red-300 hover:text-red-500 dark:border-white/10 dark:text-white"
+                                                }`}
+                                            >
+                                                {active && (
+                                                    <Loader2 className='h-3.5 w-3.5 animate-spin' />
+                                                )}
+                                                {selected && <span>✓</span>}
+                                                {genre}
+                                            </button>
+                                        )
+                                    })}
+                                </div>
+                                <button
+                                    type='button'
+                                    onClick={handleSurprise}
+                                    disabled={genreNames.length === 0}
+                                    className='dark:bg-card mt-4 flex h-9 cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 text-sm font-medium transition-all hover:border-red-300 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:text-white'
+                                >
+                                    <Sparkles className='h-4 w-4 text-red-500' />
+                                    Surprise me
+                                </button>
+                            </>
+                        )}
                     </section>
 
                     <section className='mb-10'>
