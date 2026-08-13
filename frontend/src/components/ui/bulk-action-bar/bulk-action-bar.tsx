@@ -46,7 +46,7 @@ export default function BulkActionBar({
                     animate={{ y: 0, opacity: 1 }}
                     exit={{ y: 80, opacity: 0 }}
                     transition={{ duration: 0.25 }}
-                    className='fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-6 rounded-2xl border border-red-500/20 bg-white/90 px-6 py-3 shadow-2xl backdrop-blur-md dark:border-white/10 dark:bg-black/90'
+                    className='fixed bottom-20 left-1/2 z-50 flex max-w-[calc(100vw-1.5rem)] -translate-x-1/2 flex-wrap items-center justify-center gap-2 rounded-2xl border border-red-500/20 bg-white/90 px-4 py-3 shadow-2xl backdrop-blur-md md:bottom-6 md:max-w-none md:gap-6 md:px-6 dark:border-white/10 dark:bg-black/90'
                 >
                     <p className='text-sm font-bold whitespace-nowrap dark:text-white'>
                         {selectedCount} selected

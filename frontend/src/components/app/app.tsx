@@ -1,6 +1,8 @@
 import { AuthProvider } from "@/contexts/AuthContext"
 import { useAuth } from "@/hooks/useAuth"
 import { usePlayerStore } from "@/hooks/usePlayer"
+import AssistiveNav from "@/components/assistive-nav/assistive-nav"
+import MobileTabBar from "@/components/mobile-nav/mobile-tab-bar"
 import Home from "@/pages/Home"
 import Login from "@/pages/Login"
 import AuthCallback from "@/pages/AuthCallback"
@@ -96,6 +98,8 @@ function AppContent() {
     return (
         <section>
             {isAuthenticated && <Navbar />}
+            {isAuthenticated && <AssistiveNav />}
+            {isAuthenticated && <MobileTabBar />}
             <Background />
             <main className={isAuthenticated ? "pt-22" : ""}>
                 <Routes>

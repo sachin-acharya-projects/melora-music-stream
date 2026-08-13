@@ -43,11 +43,11 @@ export default function Navbar() {
     }, [mode])
 
     return (
-        <div className='fixed z-1000 flex h-20 w-full items-center justify-between gap-4 bg-white/5 p-3 px-6 shadow-xs backdrop-blur-sm dark:border-b dark:border-white/5'>
+        <div className='fixed z-1000 flex min-h-20 w-full flex-wrap items-center justify-between gap-2 p-3 px-3 shadow-xs backdrop-blur-sm md:gap-4 md:px-6 dark:border-b dark:border-white/5'>
             <div className='flex flex-1 items-center gap-2'>
                 <Link
                     to='/playlists'
-                    className={`flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 transition-colors ${
+                    className={`hidden cursor-pointer items-center gap-2 rounded-full px-4 py-2 transition-colors md:flex ${
                         location.pathname === "/playlists"
                             ? "bg-red-500 text-white"
                             : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"
@@ -58,7 +58,7 @@ export default function Navbar() {
                 </Link>
                 <Link
                     to='/artists'
-                    className={`flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 transition-colors ${
+                    className={`hidden cursor-pointer items-center gap-2 rounded-full px-4 py-2 transition-colors md:flex ${
                         location.pathname.startsWith("/artists")
                             ? "bg-red-500 text-white"
                             : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"
@@ -91,7 +91,7 @@ export default function Navbar() {
                 </Link>
                 <Link
                     to='/radio'
-                    className={`flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 transition-colors ${
+                    className={`hidden cursor-pointer items-center gap-2 rounded-full px-4 py-2 transition-colors md:flex ${
                         location.pathname === "/radio"
                             ? "bg-red-500 text-white"
                             : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"
@@ -102,7 +102,7 @@ export default function Navbar() {
                 </Link>
                 <Link
                     to='/now-playing'
-                    className={`flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 transition-colors ${
+                    className={`hidden cursor-pointer items-center gap-2 rounded-full px-4 py-2 transition-colors md:flex ${
                         location.pathname === "/now-playing"
                             ? "bg-red-500 text-white"
                             : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"

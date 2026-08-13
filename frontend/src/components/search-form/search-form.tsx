@@ -36,7 +36,7 @@ export default function SearchForm({
 
     return (
         <form className='flex gap-2' onSubmit={handleSubmit}>
-            <div className='w-140'>
+            <div className='w-full md:w-140'>
                 <div className='relative'>
                     <input
                         type='text'

@@ -21,6 +21,9 @@ export default defineConfig({
                 short_name: "Melora",
                 description: "Premium YouTube Music downloader and player",
                 theme_color: "#ef4444",
+                background_color: "#ffffff",
+                display: "standalone",
+                start_url: "/",
                 icons: [
                     {
                         src: "pwa-192x192.png",

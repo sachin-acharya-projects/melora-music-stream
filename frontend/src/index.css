@@ -170,3 +170,22 @@
 .animate-music-bar-3 {
     animation: music-bar-3 0.8s ease-in-out infinite 0.4s;
 }
+
+.pt-safe {
+    padding-top: env(safe-area-inset-top);
+}
+.pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+}
+.pl-safe {
+    padding-left: env(safe-area-inset-left);
+}
+.pr-safe {
+    padding-right: env(safe-area-inset-right);
+}
+.pt-safe-overlay {
+    padding-top: calc(env(safe-area-inset-top) + 4rem);
+}
+.pb-safe-player {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 7rem);
+}

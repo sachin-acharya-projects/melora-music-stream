@@ -38,7 +38,7 @@ export function MiniPlayer({
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className='fixed right-6 bottom-24 z-100 flex w-80 flex-col overflow-hidden rounded-2xl border bg-white/95 p-4 shadow-2xl backdrop-blur-md dark:border-white/10 dark:bg-black/95'
+            className='fixed right-3 bottom-28 left-3 z-100 flex flex-col overflow-hidden rounded-2xl border bg-white/95 p-4 shadow-2xl backdrop-blur-md dark:border-white/10 dark:bg-black/95 md:right-6 md:bottom-24 md:left-auto md:w-80'
         >
             <div className='flex items-start justify-between gap-4'>
                 <div

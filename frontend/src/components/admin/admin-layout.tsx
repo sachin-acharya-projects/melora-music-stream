@@ -72,11 +72,48 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
             <Link
                 to='/'
-                className='fixed bottom-6 right-6 z-100 flex h-13 w-13 cursor-pointer items-center justify-center rounded-full bg-white/80 shadow-lg backdrop-blur transition-transform hover:scale-105 dark:bg-white/10 dark:text-white'
+                className='fixed right-6 bottom-6 z-100 hidden h-13 w-13 cursor-pointer items-center justify-center rounded-full bg-white/80 shadow-lg backdrop-blur transition-transform hover:scale-105 dark:bg-white/10 dark:text-white md:flex'
                 title='Back to Melora'
             >
                 <BarChart3 className='h-5 w-5' />
             </Link>
+
+            <nav className='fixed inset-x-0 bottom-0 z-100 border-t border-gray-200 bg-white/95 pb-safe backdrop-blur-md dark:border-white/10 dark:bg-black/95 md:hidden'>
+                <div className='flex items-stretch justify-around'>
+                    {NAV_ITEMS.map((item) => {
+                        const active = item.end
+                            ? location.pathname === item.to
+                            : location.pathname.startsWith(item.to)
+                        const Icon = item.icon
+                        return (
+                            <Link
+                                key={item.to}
+                                to={item.to}
+                                className='flex flex-1 cursor-pointer flex-col items-center gap-1 py-2'
+                            >
+                                <span
+                                    className={`flex h-8 w-14 items-center justify-center rounded-full transition-colors ${
+                                        active
+                                            ? "bg-red-600 text-white"
+                                            : "text-gray-500 dark:text-gray-400"
+                                    }`}
+                                >
+                                    <Icon className='h-4 w-4' />
+                                </span>
+                                <span
+                                    className={`text-[10px] font-medium ${
+                                        active
+                                            ? "text-red-500 dark:text-red-400"
+                                            : "text-gray-500 dark:text-gray-400"
+                                    }`}
+                                >
+                                    {item.label}
+                                </span>
+                            </Link>
+                        )
+                    })}
+                </div>
+            </nav>
         </div>
     )
 }
