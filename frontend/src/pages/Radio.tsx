@@ -14,6 +14,7 @@ import {
     Loader2,
     Play,
     Radio as RadioIcon,
+    Search,
     Shuffle,
     Sparkles,
     X,
@@ -24,6 +25,7 @@ import { toast } from "react-toastify"
 const toPlayable = (songs: ArtistSong[]) => songs.map((s) => ({ ...s, created_at: s.created_at ?? "" }))
 
 const SURPRISE_MAX_GENRES = 3
+const GENRE_PREVIEW_LIMIT = 12
 
 export default function Radio() {
     useTitle("Radio")
@@ -35,11 +37,24 @@ export default function Radio() {
     const [station, setStation] = useState<RadioResponse | null>(null)
     const [generatingFor, setGeneratingFor] = useState<string | null>(null)
     const [selectedGenres, setSelectedGenres] = useState<string[]>([])
+    const [genreQuery, setGenreQuery] = useState("")
+    const [showAllGenres, setShowAllGenres] = useState(false)
 
     const genreNames = useMemo(
         () => (genres ?? []).map((genre) => genre.name),
         [genres],
     )
+
+    const filteredGenres = useMemo(() => {
+        const query = genreQuery.trim().toLowerCase()
+        if (!query) return genreNames
+        return genreNames.filter((name) => name.toLowerCase().includes(query))
+    }, [genreNames, genreQuery])
+
+    const visibleGenres = useMemo(() => {
+        if (genreQuery.trim() || showAllGenres) return filteredGenres
+        return filteredGenres.slice(0, GENRE_PREVIEW_LIMIT)
+    }, [filteredGenres, genreQuery, showAllGenres])
 
     const toggleGenre = (name: string) => {
         setSelectedGenres((current) =>
@@ -187,31 +202,60 @@ export default function Radio() {
                             </p>
                         ) : (
                             <>
-                                <div className='flex flex-wrap items-center gap-2'>
-                                    {genreNames.map((genre) => {
-                                        const selected = selectedGenres.includes(genre)
-                                        const active = generatingFor === `genre:${genre}`
-                                        return (
-                                            <button
-                                                key={genre}
-                                                type='button'
-                                                disabled={active}
-                                                onClick={() => toggleGenre(genre)}
-                                                className={`flex cursor-pointer items-center gap-1 rounded-full border px-3 py-1.5 text-sm font-medium transition-all disabled:cursor-wait disabled:opacity-60 ${
-                                                    selected
-                                                        ? "border-red-500 bg-red-600 text-white"
-                                                        : "dark:bg-card border bg-white hover:border-red-300 hover:text-red-500 dark:border-white/10 dark:text-white"
-                                                }`}
-                                            >
-                                                {active && (
-                                                    <Loader2 className='h-3.5 w-3.5 animate-spin' />
-                                                )}
-                                                {selected && <span>✓</span>}
-                                                {genre}
-                                            </button>
-                                        )
-                                    })}
+                                <div className='relative mb-4'>
+                                    <Search className='pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400' />
+                                    <input
+                                        type='text'
+                                        value={genreQuery}
+                                        onChange={(e) => setGenreQuery(e.target.value)}
+                                        placeholder='Filter genres…'
+                                        className='dark:bg-card h-9 w-full max-w-64 cursor-text rounded-xl border bg-white pr-3 pl-9 text-sm transition-all focus:border-red-400 focus:outline-none dark:border-white/10 dark:text-white'
+                                    />
                                 </div>
+                                {filteredGenres.length === 0 ? (
+                                    <p className='text-sm text-gray-500 dark:text-gray-400'>
+                                        No genres match "{genreQuery}".
+                                    </p>
+                                ) : (
+                                    <>
+                                        <div className='flex flex-wrap items-center gap-2'>
+                                            {visibleGenres.map((genre) => {
+                                                const selected = selectedGenres.includes(genre)
+                                                const active = generatingFor === `genre:${genre}`
+                                                return (
+                                                    <button
+                                                        key={genre}
+                                                        type='button'
+                                                        disabled={active}
+                                                        onClick={() => toggleGenre(genre)}
+                                                        className={`flex cursor-pointer items-center gap-1 rounded-full border px-3 py-1.5 text-sm font-medium transition-all disabled:cursor-wait disabled:opacity-60 ${
+                                                            selected
+                                                                ? "border-red-500 bg-red-600 text-white"
+                                                                : "dark:bg-card border bg-white hover:border-red-300 hover:text-red-500 dark:border-white/10 dark:text-white"
+                                                        }`}
+                                                    >
+                                                        {active && (
+                                                            <Loader2 className='h-3.5 w-3.5 animate-spin' />
+                                                        )}
+                                                        {selected && <span>✓</span>}
+                                                        {genre}
+                                                    </button>
+                                                )
+                                            })}
+                                        </div>
+                                        {!genreQuery.trim() && genreNames.length > GENRE_PREVIEW_LIMIT && (
+                                            <button
+                                                type='button'
+                                                onClick={() => setShowAllGenres((s) => !s)}
+                                                className='dark:bg-card mt-3 flex h-9 cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 text-sm font-medium transition-all hover:border-red-300 hover:text-red-500 dark:border-white/10 dark:text-white'
+                                            >
+                                                {showAllGenres
+                                                    ? "Show less"
+                                                    : `Show all (${genreNames.length})`}
+                                            </button>
+                                        )}
+                                    </>
+                                )}
                                 <button
                                     type='button'
                                     onClick={handleSurprise}
