@@ -2,7 +2,6 @@ import { AddToPlaylistModal } from "@/components/playlist/add-to-playlist-modal"
 import { LyricsPanel } from "@/components/now-playing/lyrics-panel"
 import { ReorderItem } from "@/components/now-playing/reorder-item"
 import { ShortcutHelp } from "@/components/now-playing/shortcut-help"
-import { SongInfoModal } from "@/components/song-info/song-info-modal"
 import { SongThumb } from "@/components/song-thumb/song-thumb"
 import { type PlaylistItem, usePlayerStore } from "@/hooks/usePlayer"
 import { useRelatedSongs } from "@/hooks/useRelatedSongs"
@@ -11,7 +10,6 @@ import { cn, formatDuration, slugify } from "@/lib/utils"
 import { apiService } from "@/services/api.service"
 import { motion, Reorder } from "framer-motion"
 import {
-    Info,
     ListMusic,
     ListPlus,
     MicVocal,
@@ -75,7 +73,6 @@ export default function NowPlaying() {
     const [addToPlaylistTarget, setAddToPlaylistTarget] = useState<PlaylistItem | null>(null)
     const [isCurrentOffscreen, setIsCurrentOffscreen] = useState(false)
     const [rightTab, setRightTab] = useState<"queue" | "lyrics">("queue")
-    const [showSongInfo, setShowSongInfo] = useState(false)
 
     // Auto-scroll to active item
     useEffect(() => {
@@ -297,13 +294,6 @@ export default function NowPlaying() {
                             </button>
                         </div>
                         <div className='flex shrink-0 items-center gap-2'>
-                            <button
-                                onClick={() => setShowSongInfo(true)}
-                                className='cursor-pointer rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-red-500 dark:hover:bg-white/5'
-                                title='View music info'
-                            >
-                                <Info className='h-5 w-5' />
-                            </button>
                             <ShortcutHelp />
                         </div>
                     </div>
@@ -647,15 +637,8 @@ export default function NowPlaying() {
 
             {addToPlaylistTarget && (
                 <AddToPlaylistModal
-                    song={addToPlaylistTarget}
+                    songs={[addToPlaylistTarget]}
                     onClose={() => setAddToPlaylistTarget(null)}
-                />
-            )}
-
-            {showSongInfo && (
-                <SongInfoModal
-                    song={currentSong}
-                    onClose={() => setShowSongInfo(false)}
                 />
             )}
         </motion.div>
