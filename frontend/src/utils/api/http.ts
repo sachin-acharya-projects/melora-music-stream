@@ -1,7 +1,8 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios"
 import { API_BASE_URL } from "@/config"
-import { authService, type TokenResponse } from "@/services/auth.service"
+import { authService, AUTH_ERROR_STORAGE_KEY, type TokenResponse } from "@/services/auth.service"
 import { ENDPOINTS } from "@/utils/api/endpoints"
+import { MESSAGES } from "@/utils/messages"
 import { rewriteThumbnails } from "@/utils/thumbnail"
 
 export const http = axios.create({
@@ -17,6 +18,22 @@ export const refreshHttp = axios.create({
 })
 
 let refreshPromise: Promise<string> | null = null
+
+function isDeactivatedError(error: AxiosError): boolean {
+    return (
+        error.response?.status === 403 &&
+        (error.response.data as { detail?: string } | undefined)?.detail ===
+            MESSAGES.ACCOUNT_DEACTIVATED
+    )
+}
+
+function handleAccountDeactivated(): void {
+    authService.clearTokens()
+    sessionStorage.setItem(AUTH_ERROR_STORAGE_KEY, MESSAGES.ACCOUNT_DEACTIVATED)
+    if (window.location.pathname !== "/login") {
+        window.location.href = "/login"
+    }
+}
 
 async function refreshToken(): Promise<string> {
     const refreshToken = authService.getRefreshToken()
@@ -53,6 +70,11 @@ http.interceptors.response.use(
         return response
     },
     async (error: AxiosError) => {
+        if (isDeactivatedError(error)) {
+            handleAccountDeactivated()
+            return Promise.reject(error)
+        }
+
         const originalRequest = error.config as InternalAxiosRequestConfig & {
             _retry?: boolean
         }
@@ -79,9 +101,12 @@ http.interceptors.response.use(
             const newToken = await refreshPromise
             originalRequest.headers.Authorization = `Bearer ${newToken}`
             return http(originalRequest)
-        } catch {
+        } catch (refreshError) {
             // Refresh failed - tokens are invalid, clear them and bail out
             authService.clearTokens()
+            if (isDeactivatedError(refreshError as AxiosError)) {
+                handleAccountDeactivated()
+            }
             return Promise.reject(error)
         }
     },

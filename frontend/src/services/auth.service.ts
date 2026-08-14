@@ -26,6 +26,7 @@ export interface TokenResponse {
 
 const ACCESS_TOKEN_KEY = "melora_access_token"
 const REFRESH_TOKEN_KEY = "melora_refresh_token"
+export const AUTH_ERROR_STORAGE_KEY = "melora_auth_error"
 
 export const authService = {
     getAccessToken: (): string | null => {

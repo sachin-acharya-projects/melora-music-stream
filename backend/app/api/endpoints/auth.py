@@ -2,11 +2,12 @@ import time
 from urllib.parse import urlencode
 
 from authlib.integrations.starlette_client import OAuth
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import RedirectResponse
 
 from app.api.deps import CurrentUser, SessionDep
 from app.core.config import settings
+from app.core.messages import Messages
 from app.schemas.auth import TokenResponse, UserResponse, UserUpdate
 from app.services.auth import AuthService
 from app.services.users import UserService
@@ -69,13 +70,21 @@ async def google_callback(request: Request, db: SessionDep) -> RedirectResponse:
     local_avatar = AuthService.save_avatar(
         user_info["google_id"], user_info["avatar_url"]
     )
-    user = AuthService.upsert_google_user(
-        db,
-        google_id=user_info["google_id"],
-        email=user_info["email"],
-        name=user_info["name"],
-        avatar_url=local_avatar or user_info["avatar_url"],
-    )
+    try:
+        user = AuthService.upsert_google_user(
+            db,
+            google_id=user_info["google_id"],
+            email=user_info["email"],
+            name=user_info["name"],
+            avatar_url=local_avatar or user_info["avatar_url"],
+        )
+    except HTTPException as exc:
+        if exc.detail == Messages.ACCOUNT_DEACTIVATED:
+            redirect_url = (
+                f"{settings.FRONTEND_URL}/auth/callback?error=account_deactivated"
+            )
+            return RedirectResponse(url=redirect_url)
+        raise
     tokens = AuthService.create_tokens_for_user(user)
     params = {
         "access_token": tokens["access_token"],

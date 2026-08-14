@@ -1,9 +1,20 @@
+import { useEffect } from "react"
 import { BackgroundWave } from "@/components/login/background-wave"
 import { useAuth } from "@/hooks/useAuth"
+import { AUTH_ERROR_STORAGE_KEY } from "@/services/auth.service"
 import { Loader2, Music } from "lucide-react"
+import { toast } from "react-toastify"
 
 export default function Login() {
     const { login, isLoading } = useAuth()
+
+    useEffect(() => {
+        const error = sessionStorage.getItem(AUTH_ERROR_STORAGE_KEY)
+        if (error) {
+            sessionStorage.removeItem(AUTH_ERROR_STORAGE_KEY)
+            toast.error(error)
+        }
+    }, [])
 
     return (
         <div className='relative flex min-h-screen items-center justify-center overflow-hidden bg-neutral-50 px-6 dark:bg-neutral-950'>

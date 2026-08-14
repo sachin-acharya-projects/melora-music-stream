@@ -2,6 +2,7 @@ import pytest
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.messages import Messages
 from app.db.models.user import UserModel, UserRole
 from app.services.auth import AuthService
 
@@ -60,6 +61,30 @@ class TestValidateRefreshToken:
             AuthService.validate_refresh_token(token)
 
 
+class TestGetUserById:
+    def test_missing_user_raises_generic_message(self, db: Session) -> None:
+        with pytest.raises(Exception) as excinfo:
+            AuthService.get_user_by_id(db, user_id="missing")
+        assert excinfo.value.status_code == 401
+        assert excinfo.value.detail == Messages.USER_NOT_FOUND_OR_INACTIVE
+
+    def test_deactivated_user_raises_clear_message(self, db: Session) -> None:
+        user = UserModel(
+            id="user-inactive",
+            email="inactive@example.com",
+            username="inactive",
+            role=UserRole.USER,
+            is_active=False,
+        )
+        db.add(user)
+        db.commit()
+
+        with pytest.raises(Exception) as excinfo:
+            AuthService.get_user_by_id(db, user_id="user-inactive")
+        assert excinfo.value.status_code == 403
+        assert excinfo.value.detail == Messages.ACCOUNT_DEACTIVATED
+
+
 class TestGetUserFromToken:
     def test_valid_token_returns_user(self) -> None:
         data = {"sub": "user-123", "email": "test@example.com"}
@@ -86,6 +111,34 @@ class TestGetUserFromToken:
         user = AuthService.get_current_user_from_token_optional(token)
         assert user is not None
         assert user.id == "user-123"
+
+    def test_db_lookup_deactivated_user_raises_clear_message(
+        self, db: Session
+    ) -> None:
+        user = UserModel(
+            id="user-inactive",
+            email="inactive@example.com",
+            username="inactive",
+            role=UserRole.USER,
+            is_active=False,
+        )
+        db.add(user)
+        db.commit()
+
+        token = AuthService.create_access_token(
+            {"sub": "user-inactive", "email": "inactive@example.com"}
+        )
+        with pytest.raises(Exception) as excinfo:
+            AuthService.get_current_user_from_token(token, db=db)
+        assert excinfo.value.status_code == 403
+        assert excinfo.value.detail == Messages.ACCOUNT_DEACTIVATED
+
+    def test_db_lookup_missing_user_raises_generic_message(self, db: Session) -> None:
+        token = AuthService.create_access_token({"sub": "missing", "email": "x@y.com"})
+        with pytest.raises(Exception) as excinfo:
+            AuthService.get_current_user_from_token(token, db=db)
+        assert excinfo.value.status_code == 401
+        assert excinfo.value.detail == Messages.USER_NOT_FOUND_OR_INACTIVE
 
 
 class TestRequireRole:
@@ -191,3 +244,24 @@ class TestUpsertGoogleUser:
         )
         assert user.id == existing.id
         assert user.display_name == "Updated Name"
+
+    def test_deactivated_existing_user_raises_clear_message(self, db: Session) -> None:
+        existing = UserModel(
+            email="inactive@example.com",
+            username="inactive",
+            oauth_provider="google",
+            oauth_id="old-id",
+            is_active=False,
+        )
+        db.add(existing)
+        db.commit()
+
+        with pytest.raises(Exception) as excinfo:
+            AuthService.upsert_google_user(
+                db,
+                google_id="new-id",
+                email="inactive@example.com",
+                name="Updated Name",
+            )
+        assert excinfo.value.status_code == 403
+        assert excinfo.value.detail == Messages.ACCOUNT_DEACTIVATED

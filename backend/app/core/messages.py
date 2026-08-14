@@ -13,6 +13,7 @@ class Messages:
     INVALID_REFRESH_TOKEN = "Invalid refresh token"
     INVALID_TOKEN_PAYLOAD = "Invalid token payload"
     USER_NOT_FOUND_OR_INACTIVE = "User not found or inactive"
+    ACCOUNT_DEACTIVATED = "Your account has been deactivated. Please contact support."
     INVALID_CREDENTIALS = "Invalid credentials"
     NOT_AUTHENTICATED = "Not authenticated"
     INVALID_OR_EXPIRED_TOKEN = "Invalid or expired token"

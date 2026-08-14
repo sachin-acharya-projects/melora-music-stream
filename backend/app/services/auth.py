@@ -100,12 +100,17 @@ class AuthService:
 
     @staticmethod
     def get_user_by_id(db: Session, user_id: str) -> UserModel:
-        """Get a user by ID. Raises HTTPException if not found."""
+        """Get a user by ID. Raises HTTPException if not found or deactivated."""
         user = db.query(UserModel).filter(UserModel.id == user_id).first()
-        if not user or not user.is_active:
+        if not user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail=Messages.USER_NOT_FOUND_OR_INACTIVE,
+            )
+        if not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=Messages.ACCOUNT_DEACTIVATED,
             )
         return user
 
@@ -158,6 +163,11 @@ class AuthService:
         )
 
         if user:
+            if not user.is_active:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=Messages.ACCOUNT_DEACTIVATED,
+                )
             if name and user.display_name != name:
                 user.display_name = name
             if avatar_url and user.avatar_url != avatar_url:
@@ -168,6 +178,11 @@ class AuthService:
 
         user = db.query(UserModel).filter(UserModel.email == email).first()
         if user:
+            if not user.is_active:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=Messages.ACCOUNT_DEACTIVATED,
+                )
             user.oauth_provider = "google"
             user.oauth_id = google_id
             if name:
@@ -250,10 +265,15 @@ class AuthService:
 
         if db is not None:
             user = db.query(UserModel).filter(UserModel.id == user_id).first()
-            if not user or not user.is_active:
+            if not user:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail=Messages.USER_NOT_FOUND_OR_INACTIVE,
+                )
+            if not user.is_active:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=Messages.ACCOUNT_DEACTIVATED,
                 )
             return user
 
