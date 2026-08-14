@@ -9,12 +9,14 @@ import { MESSAGES } from "@/utils/messages"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "react-toastify"
 
-export function usePlaylists(options: PlaylistSortOptions = {}) {
+export function usePlaylists(options: PlaylistSortOptions = {}, enabled = true) {
     const queryClient = useQueryClient()
 
     const playlistsQuery = useQuery({
         queryKey: ["playlists", options],
         queryFn: () => playlistService.getAll(options),
+        enabled,
+        staleTime: 5 * 60 * 1000,
         placeholderData: (previousData) => previousData,
     })
 
@@ -180,6 +182,15 @@ export function usePlaylist(id: string | null, options: PlaylistSortOptions = {}
         queryKey: ["playlist", id, options],
         queryFn: () => (id ? playlistService.getById(id, options) : null),
         enabled: !!id,
+    })
+}
+
+export function usePlaylistOptions() {
+    return useQuery({
+        queryKey: ["playlist-options"],
+        queryFn: playlistService.getOptions,
+        staleTime: 5 * 60 * 1000,
+        placeholderData: (previousData) => previousData,
     })
 }
 

@@ -42,4 +42,14 @@ export const historyService = {
         })
         return data
     },
+
+    getRecentlyPlayed: async (
+        options: HistorySortOptions = {},
+    ): Promise<HistoryListResponse> => {
+        const { data } = await http.get<HistoryListResponse>(
+            ENDPOINTS.HISTORY.RECENTLY_PLAYED,
+            { params: options },
+        )
+        return data
+    },
 }

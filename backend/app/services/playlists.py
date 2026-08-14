@@ -2,7 +2,7 @@ from typing import Any
 
 from fastapi import HTTPException
 from sqlalchemy import asc, desc, func, select, update
-from sqlalchemy.orm import Query, Session, contains_eager
+from sqlalchemy.orm import Query, Session, contains_eager, selectinload
 
 from app.core.messages import Messages
 from app.db.models.associations import playlist_song
@@ -57,7 +57,7 @@ class PlaylistService:
         ).all()
 
         return [
-            PlaylistService._serialize(playlist, current_user_id=user.id)
+            PlaylistService._serialize_summary(playlist, current_user_id=user.id)
             for playlist in playlists
         ]
 
@@ -70,9 +70,13 @@ class PlaylistService:
         search: str | None = None,
     ) -> list[dict[str, Any]]:
         """Get public playlists from other users ordered by popularity (follower count)."""
-        query = db.query(PlaylistModel).filter(
-            PlaylistModel.visibility == PlaylistVisibility.PUBLIC,
-            PlaylistModel.user_id != user.id,
+        query = (
+            db.query(PlaylistModel)
+            .options(selectinload(PlaylistModel.songs))
+            .filter(
+                PlaylistModel.visibility == PlaylistVisibility.PUBLIC,
+                PlaylistModel.user_id != user.id,
+            )
         )
         query = PlaylistService._apply_search_filter(query, search)
 
@@ -82,7 +86,7 @@ class PlaylistService:
             .all()
         )
         return [
-            PlaylistService._serialize(playlist, current_user_id=user.id)
+            PlaylistService._serialize_summary(playlist, current_user_id=user.id)
             for playlist in playlists
         ]
 
@@ -94,6 +98,7 @@ class PlaylistService:
         query = (
             db.query(PlaylistModel)
             .join(PlaylistModel.followers)
+            .options(selectinload(PlaylistModel.songs))
             .filter(UserModel.id == user.id)
         )
         query = PlaylistService._apply_search_filter(query, search)
@@ -102,9 +107,25 @@ class PlaylistService:
             PlaylistModel.created_at.desc(), PlaylistModel.id
         ).all()
         return [
-            PlaylistService._serialize(playlist, current_user_id=user.id)
+            PlaylistService._serialize_summary(playlist, current_user_id=user.id)
             for playlist in playlists
         ]
+
+    @staticmethod
+    def get_playlist_options(
+        db: Session, user: UserModel
+    ) -> list[dict[str, str]]:
+        """Lightweight id + name pairs for pickers (no song payload)."""
+        playlists = (
+            db.query(PlaylistModel)
+            .filter(
+                (PlaylistModel.user_id == user.id)
+                | (PlaylistModel.visibility == PlaylistVisibility.PUBLIC)
+            )
+            .order_by(PlaylistModel.name.asc(), PlaylistModel.id)
+            .all()
+        )
+        return [{"id": playlist.id, "name": playlist.name} for playlist in playlists]
 
     @staticmethod
     def get_playlist_by_id(
@@ -656,10 +677,10 @@ class PlaylistService:
         return any(c.user_id == user.id for c in playlist.collaborators)
 
     @staticmethod
-    def _serialize(
+    def _serialize_base(
         playlist: PlaylistModel, *, current_user_id: str | None
     ) -> dict[str, Any]:
-        """Serialize a playlist for API responses."""
+        """Serialize the scalar fields shared by list and detail responses."""
         is_owner = current_user_id is not None and playlist.user_id == current_user_id
         is_editor = is_owner or (
             current_user_id is not None
@@ -685,5 +706,36 @@ class PlaylistService:
             "is_editor": is_editor,
             "is_following": current_user_id is not None
             and any(f.id == current_user_id for f in playlist.followers),
+        }
+
+    @staticmethod
+    def _serialize_summary(
+        playlist: PlaylistModel, *, current_user_id: str | None
+    ) -> dict[str, Any]:
+        """Serialize a playlist without embedding every song.
+
+        Used by the list endpoints (playlists/, discover, following) so large
+        libraries don't ship the full song array. Provides counts plus the
+        first few thumbnails for card art instead.
+        """
+        songs = playlist.songs
+        return {
+            **PlaylistService._serialize_base(
+                playlist, current_user_id=current_user_id
+            ),
+            "song_count": len(songs),
+            "total_duration": sum(song.duration or 0 for song in songs),
+            "thumbnails": [song.thumbnail for song in songs[:4] if song.thumbnail],
+        }
+
+    @staticmethod
+    def _serialize(
+        playlist: PlaylistModel, *, current_user_id: str | None
+    ) -> dict[str, Any]:
+        """Serialize a playlist for API responses."""
+        return {
+            **PlaylistService._serialize_base(
+                playlist, current_user_id=current_user_id
+            ),
             "songs": [SongService.serialize(song) for song in playlist.songs],
         }

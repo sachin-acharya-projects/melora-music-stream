@@ -7,8 +7,9 @@ import { usePlaylistMenu } from "@/hooks/usePlaylistMenu"
 import { usePlayerStore } from "@/hooks/usePlayer"
 import { usePlaylists } from "@/hooks/usePlaylists"
 import { formatDuration } from "@/lib/utils"
-import { type PlaylistSortOptions } from "@/services/playlist.service"
+import { playlistService, type PlaylistSortOptions } from "@/services/playlist.service"
 import { type Playlist } from "@/types"
+import { MESSAGES } from "@/utils/messages"
 import { AnimatePresence, motion } from "framer-motion"
 import {
     Check,
@@ -30,6 +31,7 @@ import {
 } from "lucide-react"
 import { useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { toast } from "react-toastify"
 import { type PlaylistsTab } from "@/pages/Playlists"
 
 const COLLECTION_SORT_OPTIONS: SortSelectOption[] = [
@@ -129,11 +131,18 @@ export function PlaylistCollection({
         )
     }
 
-    const handleBulkPlay = () => {
-        const songs = selectedPlaylists.flatMap((p) => p.songs)
-        if (songs.length > 0) {
-            setPlaylist(songs, 0, selectedPlaylists[0]?.id ?? null)
-            navigate(`/playlists?playlist=${selectedPlaylists[0]?.id}`)
+    const handleBulkPlay = async () => {
+        try {
+            const details = await Promise.all(
+                selectedPlaylistIds.map((id) => playlistService.getById(id, { page_size: 500 })),
+            )
+            const songs = details.flatMap((detail) => detail.songs)
+            if (songs.length > 0) {
+                setPlaylist(songs, 0, selectedPlaylists[0]?.id ?? null)
+                navigate(`/playlists?playlist=${selectedPlaylists[0]?.id}`)
+            }
+        } catch {
+            toast.error(MESSAGES.SEARCH_PLAY_FAILED)
         }
         clearSelection()
     }
@@ -190,9 +199,14 @@ export function PlaylistCollection({
         setEditingId(null)
     }
 
-    const handlePlayAll = (playlist: Playlist) => {
-        setPlaylist(playlist.songs, 0, playlist.id)
-        navigate(`/playlists?view=${view}&playlist=${playlist.id}`)
+    const handlePlayAll = async (playlist: Playlist) => {
+        try {
+            const detail = await playlistService.getById(playlist.id, { page_size: 500 })
+            setPlaylist(detail.songs, 0, playlist.id)
+            navigate(`/playlists?view=${view}&playlist=${playlist.id}`)
+        } catch {
+            toast.error(MESSAGES.SEARCH_PLAY_FAILED)
+        }
     }
 
     return (
@@ -321,10 +335,8 @@ export function PlaylistCollection({
             ) : (
                 <div className='grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'>
                     {playlists.map((playlist) => {
-                        const totalDuration = playlist.songs.reduce(
-                            (acc, song) => acc + (song.duration || 0),
-                            0,
-                        )
+                        const totalDuration = playlist.total_duration ?? 0
+                        const songCount = playlist.song_count ?? playlist.songs?.length ?? 0
                         const isOwned = isOwnerView || playlist.is_owner
                         const canFollow = !isOwned && !!onFollow
 
@@ -511,8 +523,7 @@ export function PlaylistCollection({
                                                 )}
                                             </div>
                                             <p className='mt-0.5 text-xs text-gray-500 dark:text-gray-400'>
-                                                {playlist.songs.length}{" "}
-                                                {playlist.songs.length === 1 ? "song" : "songs"} ·{" "}
+                                                {songCount} {songCount === 1 ? "song" : "songs"} ·{" "}
                                                 {formatDuration(totalDuration)}
                                             </p>
                                             {playlist.description && (

@@ -82,17 +82,87 @@ class HistoryService:
         }
 
     @staticmethod
+    def _deduped_rows(
+        db: Session, *, user_id: str
+    ) -> list[tuple[str, str, datetime]]:
+        """History rows (id, song_id, played_at), newest first, one per song.
+
+        A song replayed several times appears once, at its most recent play.
+        """
+        rows = (
+            db.query(
+                ListeningHistoryModel.id,
+                ListeningHistoryModel.song_id,
+                ListeningHistoryModel.played_at,
+            )
+            .filter(ListeningHistoryModel.user_id == user_id)
+            .order_by(ListeningHistoryModel.played_at.desc())
+            .all()
+        )
+        deduped: list[tuple[str, str, datetime]] = []
+        seen: set[str] = set()
+        for entry_id, song_id, played_at in rows:
+            if song_id is None or song_id in seen:
+                continue
+            seen.add(song_id)
+            deduped.append((entry_id, song_id, played_at))
+        return deduped
+
+    @staticmethod
+    def _serialize_rows(
+        db: Session, rows: list[tuple[str, str, datetime]]
+    ) -> list[dict[str, Any]]:
+        if not rows:
+            return []
+        songs_by_id = {
+            song.id: song
+            for song in db.query(SongModel)
+            .filter(SongModel.id.in_([song_id for _, song_id, _ in rows]))
+            .all()
+        }
+        return [
+            {
+                "id": entry_id,
+                "played_at": played_at.isoformat() if played_at else None,
+                "play_duration": None,
+                "context_playlist_id": None,
+                "song": {
+                    "id": song.id if song else song_id,
+                    "title": song.title if song else None,
+                    "uploader": song.uploader if song else None,
+                    "thumbnail": song.thumbnail if song else None,
+                    "duration": song.duration if song else None,
+                }
+                if (song := songs_by_id.get(song_id))
+                else None,
+            }
+            for entry_id, song_id, played_at in rows
+        ]
+
+    @staticmethod
     def get_recent(
         db: Session, *, user_id: str, limit: int = 50
     ) -> list[dict[str, Any]]:
-        entries = (
-            db.query(ListeningHistoryModel)
-            .filter(ListeningHistoryModel.user_id == user_id)
-            .order_by(ListeningHistoryModel.played_at.desc())
-            .limit(limit)
-            .all()
-        )
-        return [HistoryService._serialize_entry(db, entry) for entry in entries]
+        rows = HistoryService._deduped_rows(db, user_id=user_id)[:limit]
+        return HistoryService._serialize_rows(db, rows)
+
+    @staticmethod
+    def get_recently_played(
+        db: Session,
+        *,
+        user_id: str,
+        page: int = 1,
+        page_size: int = 50,
+    ) -> dict[str, Any]:
+        rows = HistoryService._deduped_rows(db, user_id=user_id)
+        total = len(rows)
+        start = (page - 1) * page_size
+        return {
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "items": HistoryService._serialize_rows(db, rows[start : start + page_size]),
+        }
 
     @staticmethod
     def get_stats(db: Session, *, user_id: str) -> dict[str, Any]:

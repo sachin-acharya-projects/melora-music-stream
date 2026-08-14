@@ -31,7 +31,8 @@ export default function SharedPlaylist() {
         retry: false,
     })
 
-    const totalDuration = playlist?.songs.reduce((acc, s) => acc + (s.duration || 0), 0) || 0
+    const songs = playlist?.songs ?? []
+    const totalDuration = songs.reduce((acc, s) => acc + (s.duration || 0), 0) || 0
 
     if (isLoading) {
         return (
@@ -68,13 +69,13 @@ export default function SharedPlaylist() {
                     {playlist.name}
                 </h1>
                 <p className='mt-1 text-sm text-gray-500 dark:text-gray-400'>
-                    {playlist.songs.length} {playlist.songs.length === 1 ? "song" : "songs"} ·{" "}
+                    {songs.length} {songs.length === 1 ? "song" : "songs"} ·{" "}
                     {formatDuration(totalDuration)}
                 </p>
             </header>
 
             <ul className='flex flex-col gap-1'>
-                {playlist.songs.map((song, index) => (
+                {songs.map((song, index) => (
                     <li
                         key={song.id}
                         className='flex items-center gap-3 rounded-xl px-3 py-2 transition-colors hover:bg-black/5 dark:hover:bg-white/5'
@@ -113,7 +114,7 @@ export default function SharedPlaylist() {
                 ))}
             </ul>
 
-            {playlist.songs.length === 0 && (
+            {songs.length === 0 && (
                 <p className='text-center text-sm text-gray-500 dark:text-gray-400'>
                     This playlist is empty.
                 </p>

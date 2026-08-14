@@ -10,9 +10,10 @@ export function PlaylistArt({
     className?: string
     iconClassName?: string
 }) {
-    const songs = playlist.songs.slice(0, 4)
-    const thumbs = songs.map((s) => s.thumbnail).filter(Boolean)
-    const count = songs.length
+    const thumbs =
+        playlist.thumbnails ??
+        (playlist.songs ?? []).map((s) => s.thumbnail).filter((t): t is string => Boolean(t))
+    const count = thumbs.length
 
     if (count === 0 || (count === 1 && !thumbs[0])) {
         return (
@@ -57,11 +58,11 @@ export function PlaylistArt({
 
     return (
         <div className={`grid grid-cols-2 grid-rows-2 ${className}`}>
-            {songs.map((song, i) =>
-                song.thumbnail ? (
+            {thumbs.slice(0, 4).map((thumb, i) =>
+                thumb ? (
                     <img
                         key={i}
-                        src={song.thumbnail}
+                        src={thumb}
                         alt=''
                         className='h-full w-full object-cover'
                         draggable={false}

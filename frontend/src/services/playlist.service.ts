@@ -25,9 +25,19 @@ export interface PlaylistUpdatePayload {
     visibility?: PlaylistVisibility
 }
 
+export interface PlaylistOption {
+    id: string
+    name: string
+}
+
 export const playlistService = {
     getAll: async (options: PlaylistSortOptions = {}): Promise<Playlist[]> => {
         const { data } = await http.get<Playlist[]>(ENDPOINTS.PLAYLISTS.BASE, { params: options })
+        return data
+    },
+
+    getOptions: async (): Promise<PlaylistOption[]> => {
+        const { data } = await http.get<PlaylistOption[]>(ENDPOINTS.PLAYLISTS.OPTIONS)
         return data
     },
 

@@ -1,4 +1,4 @@
-import { type Playlist } from "@/types"
+import { type PlaylistOption } from "@/services/playlist.service"
 import { AnimatePresence, motion } from "framer-motion"
 import { CheckSquare, Download, ListEnd, Loader2, Play, Plus, Trash2 } from "lucide-react"
 import PlaylistSelector from "../playlist-selector/playlist-selector"
@@ -9,7 +9,7 @@ interface BulkActionBarProps {
     totalCount: number
     onSelectAll: () => void
     onPlay: () => void
-    playlists: Playlist[]
+    playlists: PlaylistOption[]
     playlistValue: string
     onPlaylistValueChange: (val: string) => void
     onAddToPlaylist: () => void

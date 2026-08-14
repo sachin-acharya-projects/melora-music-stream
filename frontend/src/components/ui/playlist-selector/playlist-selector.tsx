@@ -1,10 +1,10 @@
-import { type Playlist } from "@/types"
+import { type PlaylistOption } from "@/services/playlist.service"
 import { AnimatePresence, motion } from "framer-motion"
 import { ChevronDown } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 
 interface PlaylistSelectorProps {
-    playlists: Playlist[]
+    playlists: PlaylistOption[]
     value: string
     onChange: (value: string) => void
     placeholder?: string

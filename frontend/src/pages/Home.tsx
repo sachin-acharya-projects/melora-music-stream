@@ -4,7 +4,7 @@ import { SongSection } from "@/components/song-section/song-section"
 import BulkActionBar from "@/components/ui/bulk-action-bar/bulk-action-bar"
 import { useDiscover } from "@/hooks/useDiscover"
 import { usePlayerStore } from "@/hooks/usePlayer"
-import { usePlaylists } from "@/hooks/usePlaylists"
+import { usePlaylistOptions, usePlaylists } from "@/hooks/usePlaylists"
 import { useQueueStore } from "@/hooks/useQueue"
 import { useRecommendations } from "@/hooks/useRecommendations"
 import { useRecentHistory } from "@/hooks/useRecentHistory"
@@ -82,7 +82,8 @@ export default function Home() {
     const setPlaylist = usePlayerStore((s) => s.setPlaylist)
     const addToNowPlaying = usePlayerStore((s) => s.addToQueue)
 
-    const { playlists, addSongsBulk, createPlaylist, isAddingBulk, isCreating } = usePlaylists()
+    const { addSongsBulk, createPlaylist, isAddingBulk, isCreating } = usePlaylists({}, false)
+    const { data: playlistOptions } = usePlaylistOptions()
     const {
         data: searchResult,
         isLoading: isSearchLoading,
@@ -215,7 +216,7 @@ export default function Home() {
         const songsToAdd = getSelectedSongs(videos)
 
         try {
-            const existing = playlists.find(
+            const existing = (playlistOptions ?? []).find(
                 (p) => p.name?.toLowerCase() === playlistInput.toLowerCase(),
             )
             let playlistId = existing?.id
@@ -254,14 +255,16 @@ export default function Home() {
         }
     }
 
-    const handlePlayCollection = async (playlistId: string) => {
+    const handlePlayCollection = async (playlistId: string): Promise<Song[]> => {
         try {
             const tracks = await apiService.getSearchTracks(playlistId)
             if (tracks.length > 0) {
                 playSongs(tracks, 0)
             }
+            return tracks
         } catch {
             toast.error(MESSAGES.SEARCH_PLAY_FAILED)
+            return []
         }
     }
 
@@ -370,6 +373,10 @@ export default function Home() {
                             addToNowPlaying(song)
                             toast.success(MESSAGES.QUEUE_ADDED)
                         }}
+                        onQueueSongs={(songs) => {
+                            songs.forEach((song) => addToNowPlaying(song))
+                            toast.success(`Added ${songs.length} songs to queue`)
+                        }}
                         onDownload={openDownload}
                     />
                 )}
@@ -404,7 +411,7 @@ export default function Home() {
                                     "recent",
                                 )
                             }
-                            viewAllHref='/history'
+                            viewAllHref='/recently-played'
                         />
                         <SongSection
                             title='Made for you'
@@ -514,7 +521,7 @@ export default function Home() {
                 totalCount={videos.length}
                 onSelectAll={() => toggleSelectAll(videos.map((v) => v.id))}
                 onPlay={handlePlaySelected}
-                playlists={playlists}
+                playlists={playlistOptions ?? []}
                 playlistValue={playlistInput}
                 onPlaylistValueChange={setPlaylistInput}
                 onAddToPlaylist={handleAddToPlaylist}

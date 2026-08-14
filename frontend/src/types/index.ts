@@ -60,7 +60,10 @@ export interface Playlist {
     id: string
     name: string
     created_at: string
-    songs: Song[]
+    songs?: Song[]
+    song_count?: number
+    total_duration?: number
+    thumbnails?: string[]
     visibility?: PlaylistVisibility
     description?: string | null
     cover_image_url?: string | null
@@ -76,6 +79,7 @@ export interface PlaylistDetail extends Playlist {
     total: number
     total_songs: number
     total_duration: number
+    songs: Song[]
 }
 
 export type CollaboratorRole = "viewer" | "editor"

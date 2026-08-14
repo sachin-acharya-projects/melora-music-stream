@@ -1,4 +1,5 @@
 import ViewToggle from "@/components/ui/view-toggle/view-toggle"
+import { AddToPlaylistModal } from "@/components/playlist/add-to-playlist-modal"
 import { formatDuration } from "@/lib/utils"
 import { type SearchResults as SearchResultsData, type SearchTopResult, type Song } from "@/types"
 import {
@@ -9,6 +10,7 @@ import {
     Loader2,
     Mic2,
     Play,
+    Plus,
     UserRound,
 } from "lucide-react"
 import { useState } from "react"
@@ -22,9 +24,10 @@ interface SearchResultsProps {
     onToggleSelectAll: (ids: string[]) => void
     onPlaySongs: (songs: Song[], index: number) => void
     onPlayTopResult: (top: SearchTopResult) => void
-    onPlayCollection: (playlistId: string) => Promise<void>
+    onPlayCollection: (playlistId: string) => Promise<Song[]>
     onPlayArtist: (name: string) => Promise<void>
     onAddToQueue: (song: Song) => void
+    onQueueSongs: (songs: Song[]) => void
     onDownload: (id: string) => void
 }
 
@@ -40,9 +43,11 @@ export function SearchResults({
     onPlayCollection,
     onPlayArtist,
     onAddToQueue,
+    onQueueSongs,
     onDownload,
 }: SearchResultsProps) {
     const [playingKey, setPlayingKey] = useState<string | null>(null)
+    const [playlistTarget, setPlaylistTarget] = useState<Song[] | null>(null)
     const { top_result: topResult, artists, albums, playlists, videos, songs } = results
 
     const playCollection = async (key: string, playlistId: string | null) => {
@@ -70,6 +75,52 @@ export function SearchResults({
         setPlayingKey(`top:${top.type}:${top.id ?? top.name ?? ""}`)
         onPlayTopResult(top)
         setPlayingKey(null)
+    }
+
+    const topToSong = (top: SearchTopResult): Song | null =>
+        top.id
+            ? {
+                  id: top.id,
+                  title: top.title ?? "",
+                  uploader: top.uploader ?? "",
+                  thumbnail: top.thumbnail ?? "",
+                  duration: top.duration ?? 0,
+                  created_at: "",
+              }
+            : null
+
+    const resolveTopTracks = async (
+        key: string,
+        top: SearchTopResult,
+    ): Promise<Song[]> => {
+        if (top.type === "song" || top.type === "video") {
+            const song = topToSong(top)
+            return song ? [song] : []
+        }
+        if (top.type === "artist") return []
+        const playlistId = top.audio_playlist_id ?? top.id
+        if (!playlistId) return []
+        setPlayingKey(key)
+        try {
+            return await onPlayCollection(playlistId)
+        } finally {
+            setPlayingKey(null)
+        }
+    }
+
+    const queueTop = async (top: SearchTopResult) => {
+        if (playingKey || top.type === "artist") return
+        const tracks = await resolveTopTracks(
+            `queue:${top.type}:${top.id ?? top.name ?? ""}`,
+            top,
+        )
+        if (tracks.length > 0) onQueueSongs(tracks)
+    }
+
+    const addTopToPlaylist = async (top: SearchTopResult) => {
+        if (playingKey || top.type === "artist") return
+        const tracks = await resolveTopTracks(`pl:${top.type}:${top.id ?? top.name ?? ""}`, top)
+        if (tracks.length > 0) setPlaylistTarget(tracks)
     }
 
     return (
@@ -115,9 +166,14 @@ export function SearchResults({
                         <h2 className='mt-1 truncate text-xl font-bold dark:text-white'>
                             {topResult.name ?? topResult.title ?? "Unknown"}
                         </h2>
-                        {topResult.type === "song" && (
-                            <p className='mt-0.5 truncate text-sm text-gray-500 dark:text-gray-400'>
-                                {topResult.uploader}
+                        {(topResult.type === "song" || topResult.type === "video") && (
+                            <p className='mt-0.5 flex items-center gap-2 truncate text-sm text-gray-500 dark:text-gray-400'>
+                                <span className='truncate'>{topResult.uploader}</span>
+                                {topResult.duration ? (
+                                    <span className='shrink-0 rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-500 dark:bg-white/10 dark:text-gray-400'>
+                                        {formatDuration(topResult.duration)}
+                                    </span>
+                                ) : null}
                             </p>
                         )}
                         {topResult.type === "album" && (
@@ -136,14 +192,50 @@ export function SearchResults({
                                 Artist
                             </p>
                         )}
-                        <button
-                            type='button'
-                            onClick={() => playTop(topResult)}
-                            className='mt-3 flex h-9 cursor-pointer items-center gap-2 rounded-xl bg-red-600 px-4 text-sm font-semibold text-white transition-all hover:bg-red-700 active:scale-95'
-                        >
-                            <Play className='h-4 w-4 fill-current' />
-                            Play
-                        </button>
+                        <div className='mt-3 flex items-center gap-2'>
+                            <button
+                                type='button'
+                                onClick={() => playTop(topResult)}
+                                className='flex h-9 cursor-pointer items-center gap-2 rounded-xl bg-red-600 px-4 text-sm font-semibold text-white transition-all hover:bg-red-700 active:scale-95'
+                            >
+                                <Play className='h-4 w-4 fill-current' />
+                                Play
+                            </button>
+                            {topResult.type !== "artist" && (
+                                <>
+                                    <button
+                                        type='button'
+                                        onClick={() => queueTop(topResult)}
+                                        disabled={!!playingKey}
+                                        className='flex h-9 cursor-pointer items-center gap-2 rounded-xl bg-gray-100 px-3 text-sm font-medium text-gray-700 transition-all hover:bg-gray-200 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white/10 dark:text-gray-200 dark:hover:bg-white/20'
+                                        title='Add to queue'
+                                    >
+                                        {playingKey ===
+                                        `queue:${topResult.type}:${topResult.id ?? topResult.name ?? ""}` ? (
+                                            <Loader2 className='h-4 w-4 animate-spin' />
+                                        ) : (
+                                            <ListMusic className='h-4 w-4' />
+                                        )}
+                                        Queue
+                                    </button>
+                                    <button
+                                        type='button'
+                                        onClick={() => addTopToPlaylist(topResult)}
+                                        disabled={!!playingKey}
+                                        className='flex h-9 cursor-pointer items-center gap-2 rounded-xl bg-gray-100 px-3 text-sm font-medium text-gray-700 transition-all hover:bg-gray-200 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white/10 dark:text-gray-200 dark:hover:bg-white/20'
+                                        title='Add to playlist'
+                                    >
+                                        {playingKey ===
+                                        `pl:${topResult.type}:${topResult.id ?? topResult.name ?? ""}` ? (
+                                            <Loader2 className='h-4 w-4 animate-spin' />
+                                        ) : (
+                                            <Plus className='h-4 w-4' />
+                                        )}
+                                        Playlist
+                                    </button>
+                                </>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}
@@ -450,6 +542,12 @@ export function SearchResults({
                 </SearchRow>
             )}
 
+            {playlistTarget && (
+                <AddToPlaylistModal
+                    songs={playlistTarget}
+                    onClose={() => setPlaylistTarget(null)}
+                />
+            )}
         </div>
     )
 }

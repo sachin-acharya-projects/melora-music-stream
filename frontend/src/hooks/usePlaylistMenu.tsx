@@ -1,8 +1,8 @@
 import ConfirmationDialog from "@/components/ui/confirmation-dialog/confirmation-dialog"
-import { usePlaylists } from "@/hooks/usePlaylists"
+import { usePlaylist, usePlaylists } from "@/hooks/usePlaylists"
 import { useQueueStore } from "@/hooks/useQueue"
 import { playlistService } from "@/services/playlist.service"
-import { type Playlist } from "@/types"
+import { type Playlist, type Song } from "@/types"
 import { motion } from "framer-motion"
 import { ChevronDown, Download, GitMerge, Loader2, Share2, Sparkles, X } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -15,13 +15,29 @@ export function usePlaylistMenu({ playlists }: { playlists: Playlist[] }) {
 
     const [moreMenuFor, setMoreMenuFor] = useState<string | null>(null)
     const [isSharing, setIsSharing] = useState(false)
-    const [dedupPlaylist, setDedupPlaylist] = useState<Playlist | null>(null)
+    const [dedupTarget, setDedupTarget] = useState<{ playlist: Playlist; songs: Song[] } | null>(
+        null,
+    )
     const [mergePlaylist, setMergePlaylist] = useState<Playlist | null>(null)
     const [mergeTargetId, setMergeTargetId] = useState("")
+    const [mergeSourceSongs, setMergeSourceSongs] = useState<Song[]>([])
+
+    const { data: menuDetail } = usePlaylist(moreMenuFor, { page_size: 500 })
+
+    const songsFor = (playlist: Playlist): Song[] =>
+        menuDetail?.id === playlist.id && menuDetail.songs.length > 0
+            ? menuDetail.songs
+            : playlist.songs ?? []
 
     const handleDownloadAll = (playlist: Playlist) => {
-        playlist.songs.forEach((song) => addDownloadQueue(song, "audio", false))
-        toast.success(`Added ${playlist.songs.length} songs to download queue`)
+        const songs = songsFor(playlist)
+        if (songs.length === 0) {
+            toast.error("This playlist has no songs to download")
+            setMoreMenuFor(null)
+            return
+        }
+        songs.forEach((song) => addDownloadQueue(song, "audio", false))
+        toast.success(`Added ${songs.length} songs to download queue`)
         setMoreMenuFor(null)
     }
 
@@ -45,41 +61,52 @@ export function usePlaylistMenu({ playlists }: { playlists: Playlist[] }) {
             setMoreMenuFor(null)
             return
         }
+        setMergeSourceSongs(songsFor(playlist))
         setMergeTargetId(others[0].id)
         setMergePlaylist(playlist)
         setMoreMenuFor(null)
     }
 
-    const dedupCount = dedupPlaylist
-        ? dedupPlaylist.songs.length - new Set(dedupPlaylist.songs.map((s) => s.id)).size
+    const openDedup = (playlist: Playlist) => {
+        setDedupTarget({ playlist, songs: songsFor(playlist) })
+        setMoreMenuFor(null)
+    }
+
+    const dedupCount = dedupTarget
+        ? dedupTarget.songs.length - new Set(dedupTarget.songs.map((s) => s.id)).size
         : 0
 
     const confirmDedup = () => {
-        if (!dedupPlaylist || dedupCount === 0) {
-            setDedupPlaylist(null)
+        if (!dedupTarget || dedupCount === 0) {
+            setDedupTarget(null)
             return
         }
         const seen = new Set<string>()
         const dupIds: string[] = []
-        for (const song of dedupPlaylist.songs) {
+        for (const song of dedupTarget.songs) {
             if (seen.has(song.id)) {
                 dupIds.push(song.id)
             } else {
                 seen.add(song.id)
             }
         }
-        removeSongs({ playlistId: dedupPlaylist.id, songIds: dupIds })
-        setDedupPlaylist(null)
+        removeSongs({ playlistId: dedupTarget.playlist.id, songIds: dupIds })
+        setDedupTarget(null)
     }
 
     const confirmMerge = async () => {
         if (!mergePlaylist || !mergeTargetId) return
         const target = playlists.find((p) => p.id === mergeTargetId && p.id !== mergePlaylist.id)
         if (!target) return
-        const targetIds = new Set(target.songs.map((s) => s.id))
-        const songsToAdd = mergePlaylist.songs.filter((s) => !targetIds.has(s.id))
-        await addSongsBulk({ playlistId: target.id, songs: songsToAdd })
-        toast.success(`Merged ${songsToAdd.length} songs into ${target.name}`)
+        try {
+            const targetDetail = await playlistService.getById(target.id, { page_size: 500 })
+            const targetIds = new Set(targetDetail.songs.map((s) => s.id))
+            const songsToAdd = mergeSourceSongs.filter((s) => !targetIds.has(s.id))
+            await addSongsBulk({ playlistId: target.id, songs: songsToAdd })
+            toast.success(`Merged ${songsToAdd.length} songs into ${target.name}`)
+        } catch {
+            toast.error("Failed to merge playlists")
+        }
         setMergePlaylist(null)
         setMergeTargetId("")
     }
@@ -122,10 +149,7 @@ export function usePlaylistMenu({ playlists }: { playlists: Playlist[] }) {
                         <Download className='h-4 w-4 text-red-500' /> Download All
                     </button>
                     <button
-                        onClick={() => {
-                            setDedupPlaylist(playlist)
-                            setMoreMenuFor(null)
-                        }}
+                        onClick={() => openDedup(playlist)}
                         className='flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-black/5 dark:text-white dark:hover:bg-white/5'
                     >
                         <Sparkles className='h-4 w-4 text-red-500' /> Deduplicate
@@ -152,16 +176,16 @@ export function usePlaylistMenu({ playlists }: { playlists: Playlist[] }) {
     const renderDialogs = () => (
         <>
             <ConfirmationDialog
-                isOpen={!!dedupPlaylist}
+                isOpen={!!dedupTarget}
                 title='Deduplicate'
                 message={
                     dedupCount > 0
-                        ? `Remove ${dedupCount} duplicate ${dedupCount === 1 ? "song" : "songs"} from "${dedupPlaylist?.name}"?`
-                        : `No duplicate songs found in "${dedupPlaylist?.name}".`
+                        ? `Remove ${dedupCount} duplicate ${dedupCount === 1 ? "song" : "songs"} from "${dedupTarget?.playlist.name}"?`
+                        : `No duplicate songs found in "${dedupTarget?.playlist.name}".`
                 }
                 confirmText={dedupCount > 0 ? "Remove" : "OK"}
                 onConfirm={confirmDedup}
-                onCancel={() => setDedupPlaylist(null)}
+                onCancel={() => setDedupTarget(null)}
                 type={dedupCount > 0 ? "danger" : "info"}
             />
 
@@ -197,7 +221,7 @@ export function usePlaylistMenu({ playlists }: { playlists: Playlist[] }) {
                                     {mergePlaylist.name}
                                 </p>
                                 <p className='text-xs text-gray-500'>
-                                    {mergePlaylist.songs.length} songs
+                                    {mergeSourceSongs.length} songs
                                 </p>
                             </div>
 

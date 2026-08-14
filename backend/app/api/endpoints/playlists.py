@@ -50,6 +50,14 @@ def get_following_playlists(
     return PlaylistService.get_following_playlists(db, user, search=q)
 
 
+@router.get("/options")
+def get_playlist_options(
+    db: SessionDep, user: CurrentUser
+) -> list[dict[str, str]]:
+    """Lightweight id + name pairs for pickers (no song payload)."""
+    return PlaylistService.get_playlist_options(db, user)
+
+
 @router.get("/shared/{token}")
 def get_shared_playlist(token: str, db: SessionDep) -> dict[str, Any]:
     return PlaylistShareService.get_shared_playlist(db, token)

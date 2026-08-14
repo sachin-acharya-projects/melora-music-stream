@@ -15,6 +15,7 @@ export const ENDPOINTS = {
         BY_ID: (id: string) => `/playlists/${id}`,
         DISCOVER: "/playlists/discover",
         FOLLOWING: "/playlists/following",
+        OPTIONS: "/playlists/options",
         FOLLOW: (id: string) => `/playlists/${id}/follow`,
         COLLABORATIVE: (id: string) => `/playlists/${id}/collaborative`,
         COLLABORATORS: (id: string) => `/playlists/${id}/collaborators`,
@@ -51,6 +52,7 @@ export const ENDPOINTS = {
     HISTORY: {
         BASE: "/history/",
         RECENT: "/history/recent",
+        RECENTLY_PLAYED: "/history/recently-played",
         STATS: "/history/stats",
     },
     DISCOVER: {

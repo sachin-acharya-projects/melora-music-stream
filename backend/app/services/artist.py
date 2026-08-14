@@ -231,6 +231,21 @@ class ArtistService:
         }
 
     @staticmethod
+    def serialize_list(
+        artist: ArtistModel, *, current_user_id: str | None
+    ) -> dict[str, Any]:
+        """Slim variant for list/featured endpoints.
+
+        Drops the heavy ``more_info`` subtree (free-text bio, links) and the
+        admin-only feature/publish flags, which list views never render.
+        """
+        item = ArtistService.serialize(artist, current_user_id=current_user_id)
+        item.pop("more_info", None)
+        item.pop("is_featured", None)
+        item.pop("is_published", None)
+        return item
+
+    @staticmethod
     def get_all_artists(
         db: Session,
         user: UserModel,
@@ -270,7 +285,7 @@ class ArtistService:
         return {
             "total": total,
             "items": [
-                ArtistService.serialize(artist, current_user_id=user.id)
+                ArtistService.serialize_list(artist, current_user_id=user.id)
                 for artist in artists
             ],
         }
@@ -330,7 +345,7 @@ class ArtistService:
         start = (page - 1) * page_size
         items: list[dict[str, Any]] = []
         for artist, plays in matched[start : start + page_size]:
-            item = ArtistService.serialize(artist, current_user_id=user.id)
+            item = ArtistService.serialize_list(artist, current_user_id=user.id)
             item["play_count"] = plays
             items.append(item)
         return {"total": total, "items": items}
@@ -353,7 +368,7 @@ class ArtistService:
             query = query.filter(ArtistModel.name.ilike(f"%{search}%"))
         artists = query.all()
         return [
-            ArtistService.serialize(artist, current_user_id=user.id)
+            ArtistService.serialize_list(artist, current_user_id=user.id)
             for artist in artists
         ]
 
@@ -376,7 +391,7 @@ class ArtistService:
         ) -> None:
             items: list[dict[str, Any]] = []
             for artist in artists:
-                item = ArtistService.serialize(artist, current_user_id=user.id)
+                item = ArtistService.serialize_list(artist, current_user_id=user.id)
                 if play_counts and artist.id in play_counts:
                     item["play_count"] = play_counts[artist.id]
                 items.append(item)
@@ -662,7 +677,7 @@ class ArtistService:
         scored.sort(key=lambda item: (item[0], item[1]), reverse=True)
         items: list[dict[str, Any]] = []
         for _, _, artist, genre in scored[: settings.ARTIST_SUGGESTIONS_MAX]:
-            item = ArtistService.serialize(artist, current_user_id=user_id)
+            item = ArtistService.serialize_list(artist, current_user_id=user_id)
             item["reason"] = f"Because you listen to {genre}"
             items.append(item)
         return items

@@ -18,6 +18,7 @@ import ArtistProfile from "@/pages/ArtistProfile"
 import ArtistRecentlyPlayed from "@/pages/ArtistRecentlyPlayed"
 import ArtistsSuggested from "@/pages/ArtistsSuggested"
 import History from "@/pages/History"
+import RecentlyPlayed from "@/pages/RecentlyPlayed"
 import Notifications from "@/pages/Notifications"
 import NotificationSettings from "@/pages/NotificationSettings"
 import Recommendations from "@/pages/Recommendations"
@@ -182,6 +183,14 @@ function AppContent() {
                         element={
                             <ProtectedRoute>
                                 <History />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path='/recently-played'
+                        element={
+                            <ProtectedRoute>
+                                <RecentlyPlayed />
                             </ProtectedRoute>
                         }
                     />

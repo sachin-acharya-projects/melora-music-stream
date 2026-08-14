@@ -10,6 +10,13 @@ export function useHistory(options: { page?: number; page_size?: number } = {}) 
     })
 }
 
+export function useRecentlyPlayed(options: { page?: number; page_size?: number } = {}) {
+    return useQuery({
+        queryKey: ["history", "recently-played", options],
+        queryFn: () => historyService.getRecentlyPlayed(options),
+    })
+}
+
 export function useRecordListen() {
     const queryClient = useQueryClient()
 

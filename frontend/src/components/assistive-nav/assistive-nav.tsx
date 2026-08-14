@@ -20,6 +20,7 @@ const ITEMS = [
     { to: "/playlists", end: false, label: "Playlists", icon: ListMusic },
     { to: "/artists", end: false, label: "Artists", icon: Mic2 },
     { to: "/radio", end: false, label: "Radio", icon: RadioIcon },
+    { to: "/recently-played", end: false, label: "Recently Played", icon: History },
     { to: "/history", end: false, label: "History", icon: History },
     { to: "/stats", end: false, label: "Stats", icon: BarChart3 },
     { to: "/queue", end: false, label: "Queue", icon: ListEnd },

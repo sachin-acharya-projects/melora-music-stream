@@ -49,6 +49,18 @@ def get_recent_history(
     return HistoryService.get_recent(db, user_id=current_user.id, limit=limit)
 
 
+@router.get("/recently-played")
+def get_recently_played(
+    db: SessionDep,
+    current_user: CurrentUser,
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=500)] = 50,
+) -> dict[str, Any]:
+    return HistoryService.get_recently_played(
+        db, user_id=current_user.id, page=page, page_size=page_size
+    )
+
+
 @router.get("/stats")
 def get_history_stats(db: SessionDep, current_user: CurrentUser) -> dict[str, Any]:
     return HistoryService.get_stats(db, user_id=current_user.id)

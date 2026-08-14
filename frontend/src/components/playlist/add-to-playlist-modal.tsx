@@ -1,11 +1,17 @@
 import PlaylistSelector from "@/components/ui/playlist-selector/playlist-selector"
-import { type PlaylistItem } from "@/hooks/usePlayer"
 import { usePlaylists } from "@/hooks/usePlaylists"
+import { type Song } from "@/types"
 import { Loader2, Plus, X } from "lucide-react"
 import { useState } from "react"
 import { toast } from "react-toastify"
 
-export function AddToPlaylistModal({ song, onClose }: { song: PlaylistItem; onClose: () => void }) {
+export function AddToPlaylistModal({
+    songs,
+    onClose,
+}: {
+    songs: Song[]
+    onClose: () => void
+}) {
     const { playlists, createPlaylist, addSongsBulk, isAddingBulk, isCreating } = usePlaylists()
     const [name, setName] = useState("")
     const loading = isAddingBulk || isCreating
@@ -19,11 +25,13 @@ export function AddToPlaylistModal({ song, onClose }: { song: PlaylistItem; onCl
                 const created = await createPlaylist({ name })
                 playlistId = created.id
             }
-            await addSongsBulk({ playlistId: playlistId!, songs: [song] })
-            toast.success(`Added "${song.title}" to ${name}`)
+            await addSongsBulk({ playlistId: playlistId!, songs })
+            toast.success(
+                `Added ${songs.length} ${songs.length === 1 ? "song" : "songs"} to ${name}`,
+            )
             onClose()
         } catch {
-            toast.error("Failed to add song to playlist")
+            toast.error("Failed to add songs to playlist")
         }
     }
 
@@ -46,7 +54,9 @@ export function AddToPlaylistModal({ song, onClose }: { song: PlaylistItem; onCl
                     </button>
                 </div>
                 <p className='mb-4 truncate text-sm text-gray-500'>
-                    {song.title} — {song.uploader}
+                    {songs.length === 1
+                        ? `${songs[0].title} — ${songs[0].uploader}`
+                        : `${songs.length} songs to add`}
                 </p>
                 <PlaylistSelector
                     playlists={playlists}
