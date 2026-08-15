@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -9,6 +10,7 @@ class BugReportCreate(BaseModel):
     title: str = Field(min_length=3, max_length=200)
     description: str | None = Field(default=None, max_length=5000)
     severity: BugReportSeverity = BugReportSeverity.LOW
+    network_context: dict[str, Any] | None = None
 
 
 class BugReportUpdate(BaseModel):
@@ -26,3 +28,4 @@ class BugReportResponse(BaseModel):
     screenshot_url: str | None
     created_at: datetime
     resolved_at: datetime | None
+    network_context: dict[str, Any] | None = None

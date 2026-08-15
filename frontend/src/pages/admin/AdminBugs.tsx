@@ -9,6 +9,17 @@ import { toast } from "react-toastify"
 
 const PAGE_SIZE = 20
 
+interface FailedNetworkRequest {
+    timestamp: string
+    method: string
+    url: string
+    status: number | null
+    duration_ms: number | null
+    message: string
+    request_payload: string | null
+    response: string | null
+}
+
 const SEVERITY_FILTERS: (BugReportSeverity | "")[] = ["", "low", "medium", "high", "critical"]
 
 const STATUS_FLOW: BugReportStatus[] = ["pending", "in_progress", "resolved"]
@@ -218,6 +229,70 @@ export default function AdminBugs() {
                         <p className='whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300'>
                             {detail.description || "No description provided."}
                         </p>
+
+                        {(() => {
+                            const context = (detail.network_context ?? null) as {
+                                failed_requests?: FailedNetworkRequest[]
+                            } | null
+                            const requests = context?.failed_requests ?? []
+                            if (requests.length === 0) return null
+                            return (
+                                <div className='mt-4'>
+                                    <h3 className='mb-2 text-sm font-bold text-gray-700 dark:text-gray-300'>
+                                        Network context
+                                        <span className='ml-2 font-normal text-gray-400'>
+                                            {requests.length} failed request{requests.length === 1 ? "" : "s"}
+                                        </span>
+                                    </h3>
+                                    <div className='space-y-3'>
+                                        {requests.map((request, index) => (
+                                            <div
+                                                key={index}
+                                                className='overflow-hidden rounded-xl border border-gray-200 dark:border-white/10'
+                                            >
+                                                <div className='flex flex-wrap items-center gap-2 border-b border-gray-100 bg-black/[0.03] px-3 py-2 dark:border-white/5 dark:bg-white/5'>
+                                                    <span className='rounded bg-gray-800 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-white'>
+                                                        {request.method}
+                                                    </span>
+                                                    <span className='min-w-0 flex-1 truncate font-mono text-xs text-gray-700 dark:text-gray-300'>
+                                                        {request.url}
+                                                    </span>
+                                                    <span
+                                                        className={`rounded px-1.5 py-0.5 font-mono text-[11px] font-semibold ${
+                                                            request.status
+                                                                ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300"
+                                                                : "bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-300"
+                                                        }`}
+                                                    >
+                                                        {request.status ?? "network"}
+                                                    </span>
+                                                </div>
+                                                <div className='space-y-1 px-3 py-2'>
+                                                    <p className='text-[11px] text-gray-400 dark:text-gray-500'>
+                                                        {request.message}
+                                                        {request.duration_ms != null &&
+                                                            ` · ${request.duration_ms}ms`}
+                                                        {` · ${new Date(request.timestamp).toLocaleString()}`}
+                                                    </p>
+                                                    {request.request_payload && (
+                                                        <pre className='max-h-24 overflow-auto whitespace-pre-wrap break-all rounded-lg bg-black/[0.04] px-2 py-1.5 font-mono text-[11px] text-gray-600 dark:bg-white/5 dark:text-gray-300'>
+                                                            <span className='font-semibold'>Request:</span>{" "}
+                                                            {request.request_payload}
+                                                        </pre>
+                                                    )}
+                                                    {request.response && (
+                                                        <pre className='max-h-24 overflow-auto whitespace-pre-wrap break-all rounded-lg bg-black/[0.04] px-2 py-1.5 font-mono text-[11px] text-gray-600 dark:bg-white/5 dark:text-gray-300'>
+                                                            <span className='font-semibold'>Response:</span>{" "}
+                                                            {request.response}
+                                                        </pre>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )
+                        })()}
 
                         <div className='mt-4 border-t border-gray-100 pt-3 text-xs text-gray-400 dark:border-white/5 dark:text-gray-500'>
                             Submitted {new Date(detail.created_at).toLocaleString()}

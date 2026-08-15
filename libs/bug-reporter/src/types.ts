@@ -19,4 +19,7 @@ export interface BugReport {
     screenshot_url: string | null
     created_at: string
     resolved_at: string | null
+    /** Host-supplied diagnostics (e.g. failed network requests) sent with the
+     * report and echoed back by the backend. */
+    network_context?: Record<string, unknown> | null
 }

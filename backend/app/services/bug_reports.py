@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from app.core.config import settings
 from app.db.models.bug_report import (
@@ -29,6 +29,7 @@ class BugReportService:
         description: str | None,
         severity: str,
         screenshot: bytes | None,
+        network_context: dict[str, Any] | None = None,
     ) -> BugReportModel:
         screenshot_url = None
         if screenshot:
@@ -41,6 +42,7 @@ class BugReportService:
             severity=severity,
             status=BugReportStatus.PENDING,
             screenshot_url=screenshot_url,
+            network_context=network_context,
         )
         db.add(report)
         db.commit()

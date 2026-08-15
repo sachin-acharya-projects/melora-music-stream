@@ -32,6 +32,7 @@ import ReportedBugs from "@/pages/ReportedBugs"
 import AdminRoute from "@/components/admin/admin-route"
 import { BUG_REPORTER_ENABLED, API_BASE_URL } from "@/config"
 import { authService } from "@/services/auth.service"
+import { getFailedNetworkRequests } from "@/utils/api/http"
 import { BugReporter } from "@sachin-acharya-projects/bug-reporter"
 import { useEffect } from "react"
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom"
@@ -312,6 +313,9 @@ function AppContent() {
                         apiBaseUrl: API_BASE_URL,
                         getAuthHeaders: () => ({
                             Authorization: `Bearer ${authService.getAccessToken()}`,
+                        }),
+                        getNetworkContext: () => ({
+                            failed_requests: getFailedNetworkRequests(),
                         }),
                     }}
                 />

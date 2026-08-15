@@ -35,6 +35,10 @@ export class BugReporterClient {
         if (input.screenshot) {
             form.append("screenshot", input.screenshot, "screenshot.png")
         }
+        const context = this.config.getNetworkContext?.()
+        if (context !== undefined && context !== null) {
+            form.append("network_context", JSON.stringify(context))
+        }
         return this.request<BugReport>(BUGS_PATH, { method: "POST", body: form })
     }
 

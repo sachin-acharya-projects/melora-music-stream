@@ -21,6 +21,9 @@ export interface BugReporterConfig {
     apiBaseUrl: string
     /** Returns auth headers (e.g. Authorization) for the current session. */
     getAuthHeaders: () => Record<string, string>
+    /** Optional: host-provided diagnostics (failed network requests, etc.)
+     * attached to the report as JSON. The widget never inspects the shape. */
+    getNetworkContext?: () => unknown
     /** Overridable severity labels; defaults to Low/Medium/High/Critical. */
     severityOptions?: SeverityOption[]
     /** Called with the created report after a successful submission. */

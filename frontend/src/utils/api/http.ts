@@ -19,6 +19,66 @@ export const refreshHttp = axios.create({
 
 let refreshPromise: Promise<string> | null = null
 
+export interface FailedNetworkRequest {
+    timestamp: string
+    method: string
+    url: string
+    status: number | null
+    duration_ms: number | null
+    message: string
+    request_payload: string | null
+    response: string | null
+}
+
+const MAX_RECORDED_FAILURES = 10
+const recentFailures: FailedNetworkRequest[] = []
+
+function truncate(value: unknown, maxLength = 1000): string | null {
+    if (value === undefined || value === null) return null
+    let text: string
+    if (typeof value === "string") {
+        text = value
+    } else {
+        try {
+            text = JSON.stringify(value)
+        } catch {
+            text = String(value)
+        }
+    }
+    return text.length > maxLength ? `${text.slice(0, maxLength)}…` : text
+}
+
+function recordFailure(error: AxiosError): void {
+    const config = error.config as
+        | (InternalAxiosRequestConfig & { metadata?: { startTime?: number } })
+        | undefined
+    const url = config?.url
+    if (!url || config.data instanceof FormData) {
+        return
+    }
+    const response = error.response
+    recentFailures.push({
+        timestamp: new Date().toISOString(),
+        method: (config?.method?.toUpperCase() ?? "GET") as string,
+        url,
+        status: response?.status ?? null,
+        duration_ms:
+            config?.metadata?.startTime != null
+                ? Date.now() - config.metadata.startTime
+                : null,
+        message: error.message,
+        request_payload: truncate(config.data),
+        response: truncate(response?.data),
+    })
+    if (recentFailures.length > MAX_RECORDED_FAILURES) {
+        recentFailures.shift()
+    }
+}
+
+export function getFailedNetworkRequests(): FailedNetworkRequest[] {
+    return recentFailures.map((failure) => ({ ...failure }))
+}
+
 function isDeactivatedError(error: AxiosError): boolean {
     return (
         error.response?.status === 403 &&
@@ -56,6 +116,11 @@ http.interceptors.request.use(
         if (token) {
             config.headers.Authorization = `Bearer ${token}`
         }
+        const withMetadata = config as InternalAxiosRequestConfig & {
+            metadata?: { startTime?: number }
+        }
+        withMetadata.metadata = withMetadata.metadata ?? {}
+        withMetadata.metadata.startTime = Date.now()
         return config
     },
     (error) => {
@@ -70,6 +135,7 @@ http.interceptors.response.use(
         return response
     },
     async (error: AxiosError) => {
+        recordFailure(error)
         if (isDeactivatedError(error)) {
             handleAccountDeactivated()
             return Promise.reject(error)

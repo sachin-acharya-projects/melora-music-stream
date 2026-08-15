@@ -87,6 +87,43 @@ def test_create_bug_report_rejects_wrong_content_type(client, auth_headers):
     assert response.status_code == 400
 
 
+def test_create_bug_report_with_network_context(client, auth_headers):
+    data = {
+        "title": "Network failure",
+        "severity": "high",
+        "network_context": (
+            '{"failed_requests": [{"method": "GET", "url": "/songs/1", '
+            '"status": 500, "message": "boom"}]}'
+        ),
+    }
+    response = client.post("/api/v1/bugs", data=data, headers=auth_headers)
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["network_context"]["failed_requests"][0]["status"] == 500
+
+
+def test_create_bug_report_ignores_invalid_network_context(client, auth_headers):
+    data = {
+        "title": "Broken context",
+        "severity": "low",
+        "network_context": "not-json",
+    }
+    response = client.post("/api/v1/bugs", data=data, headers=auth_headers)
+    assert response.status_code == 200, response.text
+    assert response.json()["network_context"] is None
+
+
+def test_create_bug_report_ignores_non_object_network_context(client, auth_headers):
+    data = {
+        "title": "Array context",
+        "severity": "low",
+        "network_context": "[1, 2, 3]",
+    }
+    response = client.post("/api/v1/bugs", data=data, headers=auth_headers)
+    assert response.status_code == 200, response.text
+    assert response.json()["network_context"] is None
+
+
 def test_list_my_reports_only_returns_own(client, auth_headers):
     _create_report(client, auth_headers, title="My first bug")
     _create_report(client, auth_headers, title="My second bug")

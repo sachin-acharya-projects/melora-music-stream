@@ -5,6 +5,7 @@ defined by the @sachin-acharya-projects/bug-reporter package; the admin
 surface (/admin/bugs) is Melora-specific.
 """
 
+import json
 import logging
 from typing import Annotated, Any
 
@@ -64,6 +65,7 @@ async def create_bug_report(
     severity: Annotated[BugReportSeverity, Form()] = BugReportSeverity.LOW,
     description: Annotated[str | None, Form(max_length=5000)] = None,
     screenshot: Annotated[UploadFile | None, File()] = None,
+    network_context: Annotated[str | None, Form(max_length=100_000)] = None,
 ) -> BugReportResponse:
     """Submit a new bug report (optionally with an annotated screenshot)."""
     content: bytes | None = None
@@ -81,6 +83,17 @@ async def create_bug_report(
                 detail="Screenshot must be a PNG, JPEG or WebP image",
             )
 
+    context_data: dict[str, Any] | None = None
+    if network_context:
+        try:
+            parsed = json.loads(network_context)
+            if isinstance(parsed, dict):
+                context_data = parsed
+            else:
+                logger.warning("Ignoring non-object network_context in bug report")
+        except json.JSONDecodeError:
+            logger.warning("Ignoring invalid network_context JSON in bug report")
+
     report = BugReportService.create_report(
         db,
         user_id=user.id,
@@ -88,6 +101,7 @@ async def create_bug_report(
         description=description,
         severity=severity.value,
         screenshot=content,
+        network_context=context_data,
     )
     _notify_admins(db, report)
     return BugReportResponse.model_validate(report)
