@@ -4,6 +4,15 @@ FROM node:24-slim AS build-frontend
 RUN npm install -g pnpm@11.17.0
 
 WORKDIR /frontend
+
+# pnpm config via env (npm_config_*): copy packages from the store instead of
+# hard-linking, and never auto-(re)install inside `pnpm build`. Both avoid the
+# overlay2 (Docker) filesystem silently ending up with a node_modules that is
+# missing its node_modules/.bin shims (e.g. tsc not found).
+ENV npm_config_package_import_method=copy
+ENV npm_config_verify_deps_before_run=false
+ENV NODE_ENV=development
+
 COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml ./
 COPY libs/ /libs/
 RUN pnpm install --frozen-lockfile
