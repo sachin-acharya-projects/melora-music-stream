@@ -147,9 +147,30 @@ export default function AudioPlayer() {
     }, [setProgress])
 
     const handleLoadedMetadata = useCallback(() => {
-        if (audioRef.current) {
-            setDuration(audioRef.current.duration)
-        }
+        if (!audioRef.current) return
+        const realDuration = audioRef.current.duration
+        setDuration(realDuration)
+
+        // Some sources (e.g. the plain-YouTube fallback search) don't carry a
+        // duration, so the queue shows 0:00. Once the audio element knows the
+        // real length, back-fill it into the current queue item so the
+        // up-next list shows the actual duration.
+        if (!Number.isFinite(realDuration) || realDuration <= 0) return
+        const rounded = Math.round(realDuration)
+        const { playlist, currentIndex, currentSong } = usePlayerStore.getState()
+        const current = playlist[currentIndex]
+        if (!current || current.duration === rounded) return
+
+        const updatedPlaylist = [...playlist]
+        updatedPlaylist[currentIndex] = { ...current, duration: rounded }
+        usePlayerStore.setState({
+            playlist: updatedPlaylist,
+            currentSong:
+                currentSong?.queueId === current.queueId
+                    ? { ...currentSong, duration: rounded }
+                    : currentSong,
+        })
+        void usePlayerStore.getState().syncWithBackend()
     }, [setDuration])
 
     const handleSeek = (time: number) => {
