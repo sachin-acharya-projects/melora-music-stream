@@ -3,18 +3,19 @@ FROM node:24-slim AS build-frontend
 
 RUN npm install -g pnpm@11.17.0
 
-WORKDIR /frontend
+WORKDIR /app/frontend
 
-# pnpm config via env (npm_config_*): copy packages from the store instead of
-# hard-linking, and never auto-(re)install inside `pnpm build`. Both avoid the
-# overlay2 (Docker) filesystem silently ending up with a node_modules that is
-# missing its node_modules/.bin shims (e.g. tsc not found).
+# Keep the workspace root off the filesystem top level: with the member at
+# ../libs/bug-reporter, a root like /frontend makes pnpm 11.17.0 silently skip
+# the entire install (tsc ends up missing). /app/frontend + /app/libs avoids it.
+# Also copy store packages instead of hard-linking (overlay2-safe) and never
+# auto-(re)install inside `pnpm build`.
 ENV npm_config_package_import_method=copy
 ENV npm_config_verify_deps_before_run=false
 ENV NODE_ENV=development
 
 COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml ./
-COPY libs/ /libs/
+COPY libs/ /app/libs/
 RUN pnpm install --frozen-lockfile
 COPY frontend/ .
 ENV VITE_BASE_URL=""
@@ -43,7 +44,7 @@ RUN uv sync --frozen --no-dev --no-install-project
 COPY backend/ /app/backend/
 
 # Copy Frontend build from Stage 1
-COPY --from=build-frontend /frontend/dist /usr/share/nginx/html
+COPY --from=build-frontend /app/frontend/dist /usr/share/nginx/html
 
 # Copy root Nginx configuration
 COPY nginx.conf /etc/nginx/sites-available/default
