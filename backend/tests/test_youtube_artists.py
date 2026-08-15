@@ -373,11 +373,25 @@ def test_youtube_search_endpoint(
     assert data["items"][0]["is_in_library"] is True
 
 
-def test_youtube_search_requires_admin(client, auth_headers: dict[str, str]) -> None:
+def test_youtube_search_for_any_authenticated_user(
+    client, auth_headers: dict[str, str], monkeypatch
+) -> None:
+    monkeypatch.setattr(
+        youtube_service,
+        "search_artists",
+        lambda query, limit=6: [_channel(CHANNEL_ONE, "Daft Punk")],
+    )
+
     response = client.get(
         "/api/v1/artists/youtube/search?q=daft+punk", headers=auth_headers
     )
-    assert response.status_code == 403
+    assert response.status_code == 200
+    assert response.json()["total"] == 1
+
+
+def test_youtube_search_requires_authentication(client) -> None:
+    response = client.get("/api/v1/artists/youtube/search?q=daft+punk")
+    assert response.status_code == 401
 
 
 def test_youtube_import_endpoint(
@@ -400,7 +414,7 @@ def test_youtube_import_endpoint(
     assert artist is not None
 
 
-def test_youtube_import_requires_admin(
+def test_youtube_import_for_any_authenticated_user(
     client, db: Session, auth_headers: dict[str, str], monkeypatch
 ) -> None:
     monkeypatch.setattr(
@@ -414,7 +428,16 @@ def test_youtube_import_requires_admin(
         headers=auth_headers,
         json={"channel_id": CHANNEL_ONE, "name": "Daft Punk", "thumbnail": None},
     )
-    assert response.status_code == 403
+    assert response.status_code == 200
+    assert response.json()["slug"] == "daft-punk"
+
+
+def test_youtube_import_requires_authentication(client, db: Session) -> None:
+    response = client.post(
+        "/api/v1/artists/youtube/import",
+        json={"channel_id": CHANNEL_ONE, "name": "Daft Punk", "thumbnail": None},
+    )
+    assert response.status_code == 401
 
 
 def test_get_artist_songs_merges_channel_uploads_and_library(

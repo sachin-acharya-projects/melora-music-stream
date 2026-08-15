@@ -42,9 +42,12 @@ class Settings(BaseSettings):
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
-    # Auth - root admin bootstrap
-    # If set, this email is granted the admin role on startup (idempotent).
-    # Used to create the first admin without an existing admin in the system.
+    # Auth - root admin / super admin
+    # If set, this email is granted the admin role on startup (idempotent),
+    # and the deploy script also ensures it after every deploy. The owner of
+    # this email is the super admin: the only account allowed to change other
+    # admin accounts (promote/demote/deactivate). Used to bootstrap the first
+    # admin without an existing admin in the system.
     ROOT_ADMIN_EMAIL: str = ""
 
     # Frontend

@@ -66,6 +66,9 @@ class Messages:
     INVALID_ROLE = "Role must be 'admin' or 'user'"
     CANNOT_DEMOTE_SELF = "You cannot remove your own admin role"
     CANNOT_DEACTIVATE_SELF = "You cannot deactivate your own account"
+    ADMIN_ACCOUNT_CHANGE_RESTRICTED = (
+        "Only the super admin can change another admin's account"
+    )
 
     # Recommendations / radio
     MOOD_NOT_FOUND = "Mood not found"

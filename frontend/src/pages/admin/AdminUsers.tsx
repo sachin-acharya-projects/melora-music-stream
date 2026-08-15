@@ -6,6 +6,7 @@ import {
     BadgeCheck,
     ChevronLeft,
     ChevronRight,
+    Crown,
     Loader2,
     Search,
     Shield,
@@ -34,6 +35,7 @@ export default function AdminUsers() {
     })
     const { updateUser } = useAdminUserActions()
 
+    const isSuperAdmin = me?.is_super_admin === true
     const totalPages = Math.max(1, Math.ceil((users.data?.total ?? 0) / PAGE_SIZE))
 
     const handleToggleRole = async (user: AdminUser) => {
@@ -133,6 +135,12 @@ export default function AdminUsers() {
                                                         User
                                                     </span>
                                                 )}
+                                                {user.is_super_admin && (
+                                                    <span className='flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-600 dark:bg-amber-950 dark:text-amber-400'>
+                                                        <Crown className='h-3 w-3' />
+                                                        Super Admin
+                                                    </span>
+                                                )}
                                                 {isSelf && (
                                                     <span className='rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-600 dark:bg-blue-950 dark:text-blue-400'>
                                                         You
@@ -144,46 +152,51 @@ export default function AdminUsers() {
                                             </p>
                                         </div>
                                         <div className='flex items-center gap-1'>
-                                            <button
-                                                onClick={() => handleToggleRole(user)}
-                                                disabled={updateUser.isPending}
-                                                className='flex h-9 cursor-pointer items-center gap-1 rounded-lg px-2.5 text-sm font-medium transition-colors disabled:opacity-50'
-                                                title={
-                                                    user.role === "admin"
-                                                        ? "Revoke admin"
-                                                        : "Grant admin"
-                                                }
-                                            >
-                                                {user.role === "admin" ? (
-                                                    <span className='flex items-center gap-1 rounded-lg bg-purple-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-purple-700'>
-                                                        <ShieldOff className='h-3.5 w-3.5' />
-                                                        Revoke
-                                                    </span>
-                                                ) : (
+                                            {user.role !== "admin" ? (
+                                                <button
+                                                    onClick={() => handleToggleRole(user)}
+                                                    disabled={updateUser.isPending}
+                                                    className='flex h-9 cursor-pointer items-center gap-1 rounded-lg px-2.5 text-sm font-medium transition-colors disabled:opacity-50'
+                                                    title='Grant admin'
+                                                >
                                                     <span className='flex items-center gap-1 rounded-lg bg-black/5 px-3 py-1.5 text-xs font-semibold text-gray-600 transition-colors hover:bg-purple-100 hover:text-purple-600 dark:bg-white/10 dark:text-gray-300 dark:hover:bg-purple-950 dark:hover:text-purple-400'>
                                                         <BadgeCheck className='h-3.5 w-3.5' />
                                                         Make admin
                                                     </span>
-                                                )}
-                                            </button>
-                                            <button
-                                                onClick={() => handleToggleActive(user)}
-                                                disabled={updateUser.isPending || isSelf}
-                                                className={`h-9 cursor-pointer rounded-lg px-2.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
-                                                    user.is_active
-                                                        ? "bg-black/5 text-gray-600 hover:text-amber-500 dark:bg-white/10 dark:text-gray-300"
-                                                        : "bg-green-600 text-white hover:bg-green-700"
-                                                }`}
-                                                title={
-                                                    isSelf
-                                                        ? "You cannot deactivate your own account"
-                                                        : user.is_active
-                                                          ? "Deactivate account"
-                                                          : "Reactivate account"
-                                                }
-                                            >
-                                                {user.is_active ? "Deactivate" : "Reactivate"}
-                                            </button>
+                                                </button>
+                                            ) : isSuperAdmin && !isSelf ? (
+                                                <button
+                                                    onClick={() => handleToggleRole(user)}
+                                                    disabled={updateUser.isPending}
+                                                    className='flex h-9 cursor-pointer items-center gap-1 rounded-lg px-2.5 text-sm font-medium transition-colors disabled:opacity-50'
+                                                    title='Revoke admin'
+                                                >
+                                                    <span className='flex items-center gap-1 rounded-lg bg-purple-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-purple-700'>
+                                                        <ShieldOff className='h-3.5 w-3.5' />
+                                                        Revoke
+                                                    </span>
+                                                </button>
+                                            ) : null}
+                                            {user.role !== "admin" || (isSuperAdmin && !isSelf) ? (
+                                                <button
+                                                    onClick={() => handleToggleActive(user)}
+                                                    disabled={updateUser.isPending || isSelf}
+                                                    className={`h-9 cursor-pointer rounded-lg px-2.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+                                                        user.is_active
+                                                            ? "bg-black/5 text-gray-600 hover:text-amber-500 dark:bg-white/10 dark:text-gray-300"
+                                                            : "bg-green-600 text-white hover:bg-green-700"
+                                                    }`}
+                                                    title={
+                                                        isSelf
+                                                            ? "You cannot deactivate your own account"
+                                                            : user.is_active
+                                                              ? "Deactivate account"
+                                                              : "Reactivate account"
+                                                    }
+                                                >
+                                                    {user.is_active ? "Deactivate" : "Reactivate"}
+                                                </button>
+                                            ) : null}
                                         </div>
                                     </div>
                                 )

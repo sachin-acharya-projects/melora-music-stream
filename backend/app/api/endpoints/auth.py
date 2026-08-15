@@ -97,7 +97,9 @@ async def google_callback(request: Request, db: SessionDep) -> RedirectResponse:
 @router.get("/me")
 async def get_me(current_user: CurrentUser) -> UserResponse:
     """Get current user profile."""
-    return UserResponse.model_validate(current_user)
+    response = UserResponse.model_validate(current_user)
+    response.is_super_admin = AuthService.is_super_admin(current_user)
+    return response
 
 
 @router.patch("/me")
@@ -106,7 +108,9 @@ def update_me(
 ) -> UserResponse:
     """Update the current user's profile (display name, bio, favorite genres...)."""
     updated = UserService.update_profile(db, user=current_user, data=data)
-    return UserResponse.model_validate(updated)
+    response = UserResponse.model_validate(updated)
+    response.is_super_admin = AuthService.is_super_admin(updated)
+    return response
 
 
 @router.post("/refresh")

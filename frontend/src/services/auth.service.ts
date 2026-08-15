@@ -11,6 +11,7 @@ export interface User {
     bio: string | null
     role: string
     is_active: boolean
+    is_super_admin: boolean
     oauth_provider: string | null
     favorite_genres: string[]
     privacy_settings: Record<string, unknown>

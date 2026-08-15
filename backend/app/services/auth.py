@@ -313,6 +313,17 @@ class AuthService:
             )
 
     @staticmethod
+    def is_super_admin(user: UserModel) -> bool:
+        """True if the user is the operator-defined root admin (``ROOT_ADMIN_EMAIL``).
+
+        The super admin is the only account allowed to change other admin
+        accounts (role changes and deactivation). No one else can modify the
+        account that owns this email.
+        """
+        root = settings.ROOT_ADMIN_EMAIL.strip().lower()
+        return bool(root) and user.role == UserRole.ADMIN.value and user.email.strip().lower() == root
+
+    @staticmethod
     def validate_google_oauth_info(user_info: dict[str, Any]) -> dict[str, str]:
         """Validate and extract fields from Google OAuth userinfo response. Raises HTTPException on failure."""
         if not user_info:

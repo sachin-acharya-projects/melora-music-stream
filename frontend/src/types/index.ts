@@ -295,6 +295,7 @@ export interface AdminUser {
     avatar_url: string | null
     role: string
     is_active: boolean
+    is_super_admin: boolean
     created_at: string | null
 }
 

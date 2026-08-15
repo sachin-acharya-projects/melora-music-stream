@@ -1,12 +1,15 @@
 from typing import Any, Callable
 
+import pytest
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.db.models.artist import ArtistModel
 from app.db.models.song import SongModel
 from app.db.models.user import UserModel, UserRole
 from app.services.admin import AdminService
 from app.services.artist import ArtistService
+from app.services.auth import AuthService
 from app.services.songs import SongService
 
 
@@ -21,6 +24,34 @@ def make_song(db: Session, song_id: str, uploader: str) -> SongModel:
         db,
         Song(id=song_id, title=song_id, uploader=uploader, thumbnail="", duration=100),
     )
+
+
+def make_admin(db: Session, user_id: str, email: str, username: str) -> UserModel:
+    user = UserModel(
+        id=user_id,
+        email=email,
+        username=username,
+        role=UserRole.ADMIN,
+        is_active=True,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def make_super_admin_headers(
+    db: Session, monkeypatch: pytest.MonkeyPatch
+) -> dict[str, str]:
+    """Create a super admin user and return their auth headers.
+
+    The super admin is whoever owns ``ROOT_ADMIN_EMAIL``; the setting is
+    patched so this user is the only super admin in the test.
+    """
+    user = make_admin(db, "super-admin-user-id", "root@melora.dev", "root")
+    monkeypatch.setattr(settings, "ROOT_ADMIN_EMAIL", user.email)
+    tokens = AuthService.create_tokens_for_user(user)
+    return {"Authorization": f"Bearer {tokens['access_token']}"}
 
 
 # ------------------------------------------------------------------ #
@@ -355,8 +386,18 @@ def test_update_user_role_and_active(
     assert response.status_code == 200
     assert response.json()["role"] == "admin"
 
+    other = UserModel(
+        id="user-y",
+        email="usery@example.com",
+        username="usery",
+        role=UserRole.USER,
+        is_active=True,
+    )
+    db.add(other)
+    db.commit()
+
     response = client.patch(
-        f"/api/v1/admin/users/{user.id}",
+        f"/api/v1/admin/users/{other.id}",
         headers=admin_headers,
         json={"is_active": False},
     )
@@ -380,6 +421,95 @@ def test_invalid_role_rejected(client, db: Session, admin_headers: dict[str, str
         json={"role": "superuser"},
     )
     assert response.status_code == 400
+
+
+def test_regular_admin_cannot_change_other_admin_account(
+    client, db: Session, admin_headers: dict[str, str], monkeypatch
+) -> None:
+    monkeypatch.setattr(settings, "ROOT_ADMIN_EMAIL", "")
+    other = make_admin(db, "other-admin", "otheradmin@example.com", "otheradmin")
+
+    response = client.patch(
+        f"/api/v1/admin/users/{other.id}",
+        headers=admin_headers,
+        json={"role": "user"},
+    )
+    assert response.status_code == 403
+
+    response = client.patch(
+        f"/api/v1/admin/users/{other.id}",
+        headers=admin_headers,
+        json={"is_active": False},
+    )
+    assert response.status_code == 403
+
+    db.refresh(other)
+    assert other.role == UserRole.ADMIN.value
+    assert other.is_active is True
+
+
+def test_super_admin_can_change_other_admin_account(
+    client, db: Session, monkeypatch
+) -> None:
+    super_headers = make_super_admin_headers(db, monkeypatch)
+    other = make_admin(db, "other-admin", "otheradmin@example.com", "otheradmin")
+
+    response = client.patch(
+        f"/api/v1/admin/users/{other.id}",
+        headers=super_headers,
+        json={"role": "user"},
+    )
+    assert response.status_code == 200
+    assert response.json()["role"] == "user"
+
+    response = client.patch(
+        f"/api/v1/admin/users/{other.id}",
+        headers=super_headers,
+        json={"role": "admin", "is_active": False},
+    )
+    assert response.status_code == 200
+    assert response.json()["role"] == "admin"
+    assert response.json()["is_active"] is False
+
+
+def test_super_admin_cannot_change_own_account(
+    client, db: Session, monkeypatch
+) -> None:
+    super_headers = make_super_admin_headers(db, monkeypatch)
+
+    response = client.patch(
+        "/api/v1/admin/users/super-admin-user-id",
+        headers=super_headers,
+        json={"role": "user"},
+    )
+    assert response.status_code == 400
+
+    response = client.patch(
+        "/api/v1/admin/users/super-admin-user-id",
+        headers=super_headers,
+        json={"is_active": False},
+    )
+    assert response.status_code == 400
+
+
+def test_super_admin_flags_in_listing_and_me(
+    client, db: Session, monkeypatch, admin_headers: dict[str, str]
+) -> None:
+    super_headers = make_super_admin_headers(db, monkeypatch)
+
+    response = client.get("/api/v1/admin/users", headers=admin_headers)
+    assert response.status_code == 200
+    by_id = {u["id"]: u for u in response.json()["items"]}
+    assert by_id["super-admin-user-id"]["is_super_admin"] is True
+    assert by_id["admin-user-id"]["is_super_admin"] is False
+
+    me = client.get("/api/v1/auth/me", headers=super_headers)
+    assert me.status_code == 200
+    assert me.json()["is_super_admin"] is True
+
+    me_regular = client.get("/api/v1/auth/me", headers=admin_headers)
+    assert me_regular.status_code == 200
+    assert me_regular.json()["is_super_admin"] is False
 
 
 # ------------------------------------------------------------------ #

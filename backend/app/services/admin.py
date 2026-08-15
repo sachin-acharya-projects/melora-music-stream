@@ -27,6 +27,7 @@ from app.schemas.admin import (
 from app.schemas.artist import YouTubeArtistImport
 from app.schemas.song import Song
 from app.services.artist import ArtistService
+from app.services.auth import AuthService
 from app.services.songs import SongService
 from app.services.youtube import youtube_service
 from app.services.youtube_artist import YouTubeArtistService
@@ -493,20 +494,31 @@ class AdminService:
         user = db.query(UserModel).filter(UserModel.id == user_id).first()
         if user is None:
             raise HTTPException(status_code=404, detail=Messages.USER_NOT_FOUND)
+
         if update.role is not None:
             if update.role not in (UserRole.ADMIN.value, UserRole.USER.value):
                 raise HTTPException(status_code=400, detail=Messages.INVALID_ROLE)
-            if (
-                user.id == acting_user.id
-                and update.role != UserRole.ADMIN.value
-            ):
+            if user.id == acting_user.id and update.role != UserRole.ADMIN.value:
                 raise HTTPException(status_code=400, detail=Messages.CANNOT_DEMOTE_SELF)
-            user.role = update.role
         if update.is_active is not None:
             if user.id == acting_user.id and not update.is_active:
                 raise HTTPException(
                     status_code=400, detail=Messages.CANNOT_DEACTIVATE_SELF
                 )
+
+        # Only the super admin (ROOT_ADMIN_EMAIL) may change another admin's
+        # account. Regular admins can still promote users to admin and manage
+        # regular accounts, but admin accounts are off-limits to them.
+        if user.role == UserRole.ADMIN.value and not AuthService.is_super_admin(
+            acting_user
+        ):
+            raise HTTPException(
+                status_code=403, detail=Messages.ADMIN_ACCOUNT_CHANGE_RESTRICTED
+            )
+
+        if update.role is not None:
+            user.role = update.role
+        if update.is_active is not None:
             user.is_active = update.is_active
         db.commit()
         db.refresh(user)
@@ -522,6 +534,7 @@ class AdminService:
             "avatar_url": user.avatar_url,
             "role": user.role,
             "is_active": user.is_active,
+            "is_super_admin": AuthService.is_super_admin(user),
             "created_at": user.created_at.isoformat()
             if user.created_at is not None
             else None,

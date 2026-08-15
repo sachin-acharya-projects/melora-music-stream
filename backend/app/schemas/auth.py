@@ -19,6 +19,7 @@ class UserResponse(BaseModel):
     bio: str | None = None
     role: str
     is_active: bool
+    is_super_admin: bool = False
     oauth_provider: str | None = None
     favorite_genres: list[str] = []
     privacy_settings: dict[str, Any] = {}

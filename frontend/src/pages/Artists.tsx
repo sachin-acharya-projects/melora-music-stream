@@ -11,7 +11,6 @@ import {
     useYouTubeArtists,
 } from "@/hooks/useArtists"
 import { useTitle } from "@/hooks/useTitle"
-import { useAuth } from "@/hooks/useAuth"
 import { type ArtistSortField, type ArtistSortOptions } from "@/services/artist.service"
 import { type Artist, type YouTubeArtist } from "@/types"
 import { AnimatePresence, motion } from "framer-motion"
@@ -81,15 +80,13 @@ const CONTENT_MOTION = {
 
 export default function Artists() {
     const navigate = useNavigate()
-    const { user } = useAuth()
     const [searchParams, setSearchParams] = useSearchParams()
     const [query, setQuery] = useState("")
     const [debouncedQuery, setDebouncedQuery] = useState("")
     const [importingChannelId, setImportingChannelId] = useState<string | null>(null)
     const [followingSource, setFollowingSource] = useState<"all" | "youtube" | "platform">("all")
 
-    const isAdmin = user?.role === "admin"
-    const tabs: ArtistsTab[] = isAdmin ? VALID_TABS : VALID_TABS.filter((t) => t !== "youtube")
+    const tabs: ArtistsTab[] = VALID_TABS
 
     const rawTab = searchParams.get("view")
     const tab: ArtistsTab = tabs.includes(rawTab as ArtistsTab)
@@ -262,7 +259,7 @@ export default function Artists() {
                         transition={{ layout: { duration: 0.2, ease: "easeOut" } }}
                         className='dark:bg-card flex items-center gap-1 rounded-xl border border-gray-200 bg-white p-1 dark:border-white/10'
                     >
-                        {VALID_TABS.filter((t) => t !== "youtube" || isAdmin).map((t) => (
+                        {VALID_TABS.map((t) => (
                             <button
                                 key={t}
                                 onClick={() => setTab(t)}

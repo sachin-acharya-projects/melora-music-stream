@@ -1,12 +1,11 @@
 from typing import Annotated, Any
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Query
+from fastapi import APIRouter, BackgroundTasks, Query
 
 from app.api.deps import (
     CurrentUser,
     OptionalUser,
     SessionDep,
-    require_admin,
 )
 from app.schemas.artist import YouTubeArtistImport
 from app.services.artist import ArtistService
@@ -71,7 +70,7 @@ def get_following_artists(
 @router.get("/youtube/search")
 def search_youtube_artists(
     db: SessionDep,
-    _: Annotated[None, Depends(require_admin)],
+    _: CurrentUser,
     q: Annotated[str, Query(min_length=1, max_length=100)],
     limit: Annotated[int, Query(ge=1, le=20)] = 6,
 ) -> dict[str, Any]:
@@ -82,7 +81,7 @@ def search_youtube_artists(
 def import_youtube_artist(
     data: YouTubeArtistImport,
     db: SessionDep,
-    _: Annotated[None, Depends(require_admin)],
+    _: CurrentUser,
 ) -> dict[str, Any]:
     return YouTubeArtistService.import_artist(db, data)
 
