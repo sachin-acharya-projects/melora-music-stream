@@ -46,15 +46,19 @@ export function MiniPlayer({
                     className='group flex flex-1 cursor-pointer gap-3 overflow-hidden'
                 >
                     <div className='relative h-12 w-12 shrink-0 overflow-hidden rounded-lg'>
-                        <img
-                            src={currentSong.thumbnail}
-                            alt={currentSong.title}
-                            referrerPolicy='no-referrer'
-                            className={cn(
-                                "h-full w-full object-cover transition-all group-hover:scale-105",
-                                isLoading ? "opacity-40" : "opacity-100",
-                            )}
-                        />
+                        {currentSong.thumbnail ? (
+                            <img
+                                src={currentSong.thumbnail}
+                                alt={currentSong.title}
+                                referrerPolicy='no-referrer'
+                                className={cn(
+                                    "h-full w-full object-cover transition-all group-hover:scale-105",
+                                    isLoading ? "opacity-40" : "opacity-100",
+                                )}
+                            />
+                        ) : (
+                            <div className='flex h-full w-full items-center justify-center bg-gradient-to-br from-red-500/20 via-purple-500/20 to-blue-500/20' />
+                        )}
                         {isLoading && (
                             <div className='absolute inset-0 flex items-center justify-center'>
                                 <Loader2 className='h-6 w-6 animate-spin text-red-600' />

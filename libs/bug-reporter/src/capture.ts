@@ -19,6 +19,13 @@ export async function capturePage(): Promise<CapturedScreenshot> {
         pixelRatio: 1,
         skipFonts: true,
         backgroundColor: "#ffffff",
+        filter: (node) => {
+            if (node instanceof HTMLImageElement && !node.getAttribute("src")) {
+                return false
+            }
+            return true
+        },
+        onImageErrorHandler: () => {},
     })
 
     const image = new Image()

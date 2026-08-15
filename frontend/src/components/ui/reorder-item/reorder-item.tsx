@@ -40,14 +40,18 @@ export default function ReorderItem({
                     <GripVertical className='h-4 w-4' />
                 </div>
                 <div className='relative h-14 w-24 shrink-0 overflow-hidden rounded-lg'>
-                    <img
-                        src={song.thumbnail}
-                        alt={song.title}
-                        loading='lazy'
-                        decoding='async'
-                        referrerPolicy='no-referrer'
-                        className='h-full w-full object-cover'
-                    />
+                    {song.thumbnail ? (
+                        <img
+                            src={song.thumbnail}
+                            alt={song.title}
+                            loading='lazy'
+                            decoding='async'
+                            referrerPolicy='no-referrer'
+                            className='h-full w-full object-cover'
+                        />
+                    ) : (
+                        <div className='flex h-full w-full items-center justify-center bg-gradient-to-br from-red-500/20 via-purple-500/20 to-blue-500/20' />
+                    )}
                     <div className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
                         <button
                             onClick={(e) => {
