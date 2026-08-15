@@ -16,8 +16,8 @@ export interface CapturedScreenshot {
  */
 export async function capturePage(): Promise<CapturedScreenshot> {
     const dataUrl = await toPng(document.body, {
-        pixelRatio: 2,
-        cacheBust: true,
+        pixelRatio: 1,
+        skipFonts: true,
         backgroundColor: "#ffffff",
     })
 
