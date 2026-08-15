@@ -156,6 +156,7 @@ export function BugReporter({ config }: BugReporterProps) {
                 onClick={openReporter}
                 title="Report a bug"
                 aria-label="Report a bug"
+                data-br-widget=""
                 style={{
                     position: "fixed",
                     left: 24,
@@ -184,6 +185,7 @@ export function BugReporter({ config }: BugReporterProps) {
                         role="dialog"
                         aria-modal="true"
                         aria-label="Report a bug"
+                        data-br-widget=""
                         onClick={(e) => {
                             if (e.target === e.currentTarget) closeReporter()
                         }}

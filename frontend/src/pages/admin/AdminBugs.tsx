@@ -36,6 +36,7 @@ export default function AdminBugs() {
     const [severityFilter, setSeverityFilter] = useState<BugReportSeverity | "">("")
     const [page, setPage] = useState(1)
     const [detail, setDetail] = useState<BugReport | null>(null)
+    const [lightbox, setLightbox] = useState<string | null>(null)
 
     const bugs = useQuery({
         queryKey: ["admin", "bugs", { status: statusFilter, severity: severityFilter, page }],
@@ -218,11 +219,21 @@ export default function AdminBugs() {
 
                         {detail.screenshot_url && (
                             <div className='mb-4 overflow-hidden rounded-xl border border-gray-200 dark:border-white/10'>
-                                <img
-                                    src={detail.screenshot_url}
-                                    alt='Reported screenshot'
-                                    className='w-full'
-                                />
+                                <button
+                                    type='button'
+                                    onClick={() => setLightbox(detail.screenshot_url)}
+                                    className='group relative block w-full cursor-zoom-in'
+                                    title='View full size'
+                                >
+                                    <img
+                                        src={detail.screenshot_url}
+                                        alt='Reported screenshot'
+                                        className='w-full'
+                                    />
+                                    <span className='absolute right-2 bottom-2 rounded-md bg-black/60 px-2 py-1 text-[11px] font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100'>
+                                        View full size
+                                    </span>
+                                </button>
                             </div>
                         )}
 
@@ -329,6 +340,38 @@ export default function AdminBugs() {
                                 Delete
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {lightbox && (
+                <div
+                    className='fixed inset-0 z-[70] flex items-center justify-center bg-black/90 p-4'
+                    onClick={() => setLightbox(null)}
+                >
+                    <img
+                        src={lightbox}
+                        alt='Reported screenshot, full size'
+                        draggable={false}
+                        className='max-h-full max-w-full object-contain'
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                    <div className='absolute top-4 right-4 flex items-center gap-2'>
+                        <a
+                            href={lightbox}
+                            target='_blank'
+                            rel='noopener noreferrer'
+                            className='cursor-pointer rounded-full bg-white/10 px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-white/20'
+                        >
+                            Open in new tab
+                        </a>
+                        <button
+                            onClick={() => setLightbox(null)}
+                            className='flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/10 text-lg text-white transition-colors hover:bg-white/20'
+                            aria-label='Close full-size view'
+                        >
+                            ×
+                        </button>
                     </div>
                 </div>
             )}
