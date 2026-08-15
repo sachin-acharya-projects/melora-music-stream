@@ -113,7 +113,7 @@ class Settings(BaseSettings):
     FCM_CREDENTIALS_FILE: str = ""
 
     # Bug reporter - disabled unless ENABLED
-    ENABLE_BUGREPORTER: bool = False
+    ENABLE_BUGREPORTER: bool = True
     BUG_REPORTS_DIR: str = "bug_reports"
     BUG_REPORT_SCREENSHOT_MAX_MB: int = 10
 
