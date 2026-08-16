@@ -434,9 +434,9 @@ export function ScreenshotAnnotator({ imageSrc, ref }: AnnotatorProps) {
                         style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
                     >
                         {shapes.map((shape, index) => (
-                            <g key={index}>{shapeToSvg(shape, unit)}</g>
+                            <g key={index} dangerouslySetInnerHTML={{ __html: shapeToSvg(shape, unit) }} />
                         ))}
-                        {draft && <g>{shapeToSvg(draft, unit)}</g>}
+                        {draft && <g dangerouslySetInnerHTML={{ __html: shapeToSvg(draft, unit) }} />}
                     </svg>
                     {editingShape && (
                         <textarea
