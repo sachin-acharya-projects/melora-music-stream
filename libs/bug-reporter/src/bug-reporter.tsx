@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import type * as React from "react"
 import { createPortal } from "react-dom"
 import { ScreenshotAnnotator, type ScreenshotAnnotatorHandle } from "./annotator"
-import { capturePage } from "./capture"
+import { capturePage, type CaptureProgress } from "./capture"
 import { BugReporterClient } from "./client"
 import type { BugReporterConfig, SeverityOption } from "./config"
 import { DEFAULT_SEVERITY_OPTIONS } from "./config"
@@ -64,6 +64,7 @@ export function BugReporter({ config }: BugReporterProps) {
     const [step, setStep] = useState<Step>("capture")
     const [capturing, setCapturing] = useState(false)
     const [captureError, setCaptureError] = useState<string | null>(null)
+    const [captureProgress, setCaptureProgress] = useState<CaptureProgress | null>(null)
     const [screenshot, setScreenshot] = useState<ScreenshotState | null>(null)
     const [title, setTitle] = useState("")
     const [description, setDescription] = useState("")
@@ -81,14 +82,16 @@ export function BugReporter({ config }: BugReporterProps) {
     const runCapture = async () => {
         setCapturing(true)
         setCaptureError(null)
+        setCaptureProgress(null)
         try {
-            setScreenshot(await capturePage())
+            setScreenshot(await capturePage(setCaptureProgress))
         } catch {
             setCaptureError(
                 "Could not capture the screen. Try scrolling to the top of the page and reopening the reporter.",
             )
         } finally {
             setCapturing(false)
+            setCaptureProgress(null)
         }
     }
 
@@ -266,6 +269,7 @@ export function BugReporter({ config }: BugReporterProps) {
                                     <CaptureStep
                                         capturing={capturing}
                                         error={captureError}
+                                        progress={captureProgress}
                                         screenshot={screenshot}
                                         onRecapture={() => void runCapture()}
                                     />
@@ -429,15 +433,18 @@ export function BugReporter({ config }: BugReporterProps) {
 function CaptureStep({
     capturing,
     error,
+    progress,
     screenshot,
     onRecapture,
 }: {
     capturing: boolean
     error: string | null
+    progress: CaptureProgress | null
     screenshot: ScreenshotState | null
     onRecapture: () => void
 }) {
     if (capturing) {
+        const fraction = progress && progress.total > 0 ? progress.loaded / progress.total : null
         return (
             <div
                 style={{
@@ -451,7 +458,34 @@ function CaptureStep({
                 }}
             >
                 <Spinner />
-                Capturing your screen…
+                <p style={{ margin: 0, fontSize: 14 }}>
+                    {progress?.message ?? "Capturing your screen…"}
+                </p>
+                {fraction !== null && (
+                    <div
+                        style={{
+                            width: "100%",
+                            maxWidth: 320,
+                            height: 8,
+                            borderRadius: 999,
+                            background: COLORS.border,
+                            overflow: "hidden",
+                        }}
+                    >
+                        <div
+                            style={{
+                                width: `${Math.round(fraction * 100)}%`,
+                                height: "100%",
+                                background: COLORS.primary,
+                                borderRadius: 999,
+                                transition: "width 0.15s linear",
+                            }}
+                        />
+                    </div>
+                )}
+                <p style={{ margin: 0, fontSize: 12 }}>
+                    This may take a few seconds — the screenshot will include the whole page.
+                </p>
             </div>
         )
     }
