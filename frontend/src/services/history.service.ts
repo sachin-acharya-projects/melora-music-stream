@@ -1,4 +1,4 @@
-import { type HistoryItem, type HistoryListResponse, type Song } from "@/types"
+import { type HistoryItem, type HistoryListResponse, type SearchHistoryEntry, type Song } from "@/types"
 import { ENDPOINTS } from "@/utils/api/endpoints"
 import { http } from "@/utils/api/http"
 import { API_LIMITS } from "@/utils/constants"
@@ -51,5 +51,23 @@ export const historyService = {
             { params: options },
         )
         return data
+    },
+}
+
+export const searchHistoryService = {
+    getRecent: async (limit: number = 10): Promise<SearchHistoryEntry[]> => {
+        const { data } = await http.get<SearchHistoryEntry[]>(
+            ENDPOINTS.SEARCH_HISTORY.BASE,
+            { params: { limit } },
+        )
+        return data
+    },
+
+    deleteEntry: async (entryId: string): Promise<void> => {
+        await http.delete(`${ENDPOINTS.SEARCH_HISTORY.BASE}/${entryId}`)
+    },
+
+    clear: async (): Promise<void> => {
+        await http.delete(ENDPOINTS.SEARCH_HISTORY.BASE)
     },
 }

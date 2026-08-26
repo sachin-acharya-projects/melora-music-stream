@@ -2,6 +2,15 @@ export const ENDPOINTS = {
     SEARCH: "/search/",
     SEARCH_SUGGESTIONS: "/search/suggestions",
     SEARCH_TRACKS: "/search/tracks",
+    SEARCH_HISTORY: {
+        BASE: "/search/history",
+    },
+    ALBUMS: {
+        BASE: "/albums/",
+        FAVORITES: "/albums/favorites",
+        BY_ID: (browseId: string) => `/albums/${encodeURIComponent(browseId)}`,
+        FAVORITE: (browseId: string) => `/albums/${encodeURIComponent(browseId)}/favorite`,
+    },
     CACHE: {
         INVALIDATE: "/cache/invalidate",
     },

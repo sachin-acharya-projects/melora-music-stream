@@ -23,6 +23,8 @@ import Notifications from "@/pages/Notifications"
 import NotificationSettings from "@/pages/NotificationSettings"
 import Recommendations from "@/pages/Recommendations"
 import Stats from "@/pages/Stats"
+import MyAlbums from "@/pages/MyAlbums"
+import AlbumDetail from "@/pages/AlbumDetail"
 import AdminDashboard from "@/pages/admin/AdminDashboard"
 import AdminArtists from "@/pages/admin/AdminArtists"
 import AdminSongs from "@/pages/admin/AdminSongs"
@@ -176,6 +178,22 @@ function AppContent() {
                         element={
                             <ProtectedRoute>
                                 <Recommendations />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path='/albums'
+                        element={
+                            <ProtectedRoute>
+                                <MyAlbums />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path='/albums/:browseId'
+                        element={
+                            <ProtectedRoute>
+                                <AlbumDetail />
                             </ProtectedRoute>
                         }
                     />

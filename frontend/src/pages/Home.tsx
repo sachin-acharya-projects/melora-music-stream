@@ -9,6 +9,7 @@ import { useQueueStore } from "@/hooks/useQueue"
 import { useRecommendations } from "@/hooks/useRecommendations"
 import { useRecentHistory } from "@/hooks/useRecentHistory"
 import { useSearch, useSearchSuggestions } from "@/hooks/useSearch"
+import { useSearchHistory } from "@/hooks/useSearchHistory"
 import { useSongSelection } from "@/hooks/useSongSelection"
 import { useThemeStore } from "@/hooks/useTheme"
 import { useTitle } from "@/hooks/useTitle"
@@ -28,6 +29,7 @@ import {
     type LucideIcon,
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import { Link } from "react-router-dom"
 import { toast } from "react-toastify"
 
@@ -110,6 +112,8 @@ export default function Home() {
     const { data: recommendationsData, isLoading: recommendationsLoading } = useRecommendations()
     const { data: topSongsData, isLoading: topSongsLoading } = useTopSongs(TOP_SONGS_LIMIT)
     const { data: discoverData, isLoading: discoverLoading } = useDiscover()
+    const { data: recentSearchesData } = useSearchHistory()
+    const queryClient = useQueryClient()
 
     const discoverSongs = useMemo(
         () =>
@@ -184,6 +188,7 @@ export default function Home() {
         setSearchQuery(q)
         setDebouncedQuery(q)
         clearSelection()
+        queryClient.invalidateQueries({ queryKey: ["search-history"] })
     }
 
     const handleRefreshResults = async () => {
@@ -332,6 +337,7 @@ export default function Home() {
                     cached={searchCached && !!debouncedQuery}
                     onRefresh={handleRefreshResults}
                     suggestions={searchSuggestions}
+                    recentSearches={recentSearchesData?.map((e) => e.query) ?? []}
                 />
 
                 <div className='mt-4 grid w-full max-w-4xl grid-cols-2 gap-4 md:grid-cols-5'>

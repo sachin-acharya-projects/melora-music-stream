@@ -2,6 +2,8 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, HTTPException, Query, Response
 
+from app.api.deps import CurrentUser, OptionalUser, SessionDep
+from app.services.search_history import search_history_service
 from app.services.youtube import youtube_service
 from app.services.ytmusic import ytmusic_service
 
@@ -14,6 +16,8 @@ _GROUP_KEYS = ("artists", "songs", "albums", "playlists", "videos")
 def search(
     q: Annotated[str, Query(min_length=1, max_length=200)],
     response: Response,
+    current_user: OptionalUser = None,
+    db: SessionDep = None,
 ) -> dict[str, Any]:
     """Grouped search results from YTMusic, falling back to plain YouTube."""
     results = ytmusic_service.search_all(q)
@@ -21,6 +25,12 @@ def search(
         results = _fallback_search(q)
     if results.get("cached"):
         response.headers["X-Cache-Status"] = "HIT"
+    if current_user is not None and db is not None:
+        try:
+            search_history_service.record(db, user_id=current_user.id, query=q)
+        except Exception:
+            # History is best-effort and must never break search.
+            pass
     return results
 
 
@@ -70,3 +80,39 @@ def _fallback_search(q: str) -> dict[str, Any]:
         "videos": [],
         "cached": served_from_cache,
     }
+
+
+@router.get("/history")
+def search_history(
+    db: SessionDep, current_user: CurrentUser, limit: Annotated[int, Query(ge=1, le=50)] = 10
+) -> list[dict[str, Any]]:
+    """Recent, de-duplicated searches for the current user."""
+    rows = search_history_service.list_recent(db, user_id=current_user.id, limit=limit)
+    return [
+        {
+            "id": row.id,
+            "query": row.query,
+            "searched_at": row.searched_at.isoformat(),
+        }
+        for row in rows
+    ]
+
+
+@router.delete("/history")
+def clear_search_history(db: SessionDep, current_user: CurrentUser) -> dict[str, Any]:
+    """Remove every search from the current user's history."""
+    deleted = search_history_service.clear(db, user_id=current_user.id)
+    return {"deleted": deleted}
+
+
+@router.delete("/history/{entry_id}")
+def delete_search_history_entry(
+    entry_id: str, db: SessionDep, current_user: CurrentUser
+) -> dict[str, Any]:
+    """Remove a single search entry."""
+    removed = search_history_service.delete_entry(
+        db, user_id=current_user.id, entry_id=entry_id
+    )
+    if not removed:
+        raise HTTPException(status_code=404, detail="History entry not found")
+    return {"ok": True}
