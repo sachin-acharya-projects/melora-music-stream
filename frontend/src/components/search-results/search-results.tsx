@@ -1,10 +1,14 @@
 import ViewToggle from "@/components/ui/view-toggle/view-toggle"
 import { AddToPlaylistModal } from "@/components/playlist/add-to-playlist-modal"
 import { formatDuration } from "@/lib/utils"
-import { type SearchResults as SearchResultsData, type SearchTopResult, type Song } from "@/types"
+import { toFavoritePayload } from "@/services/album.service"
+import { useAlbumFavorites, useFavoriteAlbum, useUnfavoriteAlbum } from "@/hooks/useAlbums"
+import { type SearchAlbumItem, type SearchResults as SearchResultsData, type SearchTopResult, type Song } from "@/types"
 import {
+    ArrowUpRight,
     Disc3,
     Download,
+    Heart,
     Library,
     ListMusic,
     Loader2,
@@ -13,7 +17,8 @@ import {
     Plus,
     UserRound,
 } from "lucide-react"
-import { useState } from "react"
+import { useMemo, useState } from "react"
+import { Link } from "react-router-dom"
 
 interface SearchResultsProps {
     results: SearchResultsData
@@ -49,6 +54,23 @@ export function SearchResults({
     const [playingKey, setPlayingKey] = useState<string | null>(null)
     const [playlistTarget, setPlaylistTarget] = useState<Song[] | null>(null)
     const { top_result: topResult, artists, albums, playlists, videos, songs } = results
+    const { data: favoritesData } = useAlbumFavorites()
+    const favoriteAlbum = useFavoriteAlbum()
+    const unfavoriteAlbum = useUnfavoriteAlbum()
+    const favoritedIds = useMemo(
+        () => new Set((favoritesData ?? []).map((f) => f.album.browse_id)),
+        [favoritesData],
+    )
+
+    const toggleAlbumFavorite = (album: SearchAlbumItem) => {
+        const browseId = album.id
+        if (!browseId) return
+        if (favoritedIds.has(browseId)) {
+            unfavoriteAlbum.mutate(browseId)
+        } else {
+            favoriteAlbum.mutate({ browseId, payload: toFavoritePayload(album) })
+        }
+    }
 
     const playCollection = async (key: string, playlistId: string | null) => {
         if (!playlistId || playingKey) return
@@ -442,52 +464,78 @@ export function SearchResults({
 
             {albums.length > 0 && (
                 <SearchRow title='Albums' icon={Disc3}>
-                    {albums.map((album) => (
-                        <div key={album.id ?? album.title} className='w-40 shrink-0'>
-                            <button
-                                type='button'
-                                onClick={() =>
-                                    playCollection(
-                                        album.audio_playlist_id ?? album.id ?? album.title,
-                                        album.audio_playlist_id ?? album.id,
-                                    )
-                                }
-                                className='group flex w-full cursor-pointer flex-col gap-2 text-left'
-                                title={`Play ${album.title}`}
+                    {albums.map((album) => {
+                        const browseId = album.id ?? album.title ?? ""
+                        const isFav = browseId ? favoritedIds.has(browseId) : false
+                        return (
+                            <div
+                                key={album.id ?? album.title}
+                                className='relative w-40 shrink-0'
                             >
-                                <span className='relative block aspect-square w-full overflow-hidden rounded-lg'>
-                                    {album.thumbnail ? (
-                                        <img
-                                            src={album.thumbnail}
-                                            alt={album.title}
-                                            loading='lazy'
-                                            decoding='async'
-                                            referrerPolicy='no-referrer'
-                                            className='h-full w-full object-cover'
-                                        />
-                                    ) : (
-                                        <span className='flex h-full w-full items-center justify-center bg-gray-100 dark:bg-white/10'>
-                                            <Disc3 className='h-8 w-8 text-gray-400' />
-                                        </span>
-                                    )}
-                                    <span className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
-                                        {playingKey === (album.id ?? album.title) ? (
-                                            <Loader2 className='h-6 w-6 animate-spin text-white' />
+                                <button
+                                    type='button'
+                                    onClick={() =>
+                                        playCollection(
+                                            album.audio_playlist_id ?? album.id ?? album.title,
+                                            album.audio_playlist_id ?? album.id,
+                                        )
+                                    }
+                                    className='group flex w-full cursor-pointer flex-col gap-2 text-left'
+                                    title={`Play ${album.title}`}
+                                >
+                                    <span className='relative block aspect-square w-full overflow-hidden rounded-lg'>
+                                        {album.thumbnail ? (
+                                            <img
+                                                src={album.thumbnail}
+                                                alt={album.title}
+                                                loading='lazy'
+                                                decoding='async'
+                                                referrerPolicy='no-referrer'
+                                                className='h-full w-full object-cover'
+                                            />
                                         ) : (
-                                            <Play className='h-6 w-6 translate-x-0.5 fill-current text-white' />
+                                            <span className='flex h-full w-full items-center justify-center bg-gray-100 dark:bg-white/10'>
+                                                <Disc3 className='h-8 w-8 text-gray-400' />
+                                            </span>
                                         )}
+                                        <span className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
+                                            {playingKey === (album.id ?? album.title) ? (
+                                                <Loader2 className='h-6 w-6 animate-spin text-white' />
+                                            ) : (
+                                                <Play className='h-6 w-6 translate-x-0.5 fill-current text-white' />
+                                            )}
+                                        </span>
                                     </span>
-                                </span>
-                                <span className='line-clamp-1 text-sm font-semibold dark:text-white'>
-                                    {album.title}
-                                </span>
-                                <span className='line-clamp-1 text-xs text-gray-500 dark:text-gray-400'>
-                                    {(album.artists ?? []).join(", ")}
-                                    {album.year ? ` · ${album.year}` : ""}
-                                </span>
-                            </button>
-                        </div>
-                    ))}
+                                    <span className='line-clamp-1 text-sm font-semibold dark:text-white'>
+                                        {album.title}
+                                    </span>
+                                    <span className='line-clamp-1 text-xs text-gray-500 dark:text-gray-400'>
+                                        {(album.artists ?? []).join(", ")}
+                                        {album.year ? ` · ${album.year}` : ""}
+                                    </span>
+                                </button>
+                                <div className='absolute top-2 right-2 flex gap-1.5'>
+                                    <button
+                                        type='button'
+                                        onClick={() => toggleAlbumFavorite(album)}
+                                        className='flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70'
+                                        title={isFav ? "Remove from My Albums" : "Add to My Albums"}
+                                    >
+                                        <Heart
+                                            className={`h-4 w-4 ${isFav ? "fill-current text-red-500" : ""}`}
+                                        />
+                                    </button>
+                                    <Link
+                                        to={`/albums/${encodeURIComponent(browseId)}`}
+                                        className='flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70'
+                                        title='View album'
+                                    >
+                                        <ArrowUpRight className='h-4 w-4' />
+                                    </Link>
+                                </div>
+                            </div>
+                        )
+                    })}
                 </SearchRow>
             )}
 

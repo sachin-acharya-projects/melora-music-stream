@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.api.endpoints import (
     admin,
+    albums,
     artists,
     auth,
     bug_reports,
@@ -24,6 +25,7 @@ from app.core.config import settings
 
 api_router = APIRouter()
 api_router.include_router(admin.router, prefix="/admin", tags=["Admin"])
+api_router.include_router(albums.router, prefix="/albums", tags=["Albums"])
 api_router.include_router(artists.router, prefix="/artists", tags=["Artists"])
 api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 api_router.include_router(cache.router, prefix="/cache", tags=["Cache"])

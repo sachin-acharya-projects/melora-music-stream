@@ -114,3 +114,26 @@ user_artist_follows = Table(
         default=lambda: datetime.now(UTC),
     ),
 )
+
+# Association table for users favoriting albums
+album_favorites = Table(
+    "album_favorites",
+    Base.metadata,
+    Column(
+        "user_id",
+        String,
+        ForeignKey("users.id"),
+        primary_key=True,
+    ),
+    Column(
+        "album_id",
+        String,
+        ForeignKey("albums.id"),
+        primary_key=True,
+    ),
+    Column(
+        "created_at",
+        DateTime,
+        default=lambda: datetime.now(UTC),
+    ),
+)

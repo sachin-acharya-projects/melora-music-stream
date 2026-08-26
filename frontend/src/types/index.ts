@@ -341,3 +341,36 @@ export interface PlaylistImportResponse {
     skipped_existing: number
     failed: number
 }
+
+export interface SearchHistoryEntry {
+    id: string
+    user_id: string
+    query: string
+    searched_at: string
+    created_at: string
+    updated_at: string
+}
+
+export interface AlbumDetail {
+    id: string
+    browse_id: string
+    title: string
+    artist_name: string | null
+    artist_id: string | null
+    thumbnail_url: string | null
+    audio_playlist_id: string | null
+    year: number | null
+    created_at: string
+    updated_at: string
+}
+
+export interface FavoriteAlbum {
+    album: AlbumDetail
+    favorited_at: string
+}
+
+export interface AlbumDetailResponse {
+    album: AlbumDetail
+    is_favorite: boolean
+    tracks: Song[]
+}

@@ -8,6 +8,7 @@ import {
     BarChart3,
     Bell,
     Bug,
+    Disc3,
     History,
     Home,
     ListEnd,
@@ -99,6 +100,17 @@ export default function Navbar() {
                 >
                     <RadioIcon className='h-4 w-4' />
                     <span className='font-medium'>Radio</span>
+                </Link>
+                <Link
+                    to='/albums'
+                    className={`hidden cursor-pointer items-center gap-2 rounded-full px-4 py-2 transition-colors md:flex ${
+                        location.pathname.startsWith("/albums")
+                            ? "bg-red-500 text-white"
+                            : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"
+                    }`}
+                >
+                    <Disc3 className='h-4 w-4' />
+                    <span className='font-medium'>My Albums</span>
                 </Link>
                 <Link
                     to='/now-playing'
