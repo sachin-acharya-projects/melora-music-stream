@@ -1,12 +1,8 @@
 import { createContext, useEffect, useState, type ReactNode } from "react"
 import { useNavigate } from "react-router-dom"
 import { toast } from "react-toastify"
-import { Capacitor, type PluginListenerHandle } from "@capacitor/core"
-import { App } from "@capacitor/app"
-import { Browser } from "@capacitor/browser"
 import { usePlayerStore } from "@/hooks/usePlayer"
-import { authService, type User, MOBILE_OAUTH_DEEPLINK } from "@/services/auth.service"
-import { MESSAGES } from "@/utils/messages"
+import { authService, type User } from "@/services/auth.service"
 
 interface AuthContextType {
     user: User | null
@@ -54,41 +50,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         initAuth()
     }, [])
-
-    // On mobile the OAuth consent runs in the system browser and returns via a
-    // deep link (com.melora.app://auth/callback?...). Capture it, store the
-    // tokens, and close the browser.
-    useEffect(() => {
-        if (!Capacitor.isNativePlatform()) return
-        let listener: PluginListenerHandle | undefined
-        const handleAppUrlOpen = async (data: { url: string }) => {
-            const url = data.url
-            if (!url.startsWith(MOBILE_OAUTH_DEEPLINK)) return
-            const params = new URLSearchParams(url.split("?")[1] ?? "")
-            const errorParam = params.get("error")
-            if (errorParam === "account_deactivated") {
-                await Browser.close()
-                toast.error(MESSAGES.ACCOUNT_DEACTIVATED)
-                navigate("/login")
-                return
-            }
-            const accessToken = params.get("access_token")
-            const refreshToken = params.get("refresh_token")
-            if (accessToken && refreshToken) {
-                authService.setTokens(accessToken, refreshToken)
-                await Browser.close()
-                await refreshUser()
-                toast.success("Logged in successfully!")
-                navigate("/")
-            }
-        }
-        App.addListener("appUrlOpen", handleAppUrlOpen).then((l) => {
-            listener = l
-        })
-        return () => {
-            listener?.remove()
-        }
-    }, [navigate, refreshUser])
 
     const login = () => {
         authService.loginWithGoogle()
