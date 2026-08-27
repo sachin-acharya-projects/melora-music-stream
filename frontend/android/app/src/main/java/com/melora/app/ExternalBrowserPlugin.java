@@ -1,9 +1,9 @@
 package com.melora.app;
 
 import com.getcapacitor.Plugin;
-import com.getcapacitor.annotation.CapacitorPlugin;
-import com.getcapacitor.annotation.PluginMethod;
 import com.getcapacitor.PluginCall;
+import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.CapacitorPlugin;
 import android.content.Intent;
 import android.net.Uri;
 
