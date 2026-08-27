@@ -4,11 +4,13 @@ import { useAuth } from "@/hooks/useAuth"
 import { useUnreadCount } from "@/hooks/useNotifications"
 import { useQueueStore } from "@/hooks/useQueue"
 import { useThemeStore } from "@/hooks/useTheme"
+import { usePwaInstall } from "@/hooks/usePwaInstall"
 import {
     BarChart3,
     Bell,
     Bug,
     Disc3,
+    Download,
     History,
     Home,
     ListEnd,
@@ -33,6 +35,7 @@ export default function Navbar() {
     const location = useLocation()
     const { user, logout } = useAuth()
     const [showUserMenu, setShowUserMenu] = useState(false)
+    const { canInstall, promptInstall } = usePwaInstall()
     const { data: unreadCount = 0 } = useUnreadCount()
 
     useEffect(() => {
@@ -175,6 +178,15 @@ export default function Navbar() {
                 >
                     {mode === "dark" ? <Sun /> : <Moon />}
                 </button>
+                {canInstall && (
+                    <button
+                        onClick={() => promptInstall()}
+                        className='flex h-13 w-13 cursor-pointer items-center justify-center rounded-full border bg-black/5 transition-colors hover:bg-black/10 dark:border-white/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/20'
+                        title='Install Melora'
+                    >
+                        <Download className='h-5 w-5' />
+                    </button>
+                )}
 
                 {/* User Menu */}
                 <div className='relative'>

@@ -92,7 +92,7 @@ export default function History() {
     }
 
     return (
-        <div className='mx-auto w-full max-w-375 px-4 pt-10 pb-40'>
+        <div className='mx-auto w-full max-w-375 px-4 pt-4 pb-40'>
             <div className='mb-8 flex flex-wrap items-end justify-between gap-4'>
                 <div>
                     <h1 className='text-3xl font-bold dark:text-white'>
@@ -158,7 +158,7 @@ export default function History() {
                                                     referrerPolicy='no-referrer'
                                                     className='h-full w-full object-cover'
                                                 />
-                                                <div className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
+                                                <div className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 max-md:opacity-100'>
                                                     <Play className='h-4 w-4 translate-x-0.5 fill-current text-white' />
                                                 </div>
                                             </div>

@@ -187,7 +187,7 @@ export function SongBrowser({ songs, isLoading, onPlay }: SongBrowserProps) {
                                 >
                                     <div className='relative aspect-video w-full overflow-hidden'>
                                         <SongThumb song={song} />
-                                        <div className='absolute inset-0 flex items-center justify-center gap-3 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
+                                        <div className='absolute inset-0 flex items-center justify-center gap-3 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 max-md:opacity-100'>
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation()
@@ -243,7 +243,7 @@ export function SongBrowser({ songs, isLoading, onPlay }: SongBrowserProps) {
                                 >
                                     <div className='relative h-14 w-24 shrink-0 overflow-hidden rounded-lg'>
                                         <SongThumb song={song} />
-                                        <div className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
+                                        <div className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 max-md:opacity-100'>
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation()

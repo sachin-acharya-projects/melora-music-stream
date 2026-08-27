@@ -52,7 +52,7 @@ export default function ReorderItem({
                     ) : (
                         <div className='flex h-full w-full items-center justify-center bg-gradient-to-br from-red-500/20 via-purple-500/20 to-blue-500/20' />
                     )}
-                    <div className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
+                    <div className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 max-md:opacity-100'>
                         <button
                             onClick={(e) => {
                                 e.stopPropagation()

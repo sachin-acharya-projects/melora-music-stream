@@ -417,7 +417,7 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
     const playlistName = playlist?.name ?? ""
 
     return (
-        <div className='mx-auto w-full max-w-375 px-4 pt-10 pb-40'>
+        <div className='mx-auto w-full max-w-375 px-4 pt-4 pb-40'>
             <button
                 onClick={() => navigate("/playlists")}
                 className='mb-6 flex cursor-pointer items-center gap-1 text-sm text-gray-500 transition-colors hover:text-red-500'
@@ -689,7 +689,7 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
                                         referrerPolicy='no-referrer'
                                         className='h-full w-full object-cover'
                                     />
-                                    <div className='absolute inset-0 flex items-center justify-center gap-3 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
+                                    <div className='absolute inset-0 flex items-center justify-center gap-3 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 max-md:opacity-100'>
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation()
@@ -762,7 +762,7 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
                                         referrerPolicy='no-referrer'
                                         className='h-full w-full object-cover'
                                     />
-                                    <div className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
+                                    <div className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 max-md:opacity-100'>
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation()

@@ -44,7 +44,7 @@ export default function NotificationSettings() {
     }
 
     return (
-        <div className='mx-auto w-full max-w-225 px-4 pt-10 pb-40'>
+        <div className='mx-auto w-full max-w-225 px-4 pt-4 pb-40'>
             <div className='mb-8'>
                 <h1 className='text-3xl font-bold dark:text-white'>
                     Notification <span className='text-red-500'>Settings</span>
