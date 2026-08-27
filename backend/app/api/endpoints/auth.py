@@ -1,6 +1,7 @@
 import time
 from urllib.parse import urlencode
 
+from authlib.integrations.base_client.errors import MismatchingStateError
 from authlib.integrations.starlette_client import OAuth
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import RedirectResponse
@@ -69,6 +70,13 @@ async def google_callback(request: Request, db: SessionDep) -> RedirectResponse:
     """Handle Google OAuth callback."""
     try:
         token = await oauth.google.authorize_access_token(request)
+    except MismatchingStateError:
+        diag = (
+            f"cookie_present={bool(request.cookies.get('session'))}; "
+            f"state_keys={[k for k in request.session.keys() if k.startswith('_state_')]}; "
+            f"query_state={request.query_params.get('state')}"
+        )
+        raise HTTPException(status_code=400, detail=f"OAuth login expired. {diag}") from None
     except Exception as e:
         AuthService.handle_oauth_error(e)
 
