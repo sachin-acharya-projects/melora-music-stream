@@ -1,6 +1,5 @@
 import { API_BASE_URL } from "@/config"
 import { Capacitor } from "@capacitor/core"
-import { toast } from "react-toastify"
 import ExternalBrowser from "@/plugins/external-browser"
 import { http, refreshHttp } from "@/utils/api/http"
 import { ENDPOINTS } from "@/utils/api/endpoints"
@@ -56,11 +55,9 @@ export const authService = {
     loginWithGoogle: async () => {
         const loginUrl = `${API_BASE_URL}${ENDPOINTS.AUTH.LOGIN}`
         // On mobile the WebView drops the OAuth session cookie on Google's
-        // redirect, so the consent must run in the system browser. We ask the
-        // backend to return into the app via a deep link.
+        // redirect, so the consent must run in the system browser, which
+        // persists the cookie and returns into the app via the deep link.
         if (Capacitor.isNativePlatform()) {
-            const hasExt = Capacitor.isPluginAvailable("ExternalBrowser")
-            toast.info(`OAuth diag: native=${Capacitor.isNativePlatform()} externalBrowser=${hasExt}`)
             // API_BASE_URL may be relative (no scheme) on the deployed build,
             // which is fine for same-origin fetch but unusable as an Android
             // intent. Build an absolute URL from the WebView's own origin.
@@ -68,10 +65,8 @@ export const authService = {
             const url = `${absoluteLoginUrl}?redirect=${encodeURIComponent(MOBILE_OAUTH_DEEPLINK)}`
             try {
                 await ExternalBrowser.open({ url })
-            } catch (e) {
-                const msg = e instanceof Error ? e.message : String(e)
-                toast.error(`OAuth open failed: ${msg}`)
-                // Fallback so the flow still progresses (cookie may still fail).
+            } catch {
+                // Fallback to the in-app WebView flow if no browser can launch.
                 window.location.href = absoluteLoginUrl
             }
             return
