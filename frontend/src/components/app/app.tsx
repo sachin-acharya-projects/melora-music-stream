@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/useAuth"
 import { usePlayerStore } from "@/hooks/usePlayer"
 import AssistiveNav from "@/components/assistive-nav/assistive-nav"
 import MobileTabBar from "@/components/mobile-nav/mobile-tab-bar"
+import MobileHeader from "@/components/mobile-nav/mobile-header"
 import Home from "@/pages/Home"
 import Login from "@/pages/Login"
 import AuthCallback from "@/pages/AuthCallback"
@@ -83,6 +84,7 @@ function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
 
 function AppContent() {
     const initialize = usePlayerStore((s) => s.initialize)
+    const currentSong = usePlayerStore((s) => s.currentSong)
     const { isAuthenticated, isLoading } = useAuth()
 
     useEffect(() => {
@@ -100,12 +102,21 @@ function AppContent() {
     }
 
     return (
-        <section>
-            {isAuthenticated && <Navbar />}
-            {isAuthenticated && <AssistiveNav />}
-            {isAuthenticated && <MobileTabBar />}
-            <Background />
-            <main className={isAuthenticated ? "pt-22" : ""}>
+            <section>
+                {isAuthenticated && <Navbar />}
+                {isAuthenticated && <MobileHeader />}
+                {isAuthenticated && <AssistiveNav />}
+                {isAuthenticated && <MobileTabBar />}
+                <Background />
+                <main
+                    className={
+                        isAuthenticated
+                            ? currentSong
+                                ? "pt-22 pb-44 md:pb-0"
+                                : "pt-22 pb-24 md:pb-0"
+                            : ""
+                    }
+                >
                 <Routes>
                     <Route
                         path='/login'

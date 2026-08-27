@@ -1,11 +1,11 @@
 import { cn } from "@/lib/utils"
-import { Home, ListMusic, Mic2, Music2, Radio as RadioIcon } from "lucide-react"
+import { Disc3, Home, Mic2, Music2, Radio as RadioIcon } from "lucide-react"
 import { Link, useLocation } from "react-router-dom"
 
 const TABS = [
     { to: "/", end: true, label: "Home", icon: Home },
-    { to: "/playlists", end: false, label: "Playlists", icon: ListMusic },
     { to: "/artists", end: false, label: "Artists", icon: Mic2 },
+    { to: "/albums", end: false, label: "Library", icon: Disc3 },
     { to: "/radio", end: false, label: "Radio", icon: RadioIcon },
     { to: "/now-playing", end: false, label: "Now Playing", icon: Music2 },
 ] as const

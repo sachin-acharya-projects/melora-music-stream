@@ -28,6 +28,12 @@ oauth.register(
 async def login(request: Request) -> RedirectResponse:
     """Initiate Google OAuth login flow."""
     AuthService.require_oauth_configured()
+    # Allow the mobile app to request the callback redirect back into the app
+    # via a deep link (custom scheme) instead of the web origin. Only our app
+    # scheme is honored to avoid an open redirect.
+    redirect = request.query_params.get("redirect")
+    if redirect and str(redirect).startswith("com.melora.app://"):
+        request.session["oauth_redirect"] = str(redirect)
     pending_url = _pending_oauth_url(request)
     if pending_url:
         return RedirectResponse(url=pending_url)
@@ -70,6 +76,18 @@ async def google_callback(request: Request, db: SessionDep) -> RedirectResponse:
     local_avatar = AuthService.save_avatar(
         user_info["google_id"], user_info["avatar_url"]
     )
+    # Redirect target: prefer a deep link the mobile app requested (so the
+    # system browser can hand control back to the app); otherwise return to the
+    # same origin that initiated the flow (web or the Capacitor WebView). Either
+    # way we never depend on a separately configured FRONTEND_URL.
+    custom_redirect = request.session.get("oauth_redirect")
+
+    def build_redirect(query: str) -> str:
+        if custom_redirect and str(custom_redirect).startswith("com.melora.app://"):
+            return f"{custom_redirect}?{query}"
+        origin = f"{request.url.scheme}://{request.url.netloc}"
+        return f"{origin}/auth/callback?{query}"
+
     try:
         user = AuthService.upsert_google_user(
             db,
@@ -80,18 +98,16 @@ async def google_callback(request: Request, db: SessionDep) -> RedirectResponse:
         )
     except HTTPException as exc:
         if exc.detail == Messages.ACCOUNT_DEACTIVATED:
-            redirect_url = (
-                f"{settings.FRONTEND_URL}/auth/callback?error=account_deactivated"
+            return RedirectResponse(
+                url=build_redirect(urlencode({"error": "account_deactivated"}))
             )
-            return RedirectResponse(url=redirect_url)
         raise
     tokens = AuthService.create_tokens_for_user(user)
     params = {
         "access_token": tokens["access_token"],
         "refresh_token": tokens["refresh_token"],
     }
-    redirect_url = f"{settings.FRONTEND_URL}/auth/callback?{urlencode(params)}"
-    return RedirectResponse(url=redirect_url)
+    return RedirectResponse(url=build_redirect(urlencode(params)))
 
 
 @router.get("/me")

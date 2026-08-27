@@ -319,7 +319,7 @@ export default function Home() {
     return (
         <div className='flex flex-col items-center gap-12'>
             {/* Header */}
-            <div className='flex flex-col items-center gap-5 pt-32'>
+            <div className='flex flex-col items-center gap-5 pt-4 md:pt-32'>
                 <h1 className='text-center text-5xl font-bold text-shadow-md dark:text-white'>
                     <span className='text-red-500'>Melora</span> Music
                 </h1>

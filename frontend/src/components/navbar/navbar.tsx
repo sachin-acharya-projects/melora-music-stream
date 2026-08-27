@@ -44,7 +44,7 @@ export default function Navbar() {
     }, [mode])
 
     return (
-        <div className='fixed z-1000 flex min-h-20 w-full flex-wrap items-center justify-between gap-2 p-3 px-3 shadow-xs backdrop-blur-sm md:gap-4 md:px-6 dark:border-b dark:border-white/5'>
+        <div className='fixed z-1000 hidden min-h-20 w-full flex-wrap items-center justify-between gap-2 p-3 px-3 shadow-xs backdrop-blur-sm md:flex md:gap-4 md:px-6 dark:border-b dark:border-white/5'>
             <div className='flex flex-1 items-center gap-2'>
                 <Link
                     to='/playlists'

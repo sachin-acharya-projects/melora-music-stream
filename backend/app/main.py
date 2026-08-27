@@ -115,7 +115,17 @@ if settings.BACKEND_CORS_ORIGINS:
         expose_headers=["X-Cache-Status"],
     )
 
-app.add_middleware(SessionMiddleware, secret_key=settings.JWT_SECRET_KEY)
+# SameSite=None is required so the OAuth state cookie survives the cross-site
+# top-level navigation from Google back to /google/callback. Android WebViews
+# (and some browsers) drop SameSite=Lax cookies on that redirect, which made
+# every OAuth attempt fail with "OAuth login expired" (MismatchingStateError).
+# Secure is kept on (the site is HTTPS-only).
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.JWT_SECRET_KEY,
+    same_site="none",
+    https_only=True,
+)
 
 # Setup Admin Panel
 setup_admin(app, engine)
