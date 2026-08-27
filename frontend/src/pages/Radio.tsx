@@ -108,7 +108,7 @@ export default function Radio() {
     const artistChips = seeds?.top_artists ?? []
 
     return (
-        <div className='mx-auto w-full max-w-375 px-4 pt-10 pb-40'>
+        <div className='mx-auto w-full max-w-375 px-4 pt-4 pb-40'>
             <div className='mb-8'>
                 <h1 className='text-3xl font-bold dark:text-white'>
                     Melora <span className='text-red-500'>Radio</span>

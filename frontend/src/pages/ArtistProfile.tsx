@@ -68,7 +68,7 @@ export default function ArtistProfile() {
 
     if (!artist) {
         return (
-            <div className='mx-auto w-full max-w-375 px-4 pt-10 pb-40'>
+            <div className='mx-auto w-full max-w-375 px-4 pt-4 pb-40'>
                 <button
                     onClick={() => navigate("/artists")}
                     className='mb-6 flex cursor-pointer items-center gap-1 text-sm text-gray-500 transition-colors hover:text-red-500'
@@ -169,7 +169,7 @@ export default function ArtistProfile() {
     }
 
     return (
-        <div className='mx-auto w-full max-w-375 px-4 pt-10 pb-40'>
+        <div className='mx-auto w-full max-w-375 px-4 pt-4 pb-40'>
             <button
                 onClick={() => navigate("/artists")}
                 className='mb-6 flex cursor-pointer items-center gap-1 text-sm text-gray-500 transition-colors hover:text-red-500'

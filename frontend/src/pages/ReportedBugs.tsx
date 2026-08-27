@@ -20,7 +20,7 @@ export default function ReportedBugs() {
     const selected = reports.find((report) => report.id === selectedId)
 
     return (
-        <div className='mx-auto max-w-3xl px-4 pt-10 pb-40'>
+        <div className='mx-auto max-w-3xl px-4 pt-4 pb-40'>
             <div className='mb-8 flex items-center gap-4'>
                 <span className='flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500 text-white'>
                     <Bug className='h-7 w-7' />

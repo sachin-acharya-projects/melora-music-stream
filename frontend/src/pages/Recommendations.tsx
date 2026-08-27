@@ -22,7 +22,7 @@ export default function Recommendations() {
     }
 
     return (
-        <div className='mx-auto w-full max-w-375 px-4 pt-10 pb-40'>
+        <div className='mx-auto w-full max-w-375 px-4 pt-4 pb-40'>
             <div className='mb-6'>
                 <h1 className='flex items-center gap-2 text-2xl font-bold dark:text-white'>
                     <Sparkles className='h-5 w-5 text-red-500' />

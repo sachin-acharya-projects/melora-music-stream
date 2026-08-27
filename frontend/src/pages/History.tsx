@@ -92,7 +92,7 @@ export default function History() {
     }
 
     return (
-        <div className='mx-auto w-full max-w-375 px-4 pt-10 pb-40'>
+        <div className='mx-auto w-full max-w-375 px-4 pt-4 pb-40'>
             <div className='mb-8 flex flex-wrap items-end justify-between gap-4'>
                 <div>
                     <h1 className='text-3xl font-bold dark:text-white'>
