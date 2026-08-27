@@ -112,7 +112,12 @@ public class MediaPlaybackService extends Service {
             pendingListener = null;
         }
 
-        startForeground(NOTIF_ID, buildNotification());
+        try {
+            startForeground(NOTIF_ID, buildNotification());
+        } catch (SecurityException e) {
+            // Notification permission not granted; run without a foreground
+            // notification (audio still plays while the app is backgrounded).
+        }
     }
 
     private void emit(String action, long seekTimeMs) {
