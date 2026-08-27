@@ -70,6 +70,12 @@ async def google_callback(request: Request, db: SessionDep) -> RedirectResponse:
     local_avatar = AuthService.save_avatar(
         user_info["google_id"], user_info["avatar_url"]
     )
+    # Redirect back to the same origin that initiated the OAuth flow. This keeps
+    # the web and the Capacitor WebView (which loads the site at its own domain
+    # origin) on the same origin so the returned tokens are stored where the
+    # app can read them, instead of depending on a separately configured
+    # FRONTEND_URL that may point elsewhere (e.g. localhost).
+    origin = f"{request.url.scheme}://{request.url.netloc}"
     try:
         user = AuthService.upsert_google_user(
             db,
@@ -81,7 +87,7 @@ async def google_callback(request: Request, db: SessionDep) -> RedirectResponse:
     except HTTPException as exc:
         if exc.detail == Messages.ACCOUNT_DEACTIVATED:
             redirect_url = (
-                f"{settings.FRONTEND_URL}/auth/callback?error=account_deactivated"
+                f"{origin}/auth/callback?error=account_deactivated"
             )
             return RedirectResponse(url=redirect_url)
         raise
@@ -90,7 +96,7 @@ async def google_callback(request: Request, db: SessionDep) -> RedirectResponse:
         "access_token": tokens["access_token"],
         "refresh_token": tokens["refresh_token"],
     }
-    redirect_url = f"{settings.FRONTEND_URL}/auth/callback?{urlencode(params)}"
+    redirect_url = f"{origin}/auth/callback?{urlencode(params)}"
     return RedirectResponse(url=redirect_url)
 
 
