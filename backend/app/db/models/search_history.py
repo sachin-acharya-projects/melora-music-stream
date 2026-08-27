@@ -15,6 +15,8 @@ class SearchHistoryModel(BaseModel):
     recent-searches UI can order entries by recency.
     """
 
+    __tablename__ = "search_histories"
+
     user_id: Mapped[str] = mapped_column(
         String, ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
