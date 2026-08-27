@@ -88,6 +88,15 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
 
     _bootstrap_root_admin()
 
+    # Warm Google's OpenID metadata so the first /api/v1/auth/login doesn't
+    # block on a metadata fetch (and the mobile meta-refresh hop is instant).
+    from app.api.endpoints.auth import oauth  # noqa: PLC0415
+
+    try:
+        await oauth.google.load_server_metadata()
+    except Exception:  # noqa: BLE001 - non-fatal; lazily fetched on first use
+        pass
+
     refresh_task = asyncio.create_task(_refresh_releases_loop())
     try:
         yield

@@ -3,7 +3,7 @@ from urllib.parse import urlencode
 
 from authlib.integrations.starlette_client import OAuth
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 
 from app.api.deps import CurrentUser, SessionDep
 from app.core.config import settings
@@ -25,7 +25,7 @@ oauth.register(
 
 
 @router.get("/login")
-async def login(request: Request) -> RedirectResponse:
+async def login(request: Request) -> RedirectResponse | HTMLResponse:
     """Initiate Google OAuth login flow."""
     AuthService.require_oauth_configured()
     # Allow the mobile app to request the callback redirect back into the app
@@ -35,9 +35,26 @@ async def login(request: Request) -> RedirectResponse:
     if redirect and str(redirect).startswith("com.melora.app://"):
         request.session["oauth_redirect"] = str(redirect)
     pending_url = _pending_oauth_url(request)
-    if pending_url:
-        return RedirectResponse(url=pending_url)
-    return await oauth.google.authorize_redirect(request, settings.GOOGLE_REDIRECT_URI)  # type: ignore[no-any-return]
+    google_redirect = (
+        RedirectResponse(url=pending_url)
+        if pending_url
+        else await oauth.google.authorize_redirect(request, settings.GOOGLE_REDIRECT_URI)  # type: ignore[no-any-return]
+    )
+    # When launched from the app via an external-browser intent, Chrome defers
+    # automatic top-level 302 redirects to another origin until a user gesture,
+    # so the consent screen never appears on the first load (a refresh "fixes"
+    # it). For the mobile deep-link case, return an HTML meta-refresh page
+    # instead, which navigates to Google without needing a gesture.
+    if redirect and str(redirect).startswith("com.melora.app://"):
+        target = google_redirect.headers.get("location", "")
+        safe_target = target.replace("&", "&amp;")
+        html = (
+            "<!DOCTYPE html><html><head>"
+            f'<meta http-equiv="refresh" content="0;url={safe_target}">'
+            "</head><body>Redirecting to Google&hellip;</body></html>"
+        )
+        return HTMLResponse(content=html, status_code=200)
+    return google_redirect
 
 
 def _pending_oauth_url(request: Request) -> str | None:
