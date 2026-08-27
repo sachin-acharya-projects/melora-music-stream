@@ -37,11 +37,11 @@ export function AddToPlaylistModal({
 
     return (
         <div
-            className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4'
+            className='fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 md:items-center md:p-4'
             onClick={onClose}
         >
             <div
-                className='w-full max-w-sm rounded-2xl border bg-white p-6 shadow-2xl dark:border-white/10 dark:bg-black'
+                className='max-h-[85vh] w-full overflow-y-auto rounded-t-2xl border bg-white p-6 shadow-2xl dark:border-white/10 dark:bg-black md:max-h-none md:rounded-2xl md:max-w-sm'
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className='mb-4 flex items-center justify-between'>

@@ -171,7 +171,7 @@ export function SearchResults({
                                 <Disc3 className='h-12 w-12 text-gray-400' />
                             </span>
                         )}
-                        <span className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
+                        <span className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 max-md:opacity-100'>
                             <span className='flex h-12 w-12 items-center justify-center rounded-full bg-red-600 text-white shadow-lg'>
                                 {playingKey === `top:${topResult.type}:${topResult.id ?? topResult.name ?? ""}` ? (
                                     <Loader2 className='h-5 w-5 animate-spin' />
@@ -311,7 +311,7 @@ export function SearchResults({
                                             referrerPolicy='no-referrer'
                                             className='h-full w-full object-cover'
                                         />
-                                        <div className='absolute inset-0 flex items-center justify-center gap-3 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
+                                        <div className='absolute inset-0 flex items-center justify-center gap-3 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 max-md:opacity-100'>
                                             <button
                                                 onClick={() => onPlaySongs(songs, index)}
                                                 className='flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-red-600 text-white shadow-lg transition-transform hover:scale-110'
@@ -377,7 +377,7 @@ export function SearchResults({
                                             referrerPolicy='no-referrer'
                                             className='h-full w-full object-cover'
                                         />
-                                        <div className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
+                                        <div className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 max-md:opacity-100'>
                                             <button
                                                 onClick={() => onPlaySongs(songs, index)}
                                                 className='cursor-pointer rounded-full bg-red-600 p-1.5 text-white shadow-lg'
@@ -445,7 +445,7 @@ export function SearchResults({
                                             <Mic2 className='h-8 w-8 text-gray-400' />
                                         </span>
                                     )}
-                                    <span className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
+                                    <span className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 max-md:opacity-100'>
                                         {playingKey === artist.name ? (
                                             <Loader2 className='h-6 w-6 animate-spin text-white' />
                                         ) : (
@@ -498,7 +498,7 @@ export function SearchResults({
                                                 <Disc3 className='h-8 w-8 text-gray-400' />
                                             </span>
                                         )}
-                                        <span className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
+                                        <span className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 max-md:opacity-100'>
                                             {playingKey === (album.id ?? album.title) ? (
                                                 <Loader2 className='h-6 w-6 animate-spin text-white' />
                                             ) : (
@@ -569,7 +569,7 @@ export function SearchResults({
                                             <ListMusic className='h-8 w-8 text-gray-400' />
                                         </span>
                                     )}
-                                    <span className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
+                                    <span className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 max-md:opacity-100'>
                                         {playingKey === (playlist.id ?? playlist.title) ? (
                                             <Loader2 className='h-6 w-6 animate-spin text-white' />
                                         ) : (
