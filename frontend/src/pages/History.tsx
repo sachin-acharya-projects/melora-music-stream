@@ -158,7 +158,7 @@ export default function History() {
                                                     referrerPolicy='no-referrer'
                                                     className='h-full w-full object-cover'
                                                 />
-                                                <div className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
+                                                <div className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 max-md:opacity-100'>
                                                     <Play className='h-4 w-4 translate-x-0.5 fill-current text-white' />
                                                 </div>
                                             </div>

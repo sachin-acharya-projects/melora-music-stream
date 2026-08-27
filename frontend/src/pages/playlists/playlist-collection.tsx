@@ -363,7 +363,7 @@ export function PlaylistCollection({
                                             className={`absolute top-2 left-2 z-10 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border-2 shadow-lg transition-all ${
                                                 selectedPlaylistIds.includes(playlist.id)
                                                     ? "border-red-600 bg-red-600 text-white opacity-100"
-                                                    : "border-white/70 bg-black/40 text-white opacity-0 group-hover:opacity-100 hover:border-red-600 hover:bg-red-600"
+                                                    : "border-white/70 bg-black/40 text-white opacity-0 group-hover:opacity-100 max-md:opacity-100 hover:border-red-600 hover:bg-red-600"
                                             }`}
                                         >
                                             {selectedPlaylistIds.includes(playlist.id) && (
@@ -372,7 +372,7 @@ export function PlaylistCollection({
                                         </button>
                                     )}
 
-                                    <div className='absolute inset-0 flex items-center justify-center gap-2 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
+                                    <div className='absolute inset-0 flex items-center justify-center gap-2 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 max-md:opacity-100'>
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation()
@@ -447,7 +447,7 @@ export function PlaylistCollection({
                                                 )
                                             }}
                                             data-more-btn={playlist.id}
-                                            className='absolute top-2 right-2 z-10 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-black/50 text-white opacity-0 shadow-lg backdrop-blur-sm transition-all group-hover:opacity-100 hover:bg-black/70'
+                                            className='absolute top-2 right-2 z-10 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-black/50 text-white opacity-0 shadow-lg backdrop-blur-sm transition-all group-hover:opacity-100 max-md:opacity-100 hover:bg-black/70'
                                             title='More options'
                                         >
                                             <MoreHorizontal className='h-4 w-4' />

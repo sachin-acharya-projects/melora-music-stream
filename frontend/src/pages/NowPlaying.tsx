@@ -439,7 +439,7 @@ export default function NowPlaying() {
                                     <Volume2 className='h-6 w-6' />
                                 )}
                             </button>
-                            <div className='flex h-5 w-0 items-center overflow-hidden transition-all duration-300 group-hover:ml-1 group-focus-within:ml-1 group-hover:w-28 group-focus-within:w-28'>
+                            <div className='flex h-5 w-0 items-center overflow-hidden transition-all duration-300 group-hover:ml-1 group-focus-within:ml-1 group-hover:w-28 group-focus-within:w-28 max-md:ml-1 max-md:w-28'>
                                 <input
                                     type='range'
                                     min='0'

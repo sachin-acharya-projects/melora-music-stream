@@ -137,7 +137,7 @@ export default function Radio() {
                                         onClick={() => handleGenerate("mood", mood.id)}
                                         className='dark:bg-card group flex cursor-pointer flex-col items-start gap-2 rounded-xl border border-gray-200 bg-white p-5 text-left transition-all hover:-translate-y-1 hover:border-red-300 hover:shadow-md disabled:cursor-wait disabled:opacity-60 dark:border-white/10 dark:hover:border-red-800'
                                     >
-                                        <span className='flex h-10 w-10 items-center justify-center rounded-full bg-red-100 text-red-600 transition-colors group-hover:bg-red-600 group-hover:text-white dark:bg-red-950 dark:text-red-400'>
+                                        <span className='flex h-10 w-10 items-center justify-center rounded-full bg-red-600 text-white transition-colors group-hover:bg-red-700 max-md:bg-red-600 max-md:text-white dark:bg-red-600 dark:text-white dark:group-hover:bg-red-700'>
                                             {active ? (
                                                 <Loader2 className='h-5 w-5 animate-spin' />
                                             ) : (

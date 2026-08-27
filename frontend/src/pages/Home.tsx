@@ -317,10 +317,10 @@ export default function Home() {
     const isPlaylistActionLoading = isAddingBulk || isCreating
 
     return (
-        <div className='flex flex-col items-center gap-12'>
+        <div className='flex flex-col items-center gap-6 md:gap-12'>
             {/* Header */}
-            <div className='flex flex-col items-center gap-5 pt-4 md:pt-32'>
-                <h1 className='text-center text-5xl font-bold text-shadow-md dark:text-white'>
+            <div className='flex flex-col items-center gap-5 px-4 pt-2 md:pt-32'>
+                <h1 className='text-center text-4xl font-bold text-shadow-md dark:text-white md:text-5xl'>
                     <span className='text-red-500'>Melora</span> Music
                 </h1>
 

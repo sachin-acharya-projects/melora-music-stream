@@ -147,7 +147,7 @@ export default function Queue() {
                                 referrerPolicy='no-referrer'
                                 className='h-full w-full object-cover'
                             />
-                            <div className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
+                            <div className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 max-md:opacity-100'>
                                 <button
                                     onClick={() => handlePlay(index)}
                                     className='cursor-pointer rounded-full bg-white p-2 text-black transition-transform hover:scale-110'
