@@ -5,6 +5,7 @@ import { Capacitor, type PluginListenerHandle } from "@capacitor/core"
 import { App } from "@capacitor/app"
 import { usePlayerStore } from "@/hooks/usePlayer"
 import { authService, type User, MOBILE_OAUTH_DEEPLINK } from "@/services/auth.service"
+import { MESSAGES } from "@/utils/messages"
 
 interface AuthContextType {
     user: User | null

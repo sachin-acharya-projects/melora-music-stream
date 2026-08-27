@@ -1,6 +1,6 @@
 import { API_BASE_URL } from "@/config"
 import { Capacitor } from "@capacitor/core"
-import { ExternalBrowser } from "@/plugins/external-browser"
+import ExternalBrowser from "@/plugins/external-browser"
 import { http, refreshHttp } from "@/utils/api/http"
 import { ENDPOINTS } from "@/utils/api/endpoints"
 
