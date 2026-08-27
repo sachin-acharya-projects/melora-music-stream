@@ -10,9 +10,20 @@
         "lint": "eslint .",
         "preview": "vite preview",
         "format": "prettier --write src/**/*.{js,jsx,ts,tsx,css,md,json,scss} --config ./.prettierrc.json",
-        "shadcn:add": "shadcn add"
+        "shadcn:add": "shadcn add",
+        "cap:sync": "cap sync",
+        "cap:android": "cap add android",
+        "cap:open:android": "cap open android"
     },
     "dependencies": {
+        "@capacitor/android": "^7.6.8",
+        "@capacitor/app": "^7.1.2",
+        "@capacitor/browser": "^7.0.5",
+        "@capacitor/cli": "^7.6.8",
+        "@capacitor/core": "^7.6.8",
+        "@capacitor/haptics": "^7.0.5",
+        "@capacitor/keyboard": "^7.0.6",
+        "@capacitor/status-bar": "^7.0.6",
         "@fontsource-variable/geist": "^5.2.8",
         "@sachin-acharya-projects/bug-reporter": "workspace:*",
         "@tailwindcss/line-clamp": "^0.4.4",
