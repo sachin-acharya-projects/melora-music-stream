@@ -24,7 +24,7 @@ oauth.register(
 )
 
 
-@router.get("/login")
+@router.get("/login", response_model=None)
 async def login(request: Request) -> RedirectResponse | HTMLResponse:
     """Initiate Google OAuth login flow."""
     AuthService.require_oauth_configured()
