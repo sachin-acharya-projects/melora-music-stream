@@ -18,11 +18,12 @@ public class ExternalBrowserPlugin extends Plugin {
         }
         try {
             Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            intent.addCategory(Intent.CATEGORY_BROWSABLE);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             getActivity().startActivity(intent);
             call.resolve();
         } catch (Exception e) {
-            call.reject("Unable to display URL: " + e.getMessage());
+            call.reject("Unable to display URL: " + url + " -> " + e.getClass().getSimpleName() + ": " + e.getMessage());
         }
     }
 }
