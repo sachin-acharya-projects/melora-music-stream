@@ -61,14 +61,18 @@ export const authService = {
         if (Capacitor.isNativePlatform()) {
             const hasExt = Capacitor.isPluginAvailable("ExternalBrowser")
             toast.info(`OAuth diag: native=${Capacitor.isNativePlatform()} externalBrowser=${hasExt}`)
-            const url = `${loginUrl}?redirect=${encodeURIComponent(MOBILE_OAUTH_DEEPLINK)}`
+            // API_BASE_URL may be relative (no scheme) on the deployed build,
+            // which is fine for same-origin fetch but unusable as an Android
+            // intent. Build an absolute URL from the WebView's own origin.
+            const absoluteLoginUrl = `${window.location.origin}/api/v1/auth/login`
+            const url = `${absoluteLoginUrl}?redirect=${encodeURIComponent(MOBILE_OAUTH_DEEPLINK)}`
             try {
                 await ExternalBrowser.open({ url })
             } catch (e) {
                 const msg = e instanceof Error ? e.message : String(e)
                 toast.error(`OAuth open failed: ${msg}`)
                 // Fallback so the flow still progresses (cookie may still fail).
-                window.location.href = loginUrl
+                window.location.href = absoluteLoginUrl
             }
             return
         }
