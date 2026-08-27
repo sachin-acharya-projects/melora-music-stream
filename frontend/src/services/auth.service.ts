@@ -1,6 +1,10 @@
 import { API_BASE_URL } from "@/config"
+import { Capacitor } from "@capacitor/core"
+import { ExternalBrowser } from "@/plugins/external-browser"
 import { http, refreshHttp } from "@/utils/api/http"
 import { ENDPOINTS } from "@/utils/api/endpoints"
+
+export const MOBILE_OAUTH_DEEPLINK = "com.melora.app://auth/callback"
 
 export interface User {
     id: string
@@ -48,8 +52,17 @@ export const authService = {
         localStorage.removeItem(REFRESH_TOKEN_KEY)
     },
 
-    loginWithGoogle: () => {
-        window.location.href = `${API_BASE_URL}${ENDPOINTS.AUTH.LOGIN}`
+    loginWithGoogle: async () => {
+        const loginUrl = `${API_BASE_URL}${ENDPOINTS.AUTH.LOGIN}`
+        // On mobile the WebView drops the OAuth session cookie on Google's
+        // redirect, so the consent must run in the system browser. We ask the
+        // backend to return into the app via a deep link.
+        if (Capacitor.isNativePlatform()) {
+            const url = `${loginUrl}?redirect=${encodeURIComponent(MOBILE_OAUTH_DEEPLINK)}`
+            await ExternalBrowser.open({ url })
+            return
+        }
+        window.location.href = loginUrl
     },
 
     logout: async () => {
