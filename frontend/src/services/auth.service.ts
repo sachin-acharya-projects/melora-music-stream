@@ -55,7 +55,10 @@ export const authService = {
 
     loginWithGoogle: async () => {
         const loginUrl = `${API_BASE_URL}${ENDPOINTS.AUTH.LOGIN}`
-        if (Capacitor.isNativePlatform()) {
+        const native = Capacitor.isNativePlatform()
+        const canBrowser = Capacitor.isPluginAvailable("Browser")
+        toast.info(`OAuth debug: native=${native} browserPlugin=${canBrowser}`)
+        if (native && canBrowser) {
             // Open the consent in the system browser and ask the backend to
             // redirect back into the app via a deep link. The WebView drops the
             // OAuth session cookie on the Google redirect, so we must not run
