@@ -22,6 +22,27 @@ allprojects {
         google()
         mavenCentral()
     }
+
+    // Capacitor 7.6 sets Java 21 source/target compatibility, but the library
+    // (and app) build fine on the common JDK 17. The override is applied at the
+    // JavaCompile *task* level (not just the android extension) so it also wins
+    // for the :capacitor-android library module, which configures its own
+    // compileOptions. After evaluation so it runs after each subproject's own
+    // build.gradle. No `options.release` is set, avoiding a release/sourceCompat
+    // conflict.
+    afterEvaluate { p ->
+        p.tasks.withType(JavaCompile) { t ->
+            t.sourceCompatibility = '17'
+            t.targetCompatibility = '17'
+        }
+        def androidExt = p.extensions.findByName('android')
+        if (androidExt != null) {
+            androidExt.compileOptions {
+                sourceCompatibility = JavaVersion.VERSION_17
+                targetCompatibility = JavaVersion.VERSION_17
+            }
+        }
+    }
 }
 
 task clean(type: Delete) {
