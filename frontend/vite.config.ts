@@ -6,7 +6,13 @@ import { VitePWA } from "vite-plugin-pwa"
 
 // https://vite.dev/config/
 export default defineConfig({
-    base: "./",
+    // Absolute base. A relative base ("./") broke client-side routes like
+    // /auth/callback: the browser resolved ./assets/* against /auth/, the
+    // server returned index.html (SPA fallback) as text/html, and module
+    // scripts / the manifest failed to parse. The app is served from the
+    // domain root (and the Capacitor WebView loads the live site at its root),
+    // so "/" is correct for web and mobile.
+    base: "/",
     plugins: [
         react(),
         tailwindcss(),
