@@ -1,6 +1,7 @@
 import { API_BASE_URL } from "@/config"
 import { Capacitor } from "@capacitor/core"
 import { Browser } from "@capacitor/browser"
+import { toast } from "react-toastify"
 import { http, refreshHttp } from "@/utils/api/http"
 import { ENDPOINTS } from "@/utils/api/endpoints"
 
@@ -52,15 +53,25 @@ export const authService = {
         localStorage.removeItem(REFRESH_TOKEN_KEY)
     },
 
-    loginWithGoogle: () => {
+    loginWithGoogle: async () => {
         const loginUrl = `${API_BASE_URL}${ENDPOINTS.AUTH.LOGIN}`
-        if (Capacitor.isNativePlatform()) {
+        const native = Capacitor.isNativePlatform()
+        const canBrowser = Capacitor.isPluginAvailable("Browser")
+        toast.info(`OAuth debug: native=${native} browserPlugin=${canBrowser}`)
+        if (native && canBrowser) {
             // Open the consent in the system browser and ask the backend to
             // redirect back into the app via a deep link. The WebView drops the
             // OAuth session cookie on the Google redirect, so we must not run
             // the flow inside the WebView.
             const redirect = `${loginUrl}?redirect=${encodeURIComponent(MOBILE_OAUTH_DEEPLINK)}`
-            Browser.open({ url: redirect })
+            try {
+                await Browser.open({ url: redirect })
+            } catch (e) {
+                const msg = e instanceof Error ? e.message : String(e)
+                toast.error(`OAuth browser failed: ${msg}`)
+                // Visible fallback so the flow still progresses (cookie may fail).
+                window.location.href = loginUrl
+            }
             return
         }
         window.location.href = loginUrl
