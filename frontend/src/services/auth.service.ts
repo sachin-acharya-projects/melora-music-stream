@@ -1,5 +1,6 @@
 import { API_BASE_URL } from "@/config"
 import { Capacitor } from "@capacitor/core"
+import { toast } from "react-toastify"
 import ExternalBrowser from "@/plugins/external-browser"
 import { http, refreshHttp } from "@/utils/api/http"
 import { ENDPOINTS } from "@/utils/api/endpoints"
@@ -58,8 +59,17 @@ export const authService = {
         // redirect, so the consent must run in the system browser. We ask the
         // backend to return into the app via a deep link.
         if (Capacitor.isNativePlatform()) {
+            const hasExt = Capacitor.isPluginAvailable("ExternalBrowser")
+            toast.info(`OAuth diag: native=${Capacitor.isNativePlatform()} externalBrowser=${hasExt}`)
             const url = `${loginUrl}?redirect=${encodeURIComponent(MOBILE_OAUTH_DEEPLINK)}`
-            await ExternalBrowser.open({ url })
+            try {
+                await ExternalBrowser.open({ url })
+            } catch (e) {
+                const msg = e instanceof Error ? e.message : String(e)
+                toast.error(`OAuth open failed: ${msg}`)
+                // Fallback so the flow still progresses (cookie may still fail).
+                window.location.href = loginUrl
+            }
             return
         }
         window.location.href = loginUrl
