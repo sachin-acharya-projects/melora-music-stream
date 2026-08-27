@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Melora</string>
-    <string name="title_activity_main">Melora</string>
+    <string name="app_name">Melora Music</string>
+    <string name="title_activity_main">Melora Music</string>
     <string name="package_name">com.melora.app</string>
     <string name="custom_url_scheme">com.melora.app</string>
 </resources>
