@@ -1,7 +1,6 @@
 import { AuthProvider } from "@/contexts/AuthContext"
 import { useAuth } from "@/hooks/useAuth"
 import { usePlayerStore } from "@/hooks/usePlayer"
-import AssistiveNav from "@/components/assistive-nav/assistive-nav"
 import MobileTabBar from "@/components/mobile-nav/mobile-tab-bar"
 import MobileHeader from "@/components/mobile-nav/mobile-header"
 import Home from "@/pages/Home"
@@ -105,15 +104,14 @@ function AppContent() {
             <section>
                 {isAuthenticated && <Navbar />}
                 {isAuthenticated && <MobileHeader />}
-                {isAuthenticated && <AssistiveNav />}
                 {isAuthenticated && <MobileTabBar />}
                 <Background />
                 <main
                     className={
                         isAuthenticated
                             ? currentSong
-                                ? "pt-22 pb-44 md:pb-0"
-                                : "pt-22 pb-24 md:pb-0"
+                                ? "pt-safe-overlay pb-44 md:pb-0"
+                                : "pt-safe-overlay pb-24 md:pb-0"
                             : ""
                     }
                 >

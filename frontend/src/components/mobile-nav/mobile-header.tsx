@@ -2,7 +2,8 @@ import Avatar from "@/components/ui/avatar/avatar"
 import { useAuth } from "@/hooks/useAuth"
 import { useUnreadCount } from "@/hooks/useNotifications"
 import { useThemeStore } from "@/hooks/useTheme"
-import { Bell, Moon, Music2, Sun } from "lucide-react"
+import { usePwaInstall } from "@/hooks/usePwaInstall"
+import { Bell, Download, Moon, Music2, Sun } from "lucide-react"
 import { Link } from "react-router-dom"
 
 export default function MobileHeader() {
@@ -10,9 +11,10 @@ export default function MobileHeader() {
     const toggleTheme = useThemeStore((state) => state.toggleMode)
     const { user } = useAuth()
     const { data: unreadCount = 0 } = useUnreadCount()
+    const { canInstall, promptInstall } = usePwaInstall()
 
     return (
-        <header className='fixed inset-x-0 top-0 z-1000 flex h-16 items-center justify-between border-b border-gray-200 bg-white/95 px-4 backdrop-blur-md dark:border-white/10 dark:bg-black/95 md:hidden'>
+        <header className='fixed inset-x-0 top-0 z-1000 flex h-16 items-center justify-between border-b border-gray-200 bg-white/95 px-4 pt-safe backdrop-blur-md dark:border-white/10 dark:bg-black/95 md:hidden'>
             <Link to='/' className='flex items-center gap-2' title='Melora'>
                 <span className='flex h-9 w-9 items-center justify-center rounded-full bg-red-500 text-white'>
                     <Music2 className='h-5 w-5' />
@@ -42,6 +44,15 @@ export default function MobileHeader() {
                 >
                     {mode === "dark" ? <Sun className='h-5 w-5' /> : <Moon className='h-5 w-5' />}
                 </button>
+                {canInstall && (
+                    <button
+                        onClick={() => promptInstall()}
+                        className='flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-black/5 transition-colors hover:bg-black/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/20'
+                        title='Install Melora'
+                    >
+                        <Download className='h-5 w-5' />
+                    </button>
+                )}
                 <Link
                     to='/profile'
                     className='flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-700'
