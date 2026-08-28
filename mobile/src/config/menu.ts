@@ -34,6 +34,8 @@ export const MENU_CONFIG = {
     ITEM_STAGGER_MS: 5,
     /** Lead (ms) the primary phase gets before the secondary phase starts. */
     FAN_LEAD_MS: 70,
+    /** On close, how soon the FAB starts returning after the items begin retracting. */
+    CLOSE_OVERLAP_MS: 120,
 } as const
 
 export type MenuItem = {

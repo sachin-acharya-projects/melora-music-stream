@@ -56,7 +56,7 @@ export function ExpandableMenu() {
     // coupling bias), then the button returns — every item retracts evenly.
     const anim = next
       ? Animated.parallel([fab, Animated.sequence([lead, items])])
-      : Animated.sequence([items, fab]);
+      : Animated.parallel([items, Animated.sequence([Animated.delay(MENU_CONFIG.CLOSE_OVERLAP_MS), fab])]);
     anim.start();
   };
 
@@ -73,7 +73,7 @@ export function ExpandableMenu() {
     const itemsIn = itemProgress.map((p) =>
       Animated.spring(p, { toValue: 0, useNativeDriver: true, ...MENU_CONFIG.ITEM_SPRING }),
     );
-    Animated.sequence([Animated.parallel(itemsIn), fabBack]).start();
+    Animated.parallel([...itemsIn, Animated.sequence([Animated.delay(MENU_CONFIG.CLOSE_OVERLAP_MS), fabBack])]).start();
     navigation.navigate('TabRoot', { screen: name });
   };
 
