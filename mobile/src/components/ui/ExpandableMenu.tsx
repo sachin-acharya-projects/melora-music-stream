@@ -29,10 +29,10 @@ export function ExpandableMenu() {
   const fabBottomClosed =
     insets.bottom + (currentSong ? MENU_CONFIG.FAB_BOTTOM_PLAYING_OFFSET : MENU_CONFIG.FAB_BOTTOM_CLOSED_OFFSET);
   const fabBottomOpen = insets.bottom + MENU_CONFIG.FAB_BOTTOM_OPEN_OFFSET;
-  const openCenterY = fabBottomOpen + 30;
+  const openCenterY = fabBottomOpen + 30 + MENU_CONFIG.CENTER_OFFSET_Y;
   const cornerFabRight = Spacing.lg + 30;
   const cornerFabCenterBottom = fabBottomClosed + 30;
-  const centerTranslateX = -width / 2 + Spacing.lg + 30;
+  const centerTranslateX = -width / 2 + Spacing.lg + 30 + MENU_CONFIG.CENTER_OFFSET_X;
   const n = MENU_ITEMS.length;
 
   // Two phases overlap: the primary phase gets a short lead, then the secondary
@@ -84,7 +84,7 @@ export function ExpandableMenu() {
   // so to raise the FAB we interpolate toward a NEGATIVE delta.
   const fabTy = fabProgress.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, fabBottomClosed - fabBottomOpen],
+    outputRange: [0, fabBottomClosed - fabBottomOpen + MENU_CONFIG.CENTER_OFFSET_Y],
   });
 
   return (
@@ -106,7 +106,7 @@ export function ExpandableMenu() {
         const openRight = width / 2 - dx - ITEM / 2;
         const openBottom = openCenterY - dy - ITEM / 2;
         const right = Math.min(width - ITEM / 2 - 8, Math.max(ITEM / 2 + 8, openRight));
-        const centerRight = width / 2 - ITEM / 2;
+        const centerRight = width / 2 - ITEM / 2 + MENU_CONFIG.CENTER_OFFSET_X;
         const centerBottom = openCenterY - ITEM / 2;
         const cornerRight = cornerFabRight - ITEM / 2;
         const cornerBottom = cornerFabCenterBottom - ITEM / 2;

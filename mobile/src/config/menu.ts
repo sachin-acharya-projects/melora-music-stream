@@ -36,6 +36,10 @@ export const MENU_CONFIG = {
     FAN_LEAD_MS: 70,
     /** On close, how soon the FAB starts returning after the items begin retracting. */
     CLOSE_OVERLAP_MS: 120,
+    /** Horizontal offset (pt) of the centered FAB from screen center (0 = centered). */
+    CENTER_OFFSET_X: 0,
+    /** Vertical offset (pt) of the centered FAB from its default center (0 = default). */
+    CENTER_OFFSET_Y: 0,
 } as const
 
 export type MenuItem = {
