@@ -18,7 +18,12 @@ export function ExpandableMenu() {
   const insets = useSafeAreaInsets();
   const currentSong = usePlayerStore((s) => s.currentSong);
   const [open, setOpen] = useState(false);
-  const progress = useRef(new Animated.Value(0)).current;
+  const fabProgress = useRef(new Animated.Value(0)).current;
+  const itemProgressRef = useRef<Animated.Value[] | null>(null);
+  if (!itemProgressRef.current) {
+    itemProgressRef.current = MENU_ITEMS.map(() => new Animated.Value(0));
+  }
+  const itemProgress = itemProgressRef.current;
 
   const width = Dimensions.get('window').width;
   const fabBottomClosed =
@@ -30,29 +35,35 @@ export function ExpandableMenu() {
   const centerTranslateX = -width / 2 + Spacing.lg + 30;
   const n = MENU_ITEMS.length;
 
-  const toggle = () => {
-    const next = !open;
+  // Multi-step: button springs to center, then items cascade out (and reverse on close).
+  const runAnimation = (next: boolean) => {
     setOpen(next);
-    Animated.spring(progress, {
+    const fab = Animated.spring(fabProgress, {
       toValue: next ? 1 : 0,
       useNativeDriver: true,
-      ...MENU_CONFIG.SPRING,
-    }).start();
+      ...MENU_CONFIG.BUTTON_SPRING,
+    });
+    const items = itemProgress.map((p) =>
+      Animated.spring(p, { toValue: next ? 1 : 0, useNativeDriver: true, ...MENU_CONFIG.ITEM_SPRING }),
+    );
+    const sequence = next
+      ? Animated.sequence([fab, Animated.stagger(MENU_CONFIG.ITEM_STAGGER_MS, items)])
+      : Animated.sequence([Animated.stagger(MENU_CONFIG.ITEM_STAGGER_MS, items), fab]);
+    sequence.start();
   };
 
+  const toggle = () => runAnimation(!open);
   const choose = (name: keyof TabParamList) => {
-    setOpen(false);
-    Animated.spring(progress, { toValue: 0, useNativeDriver: true, ...MENU_CONFIG.SPRING }).start();
+    runAnimation(false);
     navigation.navigate('TabRoot', { screen: name });
   };
 
-  const backdropOpacity = progress;
-  const menuScale = progress.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] });
-  const fabRotate = progress.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '135deg'] });
-  const fabTx = progress.interpolate({ inputRange: [0, 1], outputRange: [0, centerTranslateX] });
+  const backdropOpacity = fabProgress;
+  const fabRotate = fabProgress.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '135deg'] });
+  const fabTx = fabProgress.interpolate({ inputRange: [0, 1], outputRange: [0, centerTranslateX] });
   // NOTE: positive translateY moves an element DOWN (toward the bottom edge),
   // so to raise the FAB we interpolate toward a NEGATIVE delta.
-  const fabTy = progress.interpolate({
+  const fabTy = fabProgress.interpolate({
     inputRange: [0, 1],
     outputRange: [0, fabBottomClosed - fabBottomOpen],
   });
@@ -75,9 +86,25 @@ export function ExpandableMenu() {
         const dy = R * Math.sin(theta);
         const openRight = width / 2 - dx - ITEM / 2;
         const openBottom = openCenterY - dy - ITEM / 2;
-        const closedRight = cornerFabRight - ITEM / 2;
-        const closedBottom = cornerFabCenterBottom - ITEM / 2;
         const right = Math.min(width - ITEM / 2 - 8, Math.max(ITEM / 2 + 8, openRight));
+        const centerRight = width / 2 - ITEM / 2;
+        const centerBottom = openCenterY - ITEM / 2;
+        const cornerRight = cornerFabRight - ITEM / 2;
+        const cornerBottom = cornerFabCenterBottom - ITEM / 2;
+        const p = itemProgress[i];
+        // Ride: item follows the FAB from corner -> center as the button slides.
+        const rideX = fabProgress.interpolate({
+          inputRange: [0, 1],
+          outputRange: [cornerRight - right, centerRight - right],
+        });
+        const rideY = fabProgress.interpolate({
+          inputRange: [0, 1],
+          outputRange: [cornerBottom - openBottom, centerBottom - openBottom],
+        });
+        // Fan: item springs from center -> its arc slot, with scale + fade.
+        const fanX = p.interpolate({ inputRange: [0, 1], outputRange: [centerRight - right, 0] });
+        const fanY = p.interpolate({ inputRange: [0, 1], outputRange: [centerBottom - openBottom, 0] });
+        const scale = p.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] });
         return (
           <Animated.View
             key={it.name}
@@ -86,21 +113,11 @@ export function ExpandableMenu() {
               {
                 right,
                 bottom: openBottom,
-                opacity: backdropOpacity,
+                opacity: p,
                 transform: [
-                  {
-                    translateX: progress.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [closedRight - openRight, 0],
-                    }),
-                  },
-                  {
-                    translateY: progress.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [closedBottom - openBottom, 0],
-                    }),
-                  },
-                  { scale: menuScale },
+                  { translateX: Animated.add(rideX, fanX) },
+                  { translateY: Animated.add(rideY, fanY) },
+                  { scale },
                 ],
               },
             ]}
@@ -116,7 +133,7 @@ export function ExpandableMenu() {
       <Animated.View
         style={[
           styles.fabWrap,
-          { bottom: fabBottomClosed, transform: [{ translateX: fabTx }, { translateY: fabTy }] },
+          { bottom: fabBottomClosed, transform: [{ translateX: fabTx }, { translateY: fabTy }, { rotate: fabRotate }] },
         ]}
       >
         <TouchableOpacity style={styles.fab} onPress={toggle} activeOpacity={0.9}>
