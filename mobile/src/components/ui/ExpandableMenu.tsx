@@ -100,11 +100,11 @@ export function ExpandableMenu() {
         // Ride: item follows the FAB from the corner to the center as the button slides.
         const rideX = fabProgress.interpolate({
           inputRange: [0, 1],
-          outputRange: [cornerRight - right, right - centerRight],
+          outputRange: [right - cornerRight, right - centerRight],
         });
         const rideY = fabProgress.interpolate({
           inputRange: [0, 1],
-          outputRange: [cornerBottom - openBottom, openBottom - centerBottom],
+          outputRange: [openBottom - cornerBottom, openBottom - centerBottom],
         });
         // Fan: item blooms outward from the centered FAB to its arc slot (scale + fade in).
         const fanX = p.interpolate({ inputRange: [0, 1], outputRange: [0, centerRight - right] });
