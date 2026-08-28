@@ -51,26 +51,18 @@ export function ExpandableMenu() {
       ),
     );
     const lead = Animated.delay(MENU_CONFIG.FAN_LEAD_MS);
+    // Open: button leads, then items bloom out (overlapping, little idle).
+    // Close: items bloom back in FIRST while the button stays centered (no ride
+    // coupling bias), then the button returns — every item retracts evenly.
     const anim = next
       ? Animated.parallel([fab, Animated.sequence([lead, items])])
-      : Animated.parallel([items, Animated.sequence([lead, fab])]);
+      : Animated.sequence([items, fab]);
     anim.start();
   };
 
   const toggle = () => runAnimation(!open);
   const choose = (name: keyof TabParamList) => {
-    setOpen(false);
-    // Selected: the central button collapses first, then every other item retracts
-    // together (simultaneously) and the menu closes.
-    const fabBack = Animated.spring(fabProgress, {
-      toValue: 0,
-      useNativeDriver: true,
-      ...MENU_CONFIG.BUTTON_SPRING,
-    });
-    const itemsIn = itemProgress.map((p) =>
-      Animated.spring(p, { toValue: 0, useNativeDriver: true, ...MENU_CONFIG.ITEM_SPRING }),
-    );
-    Animated.sequence([fabBack, Animated.parallel(itemsIn)]).start();
+    runAnimation(false);
     navigation.navigate('TabRoot', { screen: name });
   };
 
