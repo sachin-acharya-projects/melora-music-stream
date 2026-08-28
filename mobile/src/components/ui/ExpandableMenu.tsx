@@ -101,9 +101,9 @@ export function ExpandableMenu() {
           inputRange: [0, 1],
           outputRange: [cornerBottom - openBottom, centerBottom - openBottom],
         });
-        // Fan: item springs from center -> its arc slot, with scale + fade.
-        const fanX = p.interpolate({ inputRange: [0, 1], outputRange: [centerRight - right, 0] });
-        const fanY = p.interpolate({ inputRange: [0, 1], outputRange: [centerBottom - openBottom, 0] });
+        // Fan: item blooms from the centered FAB out to its arc slot (scale + fade in).
+        const fanX = p.interpolate({ inputRange: [0, 1], outputRange: [0, right - centerRight] });
+        const fanY = p.interpolate({ inputRange: [0, 1], outputRange: [0, openBottom - centerBottom] });
         const scale = p.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] });
         return (
           <Animated.View
