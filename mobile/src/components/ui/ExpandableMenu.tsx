@@ -42,7 +42,7 @@ export function ExpandableMenu() {
     const fab = Animated.spring(fabProgress, {
       toValue: next ? 1 : 0,
       useNativeDriver: true,
-      ...MENU_CONFIG.BUTTON_SPRING,
+      ...(next ? MENU_CONFIG.BUTTON_SPRING : MENU_CONFIG.BUTTON_RETURN_SPRING),
     });
     const items = Animated.stagger(
       MENU_CONFIG.ITEM_STAGGER_MS,
@@ -68,7 +68,7 @@ export function ExpandableMenu() {
     const fabBack = Animated.spring(fabProgress, {
       toValue: 0,
       useNativeDriver: true,
-      ...MENU_CONFIG.BUTTON_SPRING,
+      ...MENU_CONFIG.BUTTON_RETURN_SPRING,
     });
     const itemsIn = itemProgress.map((p) =>
       Animated.spring(p, { toValue: 0, useNativeDriver: true, ...MENU_CONFIG.ITEM_SPRING }),

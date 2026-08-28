@@ -24,8 +24,10 @@ export const MENU_CONFIG = {
     FAB_BOTTOM_CLOSED_OFFSET: 24,
     FAB_BOTTOM_OPEN_OFFSET: 120,
     FAB_BOTTOM_PLAYING_OFFSET: 164,
-    /** Spring for the FAB sliding to center. */
+    /** Spring for the FAB sliding to center (open). */
     BUTTON_SPRING: { friction: 9, tension: 90 },
+    /** Snappier spring for the FAB returning to its corner (close). */
+    BUTTON_RETURN_SPRING: { friction: 12, tension: 180 },
     /** Spring for the menu items fanning out. */
     ITEM_SPRING: { friction: 14, tension: 220 },
     /** Per-item cascade delay (ms) when fanning out / retracting. */
