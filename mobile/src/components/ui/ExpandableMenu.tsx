@@ -62,7 +62,18 @@ export function ExpandableMenu() {
 
   const toggle = () => runAnimation(!open);
   const choose = (name: keyof TabParamList) => {
-    runAnimation(false);
+    setOpen(false);
+    // Selected: all items retract together (even, no stagger) while the button
+    // stays centered, then the button returns to its corner.
+    const fabBack = Animated.spring(fabProgress, {
+      toValue: 0,
+      useNativeDriver: true,
+      ...MENU_CONFIG.BUTTON_SPRING,
+    });
+    const itemsIn = itemProgress.map((p) =>
+      Animated.spring(p, { toValue: 0, useNativeDriver: true, ...MENU_CONFIG.ITEM_SPRING }),
+    );
+    Animated.sequence([Animated.parallel(itemsIn), fabBack]).start();
     navigation.navigate('TabRoot', { screen: name });
   };
 
@@ -141,7 +152,7 @@ export function ExpandableMenu() {
       <Animated.View
         style={[
           styles.fabWrap,
-          { bottom: fabBottomClosed, transform: [{ translateX: fabTx }, { translateY: fabTy }, { rotate: fabRotate }] },
+          { bottom: fabBottomClosed, transform: [{ translateX: fabTx }, { translateY: fabTy }] },
         ]}
       >
         <TouchableOpacity style={styles.fab} onPress={toggle} activeOpacity={0.9}>
