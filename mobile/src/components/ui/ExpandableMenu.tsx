@@ -35,7 +35,8 @@ export function ExpandableMenu() {
   const centerTranslateX = -width / 2 + Spacing.lg + 30;
   const n = MENU_ITEMS.length;
 
-  // Multi-step: button springs to center, then items cascade out (and reverse on close).
+  // Two phases overlap: the primary phase gets a short lead, then the secondary
+  // phase runs in parallel so there is almost no idle gap between them.
   const runAnimation = (next: boolean) => {
     setOpen(next);
     const fab = Animated.spring(fabProgress, {
@@ -43,13 +44,17 @@ export function ExpandableMenu() {
       useNativeDriver: true,
       ...MENU_CONFIG.BUTTON_SPRING,
     });
-    const items = itemProgress.map((p) =>
-      Animated.spring(p, { toValue: next ? 1 : 0, useNativeDriver: true, ...MENU_CONFIG.ITEM_SPRING }),
+    const items = Animated.stagger(
+      MENU_CONFIG.ITEM_STAGGER_MS,
+      itemProgress.map((p) =>
+        Animated.spring(p, { toValue: next ? 1 : 0, useNativeDriver: true, ...MENU_CONFIG.ITEM_SPRING }),
+      ),
     );
-    const sequence = next
-      ? Animated.sequence([fab, Animated.stagger(MENU_CONFIG.ITEM_STAGGER_MS, items)])
-      : Animated.sequence([Animated.stagger(MENU_CONFIG.ITEM_STAGGER_MS, items), fab]);
-    sequence.start();
+    const lead = Animated.delay(MENU_CONFIG.FAN_LEAD_MS);
+    const anim = next
+      ? Animated.parallel([fab, Animated.sequence([lead, items])])
+      : Animated.parallel([items, Animated.sequence([lead, fab])]);
+    anim.start();
   };
 
   const toggle = () => runAnimation(!open);
@@ -92,18 +97,18 @@ export function ExpandableMenu() {
         const cornerRight = cornerFabRight - ITEM / 2;
         const cornerBottom = cornerFabCenterBottom - ITEM / 2;
         const p = itemProgress[i];
-        // Ride: item follows the FAB from corner -> center as the button slides.
+        // Ride: item follows the FAB from the corner to the center as the button slides.
         const rideX = fabProgress.interpolate({
           inputRange: [0, 1],
-          outputRange: [cornerRight - right, centerRight - right],
+          outputRange: [cornerRight - right, right - centerRight],
         });
         const rideY = fabProgress.interpolate({
           inputRange: [0, 1],
-          outputRange: [cornerBottom - openBottom, centerBottom - openBottom],
+          outputRange: [cornerBottom - openBottom, openBottom - centerBottom],
         });
-        // Fan: item blooms from the centered FAB out to its arc slot (scale + fade in).
-        const fanX = p.interpolate({ inputRange: [0, 1], outputRange: [0, right - centerRight] });
-        const fanY = p.interpolate({ inputRange: [0, 1], outputRange: [0, openBottom - centerBottom] });
+        // Fan: item blooms outward from the centered FAB to its arc slot (scale + fade in).
+        const fanX = p.interpolate({ inputRange: [0, 1], outputRange: [0, centerRight - right] });
+        const fanY = p.interpolate({ inputRange: [0, 1], outputRange: [0, centerBottom - openBottom] });
         const scale = p.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] });
         return (
           <Animated.View
