@@ -59,7 +59,18 @@ export function ExpandableMenu() {
 
   const toggle = () => runAnimation(!open);
   const choose = (name: keyof TabParamList) => {
-    runAnimation(false);
+    setOpen(false);
+    // Selected: the central button collapses first, then every other item retracts
+    // together (simultaneously) and the menu closes.
+    const fabBack = Animated.spring(fabProgress, {
+      toValue: 0,
+      useNativeDriver: true,
+      ...MENU_CONFIG.BUTTON_SPRING,
+    });
+    const itemsIn = itemProgress.map((p) =>
+      Animated.spring(p, { toValue: 0, useNativeDriver: true, ...MENU_CONFIG.ITEM_SPRING }),
+    );
+    Animated.sequence([fabBack, Animated.parallel(itemsIn)]).start();
     navigation.navigate('TabRoot', { screen: name });
   };
 
