@@ -18,7 +18,7 @@ export type ArcDegrees = (typeof ARC_DEGREES)[keyof typeof ARC_DEGREES]
  */
 export const MENU_CONFIG = {
     ITEM_SIZE: 54,
-    RADIUS: 96,
+    RADIUS: 60,
     ARC_DEGREES: 180 as ArcDegrees,
     ARC_CENTER_DEGREES: 270, // 90 = arc centered on top
     FAB_BOTTOM_CLOSED_OFFSET: 24,
@@ -27,9 +27,9 @@ export const MENU_CONFIG = {
     /** Spring for the FAB sliding to center. */
     BUTTON_SPRING: { friction: 9, tension: 90 },
     /** Spring for the menu items fanning out. */
-    ITEM_SPRING: { friction: 11, tension: 120 },
+    ITEM_SPRING: { friction: 14, tension: 210 },
     /** Per-item cascade delay (ms) when fanning out / retracting. */
-    ITEM_STAGGER_MS: 45,
+    ITEM_STAGGER_MS: 5,
 } as const
 
 export type MenuItem = {

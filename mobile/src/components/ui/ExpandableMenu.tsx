@@ -59,7 +59,7 @@ export function ExpandableMenu() {
   };
 
   const backdropOpacity = fabProgress;
-  const fabRotate = fabProgress.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '135deg'] });
+  const fabRotate = fabProgress.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '45deg'] });
   const fabTx = fabProgress.interpolate({ inputRange: [0, 1], outputRange: [0, centerTranslateX] });
   // NOTE: positive translateY moves an element DOWN (toward the bottom edge),
   // so to raise the FAB we interpolate toward a NEGATIVE delta.
