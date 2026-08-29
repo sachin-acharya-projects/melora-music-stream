@@ -50,24 +50,26 @@ export function AppNavigator() {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
   return (
-    <View style={styles.wrap}>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="TabRoot" component={TabNavigator} />
-        <Stack.Screen name="PlaylistDetail" component={PlaylistDetailScreen} />
-        <Stack.Screen name="ArtistDetail" component={ArtistDetailScreen} />
-        <Stack.Screen name="AlbumDetail" component={AlbumDetailScreen} />
-        <Stack.Screen name="Recommendations" component={RecommendationsScreen} />
-        <Stack.Screen name="Releases" component={ReleasesScreen} />
-        <Stack.Screen name="Browse" component={BrowseScreen} />
-        <Stack.Screen name="Discover" component={DiscoverScreen} />
-        <Stack.Screen name="History" component={HistoryScreen} />
-        <Stack.Screen name="Stats" component={StatsScreen} />
-        <Stack.Screen name="Settings" component={SettingsScreen} />
-        <Stack.Screen name="Notifications" component={NotificationsScreen} />
-        <Stack.Screen name="Queue" component={QueueScreen} />
-      </Stack.Navigator>
-      {currentSong && <PlayerBar onPress={() => navigation.navigate('NowPlaying')} />}
-    </View>
+      <View style={styles.wrap}>
+        <View style={{ flex: 1 }}>
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="TabRoot" component={TabNavigator} />
+            <Stack.Screen name="PlaylistDetail" component={PlaylistDetailScreen} />
+            <Stack.Screen name="ArtistDetail" component={ArtistDetailScreen} />
+            <Stack.Screen name="AlbumDetail" component={AlbumDetailScreen} />
+            <Stack.Screen name="Recommendations" component={RecommendationsScreen} />
+            <Stack.Screen name="Releases" component={ReleasesScreen} />
+            <Stack.Screen name="Browse" component={BrowseScreen} />
+            <Stack.Screen name="Discover" component={DiscoverScreen} />
+            <Stack.Screen name="History" component={HistoryScreen} />
+            <Stack.Screen name="Stats" component={StatsScreen} />
+            <Stack.Screen name="Settings" component={SettingsScreen} />
+            <Stack.Screen name="Notifications" component={NotificationsScreen} />
+            <Stack.Screen name="Queue" component={QueueScreen} />
+          </Stack.Navigator>
+        </View>
+        {currentSong && <PlayerBar onPress={() => navigation.navigate('NowPlaying')} />}
+      </View>
   );
 }
 

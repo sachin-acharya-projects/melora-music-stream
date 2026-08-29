@@ -1,20 +1,65 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAudioPlayerStatus } from 'expo-audio';
 import { usePlayerStore } from '@/store/playerStore';
 import { getPlayer } from '@/services/audioEngine';
-import { Glass } from '@/components/ui/Glass';
 import { Artwork } from '@/components/ui/Artwork';
 import { Colors, Gradients, Radius, FontSize, Spacing } from '@/theme';
-import { proxied } from '@/config';
+
+function formatTime(s?: number): string {
+  if (!s || !isFinite(s) || s < 0) return '0:00';
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return `${m}:${sec.toString().padStart(2, '0')}`;
+}
+
+function Equalizer({ active }: { active: boolean }) {
+  const v1 = useRef(new Animated.Value(0.3)).current;
+  const v2 = useRef(new Animated.Value(0.3)).current;
+  const v3 = useRef(new Animated.Value(0.3)).current;
+
+  useEffect(() => {
+    if (!active) {
+      [v1, v2, v3].forEach((v) =>
+        Animated.timing(v, { toValue: 0.3, duration: 200, useNativeDriver: true }).start(),
+      );
+      return;
+    }
+    const loop = (v: Animated.Value, dur: number) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(v, { toValue: 1, duration: dur, useNativeDriver: true }),
+          Animated.timing(v, { toValue: 0.3, duration: dur, useNativeDriver: true }),
+        ]),
+      );
+    const a1 = loop(v1, 420);
+    const a2 = loop(v2, 560);
+    const a3 = loop(v3, 360);
+    a1.start();
+    a2.start();
+    a3.start();
+    return () => {
+      a1.stop();
+      a2.stop();
+      a3.stop();
+    };
+  }, [active, v1, v2, v3]);
+
+  return (
+    <View style={styles.eq} pointerEvents="none">
+      <Animated.View style={[styles.eqBar, { transform: [{ scaleY: v1 }] }]} />
+      <Animated.View style={[styles.eqBar, { transform: [{ scaleY: v2 }] }]} />
+      <Animated.View style={[styles.eqBar, { transform: [{ scaleY: v3 }] }]} />
+    </View>
+  );
+}
 
 export function PlayerBar({ onPress }: { onPress: () => void }) {
   const currentSong = usePlayerStore((s) => s.currentSong);
   const toggle = usePlayerStore((s) => s.toggle);
-  const next = usePlayerStore((s) => s.next);
-  const previous = usePlayerStore((s) => s.previous);
   const status = useAudioPlayerStatus(getPlayer());
   const insets = useSafeAreaInsets();
 
@@ -22,87 +67,133 @@ export function PlayerBar({ onPress }: { onPress: () => void }) {
 
   const title = currentSong.title;
   const artist = currentSong.uploader ?? currentSong.artist ?? '';
-  const progress = status.duration ? Math.min(1, Math.max(0, status.currentTime / status.duration)) : 0;
+  const duration = status.duration ?? 0;
+  const current = status.currentTime ?? 0;
+  const progress = duration ? Math.min(1, Math.max(0, current / duration)) : 0;
+  const playing = !!status.playing;
 
   return (
-    <View style={[styles.wrap, { bottom: insets.bottom + 92 }]} pointerEvents="box-none">
-      <TouchableOpacity style={styles.pill} onPress={onPress} activeOpacity={0.9}>
-        <Glass radius={Radius.lg} intensity={48} elevated style={styles.glass}>
-          <View style={styles.row}>
-            <Artwork uri={currentSong.thumbnail} size={46} radius={Radius.sm} />
-            <View style={styles.meta}>
-              <Text style={styles.title} numberOfLines={1}>
-                {title}
-              </Text>
-              <Text style={styles.artist} numberOfLines={1}>
-                {artist}
-              </Text>
-            </View>
-            <View style={styles.controls}>
-              <TouchableOpacity onPress={() => previous()} hitSlop={10} style={styles.sideBtn}>
-                <MaterialCommunityIcons name="skip-previous" size={22} color={Colors.text} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={toggle} hitSlop={10} style={styles.playBtn}>
-                <LinearGradient
-                  colors={Gradients.brand}
-                  style={StyleSheet.absoluteFill}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                />
-                <MaterialCommunityIcons
-                  name={status.playing ? 'pause' : 'play'}
-                  size={20}
-                  color={Colors.background}
-                />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={next} hitSlop={10} style={styles.sideBtn}>
-                <MaterialCommunityIcons name="skip-next" size={22} color={Colors.text} />
-              </TouchableOpacity>
-            </View>
+    <View style={[styles.bar, { paddingBottom: insets.bottom }]}>
+      <View style={styles.progressRow}>
+        <Text style={styles.time}>{formatTime(current)}</Text>
+        <View style={styles.track}>
+          <LinearGradient
+            colors={Gradients.brand}
+            style={[styles.fill, { width: `${progress * 100}%` }]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          />
+          <View style={[styles.thumb, { left: `${progress * 100}%` }]} />
+        </View>
+        <Text style={styles.time}>{formatTime(duration)}</Text>
+      </View>
+
+      <TouchableOpacity style={styles.main} onPress={onPress} activeOpacity={0.9}>
+        <Artwork uri={currentSong.thumbnail} size={46} radius={Radius.sm} />
+        <View style={styles.meta}>
+          <View style={styles.titleRow}>
+            {playing ? <Equalizer active={playing} /> : null}
+            <Text style={styles.title} numberOfLines={1}>
+              {title}
+            </Text>
           </View>
-          <View style={styles.progressTrack}>
-            <LinearGradient
-              colors={Gradients.brand}
-              style={[styles.progressFill, { width: `${progress * 100}%` }]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            />
-          </View>
-        </Glass>
+          <Text style={styles.artist} numberOfLines={1}>
+            {artist}
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={styles.playBtn}
+          onPress={(e) => {
+            e.stopPropagation();
+            toggle();
+          }}
+          activeOpacity={0.8}
+          hitSlop={10}
+        >
+          <LinearGradient
+            colors={Gradients.brand}
+            style={StyleSheet.absoluteFill}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          />
+          <MaterialCommunityIcons
+            name={playing ? 'pause' : 'play'}
+            size={20}
+            color={Colors.background}
+          />
+        </TouchableOpacity>
       </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: {
+  bar: {
+    backgroundColor: Colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  progressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.xs,
+    paddingBottom: Spacing.xs,
+  },
+  time: {
+    color: Colors.textSecondary,
+    fontSize: FontSize.xxs,
+    fontVariant: ['tabular-nums'],
+    minWidth: 32,
+    textAlign: 'center',
+  },
+  track: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    overflow: 'hidden',
+  },
+  fill: {
     position: 'absolute',
-    left: 14,
-    right: 14,
+    left: 0,
+    top: 0,
+    bottom: 0,
+    borderRadius: 2,
   },
-  pill: {
-    borderRadius: Radius.lg,
+  thumb: {
+    position: 'absolute',
+    top: -2,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.primary,
+    marginLeft: -4,
     shadowColor: Colors.primary,
-    shadowOpacity: 0.4,
-    shadowRadius: 22,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 12,
+    shadowOpacity: 0.6,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 3,
   },
-  glass: {
-    borderRadius: Radius.lg,
-  },
-  row: {
+  main: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingHorizontal: Spacing.md,
   },
   meta: {
     flex: 1,
     overflow: 'hidden',
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
   title: {
+    flex: 1,
     color: Colors.text,
     fontSize: FontSize.sm,
     fontWeight: '700',
@@ -111,17 +202,6 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontSize: FontSize.xxs,
     marginTop: 1,
-  },
-  controls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  sideBtn: {
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   playBtn: {
     position: 'relative',
@@ -132,13 +212,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  progressTrack: {
-    height: 3,
-    width: '100%',
-    backgroundColor: 'rgba(255,255,255,0.10)',
+  eq: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 2,
+    height: 14,
+    width: 16,
   },
-  progressFill: {
+  eqBar: {
+    width: 3,
     height: '100%',
-    borderRadius: 3,
+    borderRadius: 1.5,
+    backgroundColor: Colors.primary,
   },
 });
