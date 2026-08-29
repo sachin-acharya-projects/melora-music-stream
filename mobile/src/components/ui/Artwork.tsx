@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -12,11 +13,19 @@ interface ArtworkProps {
 }
 
 export function Artwork({ uri, size, radius = Radius.md, style }: ArtworkProps) {
-  const src = uri ? { uri: proxied(uri) } : undefined;
+  const [failed, setFailed] = useState(false);
+  const showImage = Boolean(uri) && !failed;
+  const src = showImage ? { uri: proxied(uri as string) } : undefined;
   return (
     <View style={[styles.wrap, { width: size, height: size, borderRadius: radius }, style]}>
-      {src ? (
-        <Image source={src} style={styles.image} contentFit="cover" cachePolicy="memory-disk" />
+      {showImage ? (
+        <Image
+          source={src}
+          style={styles.image}
+          contentFit="cover"
+          cachePolicy="memory-disk"
+          onError={() => setFailed(true)}
+        />
       ) : (
         <View style={[styles.placeholder, { borderRadius: radius }]}>
           <MaterialCommunityIcons name="music" size={size * 0.34} color={Colors.textTertiary} />
