@@ -13,19 +13,21 @@ import { proxied } from '@/config';
 export function PlayerBar({ onPress }: { onPress: () => void }) {
   const currentSong = usePlayerStore((s) => s.currentSong);
   const toggle = usePlayerStore((s) => s.toggle);
+  const next = usePlayerStore((s) => s.next);
+  const previous = usePlayerStore((s) => s.previous);
   const status = useAudioPlayerStatus(getPlayer());
   const insets = useSafeAreaInsets();
 
   if (!currentSong) return null;
 
-  const art = proxied(currentSong.thumbnail);
   const title = currentSong.title;
   const artist = currentSong.uploader ?? currentSong.artist ?? '';
+  const progress = status.duration ? Math.min(1, Math.max(0, status.currentTime / status.duration)) : 0;
 
   return (
     <View style={[styles.wrap, { bottom: insets.bottom + 92 }]} pointerEvents="box-none">
       <TouchableOpacity style={styles.pill} onPress={onPress} activeOpacity={0.9}>
-        <Glass radius={Radius.full} intensity={42} style={styles.glass}>
+        <Glass radius={Radius.lg} intensity={48} elevated style={styles.glass}>
           <View style={styles.row}>
             <Artwork uri={currentSong.thumbnail} size={46} radius={Radius.sm} />
             <View style={styles.meta}>
@@ -36,19 +38,35 @@ export function PlayerBar({ onPress }: { onPress: () => void }) {
                 {artist}
               </Text>
             </View>
-            <TouchableOpacity onPress={toggle} hitSlop={14} style={styles.playBtn}>
-              <LinearGradient
-                colors={Gradients.brand}
-                style={StyleSheet.absoluteFill}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              />
-              <MaterialCommunityIcons
-                name={status.playing ? 'pause' : 'play'}
-                size={20}
-                color={Colors.background}
-              />
-            </TouchableOpacity>
+            <View style={styles.controls}>
+              <TouchableOpacity onPress={() => previous()} hitSlop={10} style={styles.sideBtn}>
+                <MaterialCommunityIcons name="skip-previous" size={22} color={Colors.text} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={toggle} hitSlop={10} style={styles.playBtn}>
+                <LinearGradient
+                  colors={Gradients.brand}
+                  style={StyleSheet.absoluteFill}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                />
+                <MaterialCommunityIcons
+                  name={status.playing ? 'pause' : 'play'}
+                  size={20}
+                  color={Colors.background}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={next} hitSlop={10} style={styles.sideBtn}>
+                <MaterialCommunityIcons name="skip-next" size={22} color={Colors.text} />
+              </TouchableOpacity>
+            </View>
+          </View>
+          <View style={styles.progressTrack}>
+            <LinearGradient
+              colors={Gradients.brand}
+              style={[styles.progressFill, { width: `${progress * 100}%` }]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            />
           </View>
         </Glass>
       </TouchableOpacity>
@@ -63,23 +81,22 @@ const styles = StyleSheet.create({
     right: 14,
   },
   pill: {
-    borderRadius: Radius.full,
-    shadowColor: '#34E0A1',
-    shadowOpacity: 0.35,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 10,
+    borderRadius: Radius.lg,
+    shadowColor: Colors.primary,
+    shadowOpacity: 0.4,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 12,
   },
   glass: {
-    borderRadius: Radius.full,
+    borderRadius: Radius.lg,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    paddingVertical: 9,
+    paddingVertical: 10,
     paddingHorizontal: 12,
-    paddingRight: 14,
   },
   meta: {
     flex: 1,
@@ -95,6 +112,17 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xxs,
     marginTop: 1,
   },
+  controls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  sideBtn: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   playBtn: {
     position: 'relative',
     width: 44,
@@ -103,5 +131,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
+  },
+  progressTrack: {
+    height: 3,
+    width: '100%',
+    backgroundColor: 'rgba(255,255,255,0.10)',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 3,
   },
 });
