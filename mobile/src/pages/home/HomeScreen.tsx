@@ -23,7 +23,7 @@ import { Colors, Spacing, FontSize } from '@/theme';
 import type { RootStackParamList } from '@/navigation/types';
 import { queryKeys } from '@/config/domains';
 import { navigateTo } from '@/config/nav';
-import { HOME_SECTIONS, HOME_LIMITS, type HomeSectionMeta } from '@/pages/home/config';
+import { HOME_SECTIONS, HOME_LIMITS, HOME_SECTION_ORDER, type HomeSectionKey, type HomeSectionMeta } from '@/pages/home/config';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -67,17 +67,17 @@ export function HomeScreen() {
 
   const loading = recs.isLoading && !recs.data && !playlists.data && !albums.data;
 
-  const blocks: { key: string; node: ReactNode }[] = [];
-
-  blocks.push({
-    key: 'greeting',
-    node: (
-      <View style={styles.greeting}>
-        <Text style={styles.hello}>Good to see you</Text>
-        <Text style={styles.sub}>Pick up where you left off</Text>
-      </View>
-    ),
-  });
+  const blocks: { key: string; node: ReactNode }[] = [
+    {
+      key: 'greeting',
+      node: (
+        <View style={styles.greeting}>
+          <Text style={styles.hello}>Good to see you</Text>
+          <Text style={styles.sub}>Pick up where you left off</Text>
+        </View>
+      ),
+    },
+  ];
 
   if (loading) {
     blocks.push({
@@ -86,106 +86,94 @@ export function HomeScreen() {
     });
   }
 
-  if (recs.data && recs.data.length > 0) {
-    blocks.push({
-      key: 'recs',
-      node: (
-        <Section meta={HOME_SECTIONS.recs}>
-          {recs.data.slice(0, HOME_LIMITS.sectionItems).map((s) => (
-            <SongRow key={s.id} song={s} />
-          ))}
-        </Section>
-      ),
-    });
-  }
-
-  if (recent.data && recent.data.length > 0) {
-    blocks.push({
-      key: 'recent',
-      node: (
-        <Section meta={HOME_SECTIONS.recent}>
-          {recent.data.slice(0, HOME_LIMITS.sectionItems).map((s) => (
-            <SongRow key={s.id} song={s} />
-          ))}
-        </Section>
-      ),
-    });
-  }
-
-  if (playlists.data && playlists.data.length > 0) {
-    blocks.push({
-      key: 'playlists',
-      node: (
-        <Section meta={HOME_SECTIONS.playlists}>
-          <HorizontalRow>
-            {playlists.data.map((p) => (
-              <PlaylistCard
-                key={p.id}
-                playlist={p}
-                onPress={() => navigation.navigate('PlaylistDetail', { id: p.id })}
-              />
+  const sectionNode = (key: HomeSectionKey): ReactNode | null => {
+    switch (key) {
+      case 'recent':
+        return recent.data?.length ? (
+          <Section meta={HOME_SECTIONS.recent}>
+            {recent.data.slice(0, HOME_LIMITS.sectionItems).map((s) => (
+              <SongRow key={s.id} song={s} />
             ))}
-          </HorizontalRow>
-        </Section>
-      ),
-    });
-  }
-
-  if (albums.data && albums.data.length > 0) {
-    blocks.push({
-      key: 'albums',
-      node: (
-        <Section meta={HOME_SECTIONS.albums}>
-          <HorizontalRow>
-            {albums.data.map((a) => (
-              <AlbumCard
-                key={a.browse_id}
-                album={a}
-                onPress={() => navigation.navigate('AlbumDetail', { browseId: a.browse_id })}
-              />
+          </Section>
+        ) : null;
+      case 'recs':
+        return recs.data?.length ? (
+          <Section meta={HOME_SECTIONS.recs}>
+            {recs.data.slice(0, HOME_LIMITS.sectionItems).map((s) => (
+              <SongRow key={s.id} song={s} />
             ))}
-          </HorizontalRow>
-        </Section>
-      ),
-    });
-  }
-
-  if (artists.data && artists.data.length > 0) {
-    blocks.push({
-      key: 'artists',
-      node: (
-        <Section meta={HOME_SECTIONS.artists}>
-          <HorizontalRow>
-            {artists.data.map((ar) => (
-              <ArtistCard
-                key={ar.id}
-                artist={ar}
-                onPress={() => navigation.navigate('ArtistDetail', { slug: ar.slug })}
-              />
+          </Section>
+        ) : null;
+      case 'trending':
+        return feed.data?.trending?.length ? (
+          <Section meta={HOME_SECTIONS.trending}>
+            {feed.data.trending.slice(0, HOME_LIMITS.sectionItems).map((s) => (
+              <SongRow key={s.id} song={s} />
             ))}
-          </HorizontalRow>
-        </Section>
-      ),
-    });
-  }
+          </Section>
+        ) : null;
+      case 'playlists':
+        return playlists.data?.length ? (
+          <Section meta={HOME_SECTIONS.playlists}>
+            <HorizontalRow>
+              {playlists.data.map((p) => (
+                <PlaylistCard
+                  key={p.id}
+                  playlist={p}
+                  onPress={() => navigation.navigate('PlaylistDetail', { id: p.id })}
+                />
+              ))}
+            </HorizontalRow>
+          </Section>
+        ) : null;
+      case 'albums':
+        return albums.data?.length ? (
+          <Section meta={HOME_SECTIONS.albums}>
+            <HorizontalRow>
+              {albums.data.map((a) => (
+                <AlbumCard
+                  key={a.browse_id}
+                  album={a}
+                  onPress={() => navigation.navigate('AlbumDetail', { browseId: a.browse_id })}
+                />
+              ))}
+            </HorizontalRow>
+          </Section>
+        ) : null;
+      case 'artists':
+        return artists.data?.length ? (
+          <Section meta={HOME_SECTIONS.artists}>
+            <HorizontalRow>
+              {artists.data.map((ar) => (
+                <ArtistCard
+                  key={ar.id}
+                  artist={ar}
+                  onPress={() => navigation.navigate('ArtistDetail', { slug: ar.slug })}
+                />
+              ))}
+            </HorizontalRow>
+          </Section>
+        ) : null;
+      case 'mood':
+        return feed.data?.mood_playlists?.length ? (
+          <Section meta={HOME_SECTIONS.mood}>
+            <HorizontalRow>
+              {feed.data.mood_playlists.map((p) => (
+                <PlaylistCard
+                  key={p.id}
+                  playlist={p}
+                  onPress={() => navigation.navigate('PlaylistDetail', { id: p.id })}
+                />
+              ))}
+            </HorizontalRow>
+          </Section>
+        ) : null;
+    }
+  };
 
-  if (feed.data?.mood_playlists && feed.data.mood_playlists.length > 0) {
-    blocks.push({
-      key: 'mood',
-      node: (
-        <Section meta={HOME_SECTIONS.mood}>
-          <HorizontalRow>
-            {feed.data.mood_playlists.map((p) => (
-              <PlaylistCard
-                key={p.id}
-                playlist={p}
-                onPress={() => navigation.navigate('PlaylistDetail', { id: p.id })}
-              />
-            ))}
-          </HorizontalRow>
-        </Section>
-      ),
-    });
+  for (const key of HOME_SECTION_ORDER) {
+    const node = sectionNode(key);
+    if (node) blocks.push({ key, node });
   }
 
   return (
