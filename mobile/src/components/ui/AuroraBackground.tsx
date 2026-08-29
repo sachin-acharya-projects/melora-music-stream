@@ -15,14 +15,14 @@ interface AuroraBackgroundProps {
   tintOpacity?: number;
 }
 
-export function AuroraBackground({ source, uri, blurRadius = 38, tintOpacity = 0.42 }: AuroraBackgroundProps) {
+export function AuroraBackground({ source, uri, blurRadius = 14, tintOpacity = 0.4 }: AuroraBackgroundProps) {
   const media = source ?? (uri ? { uri } : undefined);
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
       {media ? (
         <Image
           source={media}
-          style={[StyleSheet.absoluteFill, { opacity: 0.82 }]}
+          style={[StyleSheet.absoluteFill, { opacity: 0.62 }]}
           blurRadius={blurRadius}
           contentFit="cover"
           cachePolicy="memory-disk"
