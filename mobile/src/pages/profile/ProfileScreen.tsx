@@ -4,11 +4,11 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Screen } from '@/components/ui/Screen';
+import { BACKGROUNDS } from '@/config/backgrounds';
 import { Artwork } from '@/components/ui/Artwork';
 import { Colors, Spacing, Radius, FontSize } from '@/theme';
 import { useAuthStore } from '@/store/authStore';
 import { notificationsApi } from '@/services/api';
-import { proxied } from '@/config';
 import type { RootStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -31,7 +31,7 @@ export function ProfileScreen() {
   ];
 
   return (
-    <Screen backgroundUri={proxied(user?.avatar) || undefined}>
+    <Screen source={BACKGROUNDS.profile}>
       <View style={styles.header}>
         <Artwork uri={user?.avatar} size={96} radius={48} />
         <Text style={styles.name}>{user?.display_name ?? user?.username ?? 'Listener'}</Text>

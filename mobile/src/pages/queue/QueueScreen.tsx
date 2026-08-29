@@ -2,8 +2,8 @@ import { FlatList } from 'react-native';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SongRow } from '@/components/SongRow';
 import { Screen } from '@/components/ui/Screen';
+import { BACKGROUNDS } from '@/config/backgrounds';
 import { usePlayerStore } from '@/store/playerStore';
-import { proxied } from '@/config';
 
 export function QueueScreen({ navigation }: { navigation: any }) {
   const queue = usePlayerStore((s) => s.queue);
@@ -12,7 +12,7 @@ export function QueueScreen({ navigation }: { navigation: any }) {
   const setQueue = usePlayerStore((s) => s.setQueue);
 
   return (
-    <Screen backgroundUri={proxied(currentSong?.thumbnail) || undefined}>
+    <Screen source={BACKGROUNDS.queue}>
       <ScreenHeader title="Queue" onBack={navigation.goBack} />
       <FlatList
         data={queue}

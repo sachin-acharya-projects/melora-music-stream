@@ -6,6 +6,7 @@ import { SectionHeader } from '@/components/ui/SectionHeader';
 import { SongRow } from '@/components/SongRow';
 import { GradientButton } from '@/components/ui/GradientButton';
 import { Screen } from '@/components/ui/Screen';
+import { BACKGROUNDS } from '@/config/backgrounds';
 import { Colors, Spacing, Radius, FontSize } from '@/theme';
 import { radioApi } from '@/services/api';
 import { usePlayerStore } from '@/store/playerStore';
@@ -48,7 +49,7 @@ export function RadioScreen() {
   };
 
   return (
-    <Screen>
+    <Screen source={BACKGROUNDS.radio}>
       <SectionHeader title="Radio" icon="radio" subtitle="Generate a station from a seed" />
       <Text style={styles.label}>{RADIO_SEED_GROUPS.genres.label}</Text>
       <View style={styles.chipsWrap}>

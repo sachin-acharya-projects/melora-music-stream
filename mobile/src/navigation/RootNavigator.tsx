@@ -4,6 +4,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { useAuthStore } from '@/store/authStore';
 import { AppNavigator } from '@/navigation/AppNavigator';
 import { LoginScreen } from '@/pages/auth/LoginScreen';
+import { IntroScreen } from '@/pages/auth/IntroScreen';
 import { NowPlayingScreen } from '@/pages/player/NowPlayingScreen';
 import { Colors } from '@/theme';
 import type { RootStackParamList } from '@/navigation/types';
@@ -42,7 +43,10 @@ export function RootNavigator() {
             />
           </>
         ) : (
-          <Stack.Screen name="Login" component={LoginScreen} />
+          <>
+            <Stack.Screen name="Intro" component={IntroScreen} />
+            <Stack.Screen name="Login" component={LoginScreen} />
+          </>
         )}
       </Stack.Navigator>
     </NavigationContainer>

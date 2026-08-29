@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Screen } from '@/components/ui/Screen';
+import { BACKGROUNDS } from '@/config/backgrounds';
 import { Colors, Spacing, Radius, FontSize } from '@/theme';
 import { statsApi } from '@/services/api';
 
@@ -34,7 +35,7 @@ export function StatsScreen({ navigation }: { navigation: any }) {
   const o = overview.data as Record<string, number> | undefined;
 
   return (
-    <Screen>
+    <Screen source={BACKGROUNDS.stats}>
       <ScreenHeader title="Your Stats" onBack={navigation.goBack} />
       {overview.isLoading ? (
         <ActivityIndicator style={styles.loader} color={Colors.primary} />

@@ -18,8 +18,8 @@ import { AlbumCard } from '@/components/ui/AlbumCard';
 import { HorizontalRow } from '@/components/ui/HorizontalRow';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Screen } from '@/components/ui/Screen';
+import { BACKGROUNDS } from '@/config/backgrounds';
 import { Colors, Spacing, FontSize } from '@/theme';
-import { proxied } from '@/config';
 import type { RootStackParamList } from '@/navigation/types';
 import { queryKeys } from '@/config/domains';
 import { navigateTo } from '@/config/nav';
@@ -55,9 +55,6 @@ export function HomeScreen() {
     queryFn: () => discoverApi.feed(),
   });
 
-  const backgroundUri = proxied(
-    recs.data?.[0]?.thumbnail ?? feed.data?.trending?.[0]?.thumbnail,
-  );
 
   const refetchAll = () => {
     recs.refetch();
@@ -192,7 +189,7 @@ export function HomeScreen() {
   }
 
   return (
-    <Screen backgroundUri={backgroundUri || undefined}>
+    <Screen source={BACKGROUNDS.home}>
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}

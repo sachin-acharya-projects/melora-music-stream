@@ -3,9 +3,9 @@ import { useQuery } from '@tanstack/react-query';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { SongRow } from '@/components/SongRow';
 import { Screen } from '@/components/ui/Screen';
+import { BACKGROUNDS } from '@/config/backgrounds';
 import { Colors, Spacing } from '@/theme';
 import { recommendationsApi } from '@/services/api';
-import { proxied } from '@/config';
 
 export function RecommendationsScreen() {
   const { data, isLoading } = useQuery({
@@ -14,7 +14,7 @@ export function RecommendationsScreen() {
   });
 
   return (
-    <Screen backgroundUri={proxied(data?.[0]?.thumbnail) || undefined}>
+    <Screen source={BACKGROUNDS.recommendations}>
       <SectionHeader title="Made for you" icon="star" subtitle="Recommended from your taste" />
       {isLoading ? (
         <ActivityIndicator style={styles.loader} color={Colors.primary} />

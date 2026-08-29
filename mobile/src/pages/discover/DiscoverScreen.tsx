@@ -8,9 +8,9 @@ import { SongRow } from '@/components/SongRow';
 import { AlbumCard } from '@/components/ui/AlbumCard';
 import { PlaylistCard } from '@/components/ui/PlaylistCard';
 import { Screen } from '@/components/ui/Screen';
+import { BACKGROUNDS } from '@/config/backgrounds';
 import { Colors, Spacing, FontSize } from '@/theme';
 import { discoverApi } from '@/services/api';
-import { proxied } from '@/config';
 import type { RootStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -20,7 +20,7 @@ export function DiscoverScreen() {
   const { data, isLoading } = useQuery({ queryKey: ['discover'], queryFn: discoverApi.feed });
 
   return (
-    <Screen backgroundUri={proxied(data?.trending?.[0]?.thumbnail) || undefined}>
+    <Screen source={BACKGROUNDS.discover}>
       <SectionHeader title="Discover" icon="compass" />
       {isLoading ? (
         <ActivityIndicator style={styles.loader} color={Colors.primary} />

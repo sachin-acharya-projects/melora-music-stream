@@ -1,40 +1,25 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useAuthStore } from '@/store/authStore';
+import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import { Screen } from '@/components/ui/Screen';
 import { BACKGROUNDS } from '@/config/backgrounds';
 import { Colors, Spacing, Radius, FontSize } from '@/theme';
+import type { RootStackParamList } from '@/navigation/types';
 
-export function LoginScreen() {
-  const login = useAuthStore((s) => s.login);
-  const isLoading = useAuthStore((s) => s.isLoading);
+export function IntroScreen() {
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
   return (
-    <Screen source={BACKGROUNDS.login} style={styles.container}>
-      <LinearGradient
-        colors={['#0A0A0C', '#0E1A12', '#0A0A0C']}
-        style={StyleSheet.absoluteFill}
-      />
+    <Screen source={BACKGROUNDS.intro} style={styles.container}>
       <View style={styles.center}>
-        <MaterialCommunityIcons
-          name="music-circle"
-          size={88}
-          color={Colors.primary}
-        />
+        <MaterialCommunityIcons name="music-circle" size={104} color={Colors.primary} />
         <Text style={styles.title}>Melora</Text>
-        <Text style={styles.tagline}>Your music, everywhere.</Text>
+        <Text style={styles.tagline}>Stream the music you love.{'\n'}Your library, your radio, your way.</Text>
       </View>
 
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => void login()}
-        disabled={isLoading}
-      >
-        <MaterialCommunityIcons name="google" size={22} color={Colors.text} />
-        <Text style={styles.buttonText}>
-          {isLoading ? 'Please wait…' : 'Continue with Google'}
-        </Text>
+      <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('Login')}>
+        <Text style={styles.buttonText}>Get Started</Text>
+        <MaterialCommunityIcons name="arrow-right" size={20} color={Colors.text} />
       </TouchableOpacity>
     </Screen>
   );
@@ -45,6 +30,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.xl,
     paddingBottom: Spacing.xxl,
+    paddingTop: Spacing.xl,
   },
   center: {
     flex: 1,
@@ -61,21 +47,21 @@ const styles = StyleSheet.create({
   tagline: {
     color: Colors.textSecondary,
     fontSize: FontSize.md,
+    textAlign: 'center',
+    lineHeight: FontSize.md * 1.5,
   },
   button: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
-    backgroundColor: Colors.surface2,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    backgroundColor: Colors.primary,
     borderRadius: Radius.full,
     paddingVertical: Spacing.md,
   },
   buttonText: {
-    color: Colors.text,
+    color: Colors.background,
     fontSize: FontSize.md,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });

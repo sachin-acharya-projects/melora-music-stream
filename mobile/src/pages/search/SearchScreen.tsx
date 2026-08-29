@@ -12,9 +12,9 @@ import { ArtistCard } from '@/components/ui/ArtistCard';
 import { AlbumCard } from '@/components/ui/AlbumCard';
 import { PlaylistCard } from '@/components/ui/PlaylistCard';
 import { Screen } from '@/components/ui/Screen';
+import { BACKGROUNDS } from '@/config/backgrounds';
 import { Colors, Spacing, FontSize } from '@/theme';
 import { searchApi, artistsApi, albumsApi, playlistsApi } from '@/services/api';
-import { proxied } from '@/config';
 import type { RootStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -35,11 +35,10 @@ export function SearchScreen() {
     enabled: q.trim().length > 0,
   });
 
-  const bg = proxied(results.data?.songs?.[0]?.thumbnail);
 
   if (q.trim().length === 0) {
     return (
-      <Screen>
+      <Screen source={BACKGROUNDS.search}>
         <View style={styles.searchWrap}>
           <SearchBar value={q} onChange={setQ} />
         </View>
@@ -95,7 +94,7 @@ export function SearchScreen() {
   }
 
   return (
-    <Screen backgroundUri={bg || undefined}>
+    <Screen source={BACKGROUNDS.search}>
       <View style={styles.searchWrap}>
         <SearchBar value={q} onChange={setQ} />
       </View>

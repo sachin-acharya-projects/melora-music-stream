@@ -9,9 +9,9 @@ import { PlaylistCard } from '@/components/ui/PlaylistCard';
 import { ArtistCard } from '@/components/ui/ArtistCard';
 import { AlbumCard } from '@/components/ui/AlbumCard';
 import { Screen } from '@/components/ui/Screen';
+import { BACKGROUNDS } from '@/config/backgrounds';
 import { Colors, Spacing, FontSize } from '@/theme';
 import { playlistsApi, artistsApi, albumsApi } from '@/services/api';
-import { proxied } from '@/config';
 import type { RootStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -24,7 +24,6 @@ export function LibraryScreen() {
   const artists = useQuery({ queryKey: ['followingArtists'], queryFn: artistsApi.following });
   const albums = useQuery({ queryKey: ['favoriteAlbums'], queryFn: albumsApi.favorites });
 
-  const bg = proxied(playlists.data?.[0]?.thumbnail);
 
   const createPlaylist = async () => {
     const p = await playlistsApi.create('New Playlist');
@@ -33,7 +32,7 @@ export function LibraryScreen() {
   };
 
   return (
-    <Screen backgroundUri={bg || undefined}>
+    <Screen source={BACKGROUNDS.library}>
       <SectionHeader
         title="Your Library"
         icon="book"

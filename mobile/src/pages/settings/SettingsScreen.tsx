@@ -2,6 +2,7 @@ import { View, Text, Switch, ScrollView, StyleSheet } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Screen } from '@/components/ui/Screen';
+import { BACKGROUNDS } from '@/config/backgrounds';
 import { Colors, Spacing, FontSize } from '@/theme';
 import { notificationsApi } from '@/services/api';
 
@@ -22,7 +23,7 @@ export function SettingsScreen({ navigation }: { navigation: any }) {
   const entries = Object.entries(settings ?? {});
 
   return (
-    <Screen>
+    <Screen source={BACKGROUNDS.settings}>
       <ScreenHeader title="Settings" onBack={navigation.goBack} />
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.section}>Notifications</Text>

@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Screen } from '@/components/ui/Screen';
+import { BACKGROUNDS } from '@/config/backgrounds';
 import { Colors, Spacing, Radius, FontSize } from '@/theme';
 import { notificationsApi, type AppNotification } from '@/services/api';
 
@@ -24,7 +25,7 @@ export function NotificationsScreen({ navigation }: { navigation: any }) {
   };
 
   return (
-    <Screen>
+    <Screen source={BACKGROUNDS.notifications}>
       <ScreenHeader
         title="Notifications"
         onBack={navigation.goBack}
