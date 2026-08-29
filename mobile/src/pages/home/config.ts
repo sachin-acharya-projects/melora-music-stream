@@ -12,6 +12,7 @@ export type HomeSectionKey =
   | 'recent'
   | 'recs'
   | 'trending'
+  | 'newReleases'
   | 'playlists'
   | 'albums'
   | 'artists'
@@ -29,6 +30,12 @@ export const HOME_SECTIONS: Record<HomeSectionKey, HomeSectionMeta> = {
   recent: { key: 'recent', title: 'Recently played', icon: 'history', seeAll: SCREENS.history },
   recs: { key: 'recs', title: 'Made for you', icon: 'star', seeAll: SCREENS.recommendations },
   trending: { key: 'trending', title: 'Trending now', icon: 'fire', seeAll: SCREENS.discover },
+  newReleases: {
+    key: 'newReleases',
+    title: 'New releases',
+    icon: 'new-box',
+    seeAll: SCREENS.discover,
+  },
   playlists: {
     key: 'playlists',
     title: 'Your playlists',
@@ -50,6 +57,7 @@ export const HOME_SECTION_ORDER: HomeSectionKey[] = [
   'recent',
   'recs',
   'trending',
+  'newReleases',
   'playlists',
   'albums',
   'artists',

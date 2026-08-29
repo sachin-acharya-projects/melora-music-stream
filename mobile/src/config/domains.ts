@@ -31,6 +31,7 @@ export const queryKeys = {
     recommendations: ['home', 'recommendations'] as const,
     recentlyPlayed: ['home', 'recentlyPlayed'] as const,
     playlistsFollowing: ['home', 'playlists', 'following'] as const,
+    playlistsOwned: ['home', 'playlists', 'owned'] as const,
     artistsFeatured: ['home', 'artists', 'featured'] as const,
     albumsFavorites: ['home', 'albums', 'favorites'] as const,
     discoverFeed: ['home', 'discover', 'feed'] as const,

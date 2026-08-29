@@ -39,8 +39,8 @@ export function HomeScreen() {
     queryFn: () => historyApi.recentlyPlayed({ limit: HOME_LIMITS.recent }),
   });
   const playlists = useQuery({
-    queryKey: queryKeys.home.playlistsFollowing,
-    queryFn: () => playlistsApi.following(),
+    queryKey: queryKeys.home.playlistsOwned,
+    queryFn: () => playlistsApi.list(),
   });
   const artists = useQuery({
     queryKey: queryKeys.home.artistsFeatured,
@@ -110,6 +110,20 @@ export function HomeScreen() {
             {feed.data.trending.slice(0, HOME_LIMITS.sectionItems).map((s) => (
               <SongRow key={s.id} song={s} />
             ))}
+          </Section>
+        ) : null;
+      case 'newReleases':
+        return feed.data?.new_releases?.length ? (
+          <Section meta={HOME_SECTIONS.newReleases}>
+            <HorizontalRow>
+              {feed.data.new_releases.slice(0, HOME_LIMITS.sectionItems).map((a) => (
+                <AlbumCard
+                  key={a.browse_id}
+                  album={a}
+                  onPress={() => navigation.navigate('AlbumDetail', { browseId: a.browse_id })}
+                />
+              ))}
+            </HorizontalRow>
           </Section>
         ) : null;
       case 'playlists':
