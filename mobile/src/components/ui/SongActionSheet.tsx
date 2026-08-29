@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
-import { Modal, View, Text, TouchableOpacity, Animated, Linking, StyleSheet } from 'react-native';
+import { createContext, useContext, useState, useRef, useEffect, type ReactNode } from 'react';
+import { View, Text, TouchableOpacity, Animated, Linking, StyleSheet } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { usePlayerStore } from '@/store/playerStore';
@@ -9,20 +10,33 @@ import { toast } from '@/components/ui/Toast';
 import { Colors, Radius, Spacing, FontSize } from '@/theme';
 import type { Song } from '@/types';
 
-interface Props {
-  song: Song | null;
-  visible: boolean;
-  onClose: () => void;
+interface SheetState {
+  song: Song;
   removable?: 'playlist' | 'queue';
   onRemove?: (song: Song) => void;
 }
 
-export function SongActionSheet({ song, visible, onClose, removable, onRemove }: Props) {
+interface Ctx {
+  open: (s: SheetState) => void;
+}
+
+const SongActionSheetContext = createContext<Ctx | null>(null);
+
+export function useSongActionSheet() {
+  const ctx = useContext(SongActionSheetContext);
+  if (!ctx) throw new Error('useSongActionSheet must be used within SongActionSheetProvider');
+  return ctx;
+}
+
+export function SongActionSheetProvider({ children }: { children: ReactNode }) {
+  const [state, setState] = useState<SheetState | null>(null);
   const playNext = usePlayerStore((s) => s.playNext);
   const addToQueue = usePlayerStore((s) => s.addToQueue);
   const slide = useRef(new Animated.Value(0)).current;
   const [playlists, setPlaylists] = useState<{ id: string; name: string }[]>([]);
   const [picking, setPicking] = useState(false);
+
+  const visible = state !== null;
 
   useEffect(() => {
     if (visible) {
@@ -31,8 +45,6 @@ export function SongActionSheet({ song, visible, onClose, removable, onRemove }:
     }
   }, [visible, slide]);
 
-  if (!song) return null;
-
   const requestClose = () => {
     Animated.timing(slide, {
       toValue: 0,
@@ -40,7 +52,7 @@ export function SongActionSheet({ song, visible, onClose, removable, onRemove }:
       useNativeDriver: true,
     }).start(() => {
       setPicking(false);
-      onClose();
+      setState(null);
     });
   };
 
@@ -54,8 +66,9 @@ export function SongActionSheet({ song, visible, onClose, removable, onRemove }:
   };
 
   const addToPlaylist = async (id: string, name: string) => {
+    if (!state) return;
     try {
-      await playlistsApi.add(id, song);
+      await playlistsApi.add(id, state.song);
       toast(`Added to ${name}`);
     } catch {
       toast('Failed to add to playlist');
@@ -65,76 +78,105 @@ export function SongActionSheet({ song, visible, onClose, removable, onRemove }:
   };
 
   return (
-    <Modal visible={visible} transparent animationType="none" onRequestClose={requestClose}>
-      <View style={styles.modal}>
-        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={requestClose} />
-        <Animated.View
-          style={[
-            styles.sheet,
-            {
-              transform: [
-                { translateY: slide.interpolate({ inputRange: [0, 1], outputRange: [560, 0] }) },
-              ],
-              opacity: slide,
-            },
-          ]}
-        >
-          <LinearGradient
-            colors={['rgba(52,224,161,0.10)', 'rgba(34,211,238,0.04)', 'transparent']}
-            style={StyleSheet.absoluteFill}
-            pointerEvents="none"
-          />
-          <View style={styles.grabber} />
-          <View style={styles.header}>
-            <Text style={styles.title} numberOfLines={1}>
-              {song.title}
-            </Text>
-            {song.uploader || song.artist ? (
-              <Text style={styles.subtitle} numberOfLines={1}>
-                {song.uploader ?? song.artist}
+    <SongActionSheetContext.Provider value={{ open: (s) => setState(s) }}>
+      {children}
+      {state ? (
+        <View style={styles.overlay} pointerEvents="box-none">
+          <BlurView intensity={48} tint="dark" style={StyleSheet.absoluteFill} />
+          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={requestClose} />
+          <Animated.View
+            style={[
+              styles.sheet,
+              {
+                transform: [
+                  { translateY: slide.interpolate({ inputRange: [0, 1], outputRange: [560, 0] }) },
+                ],
+                opacity: slide,
+              },
+            ]}
+          >
+            <LinearGradient
+              colors={['rgba(52,224,161,0.10)', 'rgba(34,211,238,0.04)', 'transparent']}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+            <View style={styles.grabber} />
+            <View style={styles.header}>
+              <Text style={styles.title} numberOfLines={1}>
+                {state.song.title}
               </Text>
-            ) : null}
-          </View>
-
-          {picking ? (
-            <View style={styles.list}>
-              <ActionRow icon="chevron-left" label="Back" onPress={() => setPicking(false)} />
-              {playlists.length === 0 ? (
-                <Text style={styles.empty}>No playlists yet</Text>
-              ) : (
-                playlists.map((p) => (
-                  <ActionRow
-                    key={p.id}
-                    icon="music"
-                    label={p.name}
-                    onPress={() => void addToPlaylist(p.id, p.name)}
-                  />
-                ))
-              )}
-            </View>
-          ) : (
-            <View style={styles.list}>
-              <ActionRow icon="play-circle-outline" label="Play next" onPress={() => { playNext(song); requestClose(); }} />
-              <ActionRow icon="playlist-plus" label="Add to queue" onPress={() => { addToQueue(song); toast('Added to queue'); requestClose(); }} />
-              <ActionRow icon="plus-box" label="Add to playlist" onPress={openPlaylistPicker} />
-              <ActionRow icon="download" label="Download" onPress={() => { void Linking.openURL(getDownloadUrl(song.id)); requestClose(); }} />
-              {removable ? (
-                <ActionRow
-                  icon="trash-can"
-                  label={removable === 'playlist' ? 'Remove from playlist' : 'Remove from queue'}
-                  danger
-                  onPress={() => { onRemove?.(song); requestClose(); }}
-                />
+              {state.song.uploader || state.song.artist ? (
+                <Text style={styles.subtitle} numberOfLines={1}>
+                  {state.song.uploader ?? state.song.artist}
+                </Text>
               ) : null}
             </View>
-          )}
 
-          <TouchableOpacity style={styles.cancel} onPress={requestClose} activeOpacity={0.6}>
-            <Text style={styles.cancelText}>Cancel</Text>
-          </TouchableOpacity>
-        </Animated.View>
-      </View>
-    </Modal>
+            {picking ? (
+              <View style={styles.list}>
+                <ActionRow icon="chevron-left" label="Back" onPress={() => setPicking(false)} />
+                {playlists.length === 0 ? (
+                  <Text style={styles.empty}>No playlists yet</Text>
+                ) : (
+                  playlists.map((p) => (
+                    <ActionRow
+                      key={p.id}
+                      icon="music"
+                      label={p.name}
+                      onPress={() => void addToPlaylist(p.id, p.name)}
+                    />
+                  ))
+                )}
+              </View>
+            ) : (
+              <View style={styles.list}>
+                <ActionRow
+                  icon="play-circle-outline"
+                  label="Play next"
+                  onPress={() => {
+                    if (state) playNext(state.song);
+                    requestClose();
+                  }}
+                />
+                <ActionRow
+                  icon="playlist-plus"
+                  label="Add to queue"
+                  onPress={() => {
+                    if (state) addToQueue(state.song);
+                    toast('Added to queue');
+                    requestClose();
+                  }}
+                />
+                <ActionRow icon="plus-box" label="Add to playlist" onPress={openPlaylistPicker} />
+                <ActionRow
+                  icon="download"
+                  label="Download"
+                  onPress={() => {
+                    if (state) void Linking.openURL(getDownloadUrl(state.song.id));
+                    requestClose();
+                  }}
+                />
+                {state.removable ? (
+                  <ActionRow
+                    icon="trash-can"
+                    label={state.removable === 'playlist' ? 'Remove from playlist' : 'Remove from queue'}
+                    danger
+                    onPress={() => {
+                      state.onRemove?.(state.song);
+                      requestClose();
+                    }}
+                  />
+                ) : null}
+              </View>
+            )}
+
+            <TouchableOpacity style={styles.cancel} onPress={requestClose} activeOpacity={0.6}>
+              <Text style={styles.cancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+      ) : null}
+    </SongActionSheetContext.Provider>
   );
 }
 
@@ -162,15 +204,19 @@ function ActionRow({
 }
 
 const styles = StyleSheet.create({
-  modal: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+  overlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1000,
   },
   sheet: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: Colors.glassStrong,
     borderTopLeftRadius: Radius.lg,
     borderTopRightRadius: Radius.lg,

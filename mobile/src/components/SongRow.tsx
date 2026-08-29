@@ -1,11 +1,10 @@
-import { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAudioPlayerStatus } from 'expo-audio';
 import { usePlayerStore } from '@/store/playerStore';
 import { getPlayer } from '@/services/audioEngine';
 import { Artwork } from '@/components/ui/Artwork';
-import { SongActionSheet } from '@/components/ui/SongActionSheet';
+import { useSongActionSheet } from '@/components/ui/SongActionSheet';
 import { Colors, Spacing, Radius, FontSize } from '@/theme';
 import type { Song } from '@/types';
 
@@ -23,7 +22,7 @@ export function SongRow({ song, index, removable, onRemove }: SongRowProps) {
   const currentSong = usePlayerStore((s) => s.currentSong);
   const pendingSongId = usePlayerStore((s) => s.pendingSongId);
   const status = useAudioPlayerStatus(getPlayer());
-  const [sheetVisible, setSheetVisible] = useState(false);
+  const { open } = useSongActionSheet();
 
   const isCurrent = currentSong?.id === song.id;
   const playing = isCurrent && status.playing;
@@ -45,8 +44,7 @@ export function SongRow({ song, index, removable, onRemove }: SongRowProps) {
   );
 
   return (
-    <>
-      <TouchableOpacity style={styles.row} onPress={onPlay} activeOpacity={0.7}>
+    <TouchableOpacity style={styles.row} onPress={onPlay} activeOpacity={0.7}>
         <View style={styles.artWrap}>
           <Artwork uri={song.thumbnail} size={48} radius={Radius.sm} />
           {isCurrent ? (
@@ -68,19 +66,15 @@ export function SongRow({ song, index, removable, onRemove }: SongRowProps) {
           <TouchableOpacity onPress={onPlay} hitSlop={12} activeOpacity={0.6}>
             {trailing}
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setSheetVisible(true)} hitSlop={10} activeOpacity={0.6}>
+          <TouchableOpacity
+            onPress={() => open({ song, removable, onRemove })}
+            hitSlop={10}
+            activeOpacity={0.6}
+          >
             <MaterialCommunityIcons name="dots-vertical" size={22} color={Colors.textSecondary} />
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
-      <SongActionSheet
-        song={sheetVisible ? song : null}
-        visible={sheetVisible}
-        onClose={() => setSheetVisible(false)}
-        removable={removable}
-        onRemove={onRemove}
-      />
-    </>
   );
 }
 
