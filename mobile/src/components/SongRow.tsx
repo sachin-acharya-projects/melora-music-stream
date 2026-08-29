@@ -21,12 +21,13 @@ export function SongRow({ song, index, removable, onRemove }: SongRowProps) {
   const toggle = usePlayerStore((s) => s.toggle);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
   const currentSong = usePlayerStore((s) => s.currentSong);
+  const pendingSongId = usePlayerStore((s) => s.pendingSongId);
   const status = useAudioPlayerStatus(getPlayer());
   const [sheetVisible, setSheetVisible] = useState(false);
 
   const isCurrent = currentSong?.id === song.id;
   const playing = isCurrent && status.playing;
-  const loading = isCurrent && isPlaying && !status.playing;
+  const loading = pendingSongId === song.id || (isCurrent && isPlaying && !status.playing);
 
   const onPlay = () => {
     if (isCurrent) toggle();

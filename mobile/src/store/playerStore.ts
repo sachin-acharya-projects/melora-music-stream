@@ -9,7 +9,7 @@ import {
   setLockScreenActive,
   updateLockScreenMetadata,
 } from '@/services/audioEngine';
-import { getStreamUrl, getDownloadUrl } from '@/services/stream';
+import { getStreamUrl, getDownloadUrl, type StreamInfo } from '@/services/stream';
 import { saveState, recordHistory } from '@/services/playerApi';
 import { proxied } from '@/config';
 import { toast } from '@/components/ui/Toast';
@@ -21,6 +21,7 @@ interface PlayerState {
   currentIndex: number;
   currentSong: Song | null;
   isPlaying: boolean;
+  pendingSongId: string | null;
   volume: number;
   shuffle: boolean;
   repeat: RepeatMode;
@@ -45,25 +46,40 @@ interface PlayerState {
 let loadToken = 0;
 
 async function loadTrack(song: Song): Promise<void> {
-  const state = usePlayerStore.getState();
-  let stream = await getStreamUrl(song.id);
+  usePlayerStore.setState({ pendingSongId: song.id });
+  let stream: StreamInfo | null = null;
+  let streamError: string | null = null;
+  try {
+    stream = await getStreamUrl(song.id);
+  } catch (e) {
+    streamError = e instanceof Error ? e.message : 'Stream unavailable';
+  }
+
   if (!stream?.url) {
+    if (streamError) {
+      toast(`Playback failed: ${streamError}`);
+      usePlayerStore.setState({ pendingSongId: null, isPlaying: false });
+      return;
+    }
     stream = { url: getDownloadUrl(song.id), title: song.title, thumbnail: song.thumbnail };
   }
+
   const url = stream?.url;
   if (!url) {
     toast('Playback failed: no stream URL was returned by the backend.');
+    usePlayerStore.setState({ pendingSongId: null, isPlaying: false });
     return;
   }
+
   loadAndPlay(url);
-  usePlayerStore.setState({ currentSong: song, isPlaying: true });
+  usePlayerStore.setState({ currentSong: song, isPlaying: true, pendingSongId: null });
   const token = ++loadToken;
   setTimeout(() => {
     if (token !== loadToken) return;
     const st = usePlayerStore.getState();
     if (st.isPlaying && st.currentSong?.id === song.id && !getPlayer().playing) {
-      usePlayerStore.setState({ isPlaying: false });
-      toast('Playback failed to start — the audio backend returned no stream (404 on /stream).');
+      usePlayerStore.setState({ isPlaying: false, pendingSongId: null });
+      toast('Playback failed to start — the audio backend returned no stream.');
     }
   }, 2000);
   setLockScreenActive(true, {
@@ -75,7 +91,7 @@ async function loadTrack(song: Song): Promise<void> {
   recordHistory(song.id);
   void saveState({
     last_song_id: song.id,
-    current_queue: state.queue,
+    current_queue: usePlayerStore.getState().queue,
     last_playlist_id: null,
     recent_songs: [song],
   });
@@ -86,6 +102,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   currentIndex: -1,
   currentSong: null,
   isPlaying: false,
+  pendingSongId: null,
   volume: 1,
   shuffle: false,
   repeat: 'none',
