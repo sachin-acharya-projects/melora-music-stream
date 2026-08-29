@@ -57,7 +57,7 @@ async function loadTrack(song: Song): Promise<void> {
 
   if (!stream?.url) {
     if (streamError) {
-      toast(`Playback failed: ${streamError}`);
+      toast(streamError);
       usePlayerStore.setState({ pendingSongId: null, isPlaying: false });
       return;
     }
