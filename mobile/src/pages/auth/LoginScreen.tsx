@@ -13,7 +13,7 @@ export function LoginScreen() {
   return (
     <Screen source={BACKGROUNDS.login} style={styles.container}>
       <LinearGradient
-        colors={['#0A0A0C', '#0E1A12', '#0A0A0C']}
+        colors={['rgba(10,10,12,0.55)', 'rgba(14,26,18,0.42)', 'rgba(10,10,12,0.55)']}
         style={StyleSheet.absoluteFill}
       />
       <View style={styles.center}>
