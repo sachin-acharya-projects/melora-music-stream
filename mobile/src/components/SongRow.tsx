@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAudioPlayerStatus } from 'expo-audio';
@@ -16,17 +16,33 @@ interface SongRowProps {
 
 export function SongRow({ song, index, onMore }: SongRowProps) {
   const playSong = usePlayerStore((s) => s.playSong);
+  const toggle = usePlayerStore((s) => s.toggle);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
   const currentSong = usePlayerStore((s) => s.currentSong);
   const isCurrent = currentSong?.id === song.id;
   const status = useAudioPlayerStatus(getPlayer());
   const progress = status.duration ? status.currentTime / status.duration : 0;
 
+  const playing = isCurrent && status.playing;
+  const loading = isCurrent && isPlaying && !status.playing;
+
+  const onPlay = () => {
+    if (isCurrent) toggle();
+    else void playSong(song);
+  };
+
+  const trailing = loading ? (
+    <ActivityIndicator size="small" color={Colors.primary} />
+  ) : (
+    <MaterialCommunityIcons
+      name={playing ? 'pause' : 'play'}
+      size={26}
+      color={playing ? Colors.primary : Colors.textSecondary}
+    />
+  );
+
   return (
-    <TouchableOpacity
-      style={styles.row}
-      onPress={() => void playSong(song)}
-      activeOpacity={0.7}
-    >
+    <TouchableOpacity style={styles.row} onPress={onPlay} activeOpacity={0.7}>
       <View style={styles.artWrap}>
         <Artwork uri={song.thumbnail} size={48} radius={Radius.sm} />
         {isCurrent ? (
@@ -49,11 +65,9 @@ export function SongRow({ song, index, onMore }: SongRowProps) {
           <MaterialCommunityIcons name="dots-vertical" size={22} color={Colors.textSecondary} />
         </TouchableOpacity>
       ) : (
-        <MaterialCommunityIcons
-          name={isCurrent ? 'volume-high' : 'play-circle-outline'}
-          size={26}
-          color={isCurrent ? Colors.primary : Colors.textSecondary}
-        />
+        <TouchableOpacity onPress={onPlay} hitSlop={12} activeOpacity={0.6}>
+          {trailing}
+        </TouchableOpacity>
       )}
       {isCurrent ? (
         <>
@@ -79,10 +93,8 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    backgroundColor: Colors.surface,
     borderRadius: Radius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    overflow: 'hidden',
     shadowColor: '#000',
     shadowOpacity: 0.38,
     shadowRadius: 12,
@@ -105,6 +117,7 @@ const styles = StyleSheet.create({
     height: 2.5,
     backgroundColor: Colors.primary,
     borderBottomLeftRadius: Radius.md,
+    borderBottomRightRadius: Radius.md,
   },
   artWrap: {
     position: 'relative',
