@@ -29,12 +29,17 @@ export type HomeSectionMeta = {
 export const HOME_SECTIONS: Record<HomeSectionKey, HomeSectionMeta> = {
   recent: { key: 'recent', title: 'Recently played', icon: 'history', seeAll: SCREENS.history },
   recs: { key: 'recs', title: 'Made for you', icon: 'star', seeAll: SCREENS.recommendations },
-  trending: { key: 'trending', title: 'Trending now', icon: 'fire', seeAll: SCREENS.discover },
+  trending: {
+    key: 'trending',
+    title: 'Trending now',
+    icon: 'fire',
+    seeAll: { type: 'stack', name: 'Browse', params: { title: 'Trending now', icon: 'fire', kind: 'songs', source: 'trending' } },
+  },
   newReleases: {
     key: 'newReleases',
     title: 'New releases',
     icon: 'new-box',
-    seeAll: SCREENS.discover,
+    seeAll: SCREENS.releases,
   },
   playlists: {
     key: 'playlists',
@@ -42,14 +47,24 @@ export const HOME_SECTIONS: Record<HomeSectionKey, HomeSectionMeta> = {
     icon: 'playlist-music',
     seeAll: SCREENS.library,
   },
-  albums: { key: 'albums', title: 'Albums you might like', icon: 'album', seeAll: SCREENS.discover },
+  albums: {
+    key: 'albums',
+    title: 'Albums you might like',
+    icon: 'album',
+    seeAll: { type: 'stack', name: 'Browse', params: { title: 'Albums you might like', icon: 'album', kind: 'albums', source: 'albumsFavorites' } },
+  },
   artists: {
     key: 'artists',
     title: 'Artists you might like',
     icon: 'account-music',
-    seeAll: SCREENS.search,
+    seeAll: { type: 'stack', name: 'Browse', params: { title: 'Artists you might like', icon: 'account-music', kind: 'artists', source: 'artistsFeatured' } },
   },
-  mood: { key: 'mood', title: 'Mood & genre', icon: 'radio', seeAll: SCREENS.discover },
+  mood: {
+    key: 'mood',
+    title: 'Mood & genre',
+    icon: 'radio',
+    seeAll: { type: 'stack', name: 'Browse', params: { title: 'Mood & genre', icon: 'radio', kind: 'playlists', source: 'moodPlaylists' } },
+  },
 };
 
 /** Stable render order for the home feed. */

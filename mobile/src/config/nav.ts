@@ -24,6 +24,7 @@ export const STACK_SCREENS = {
   releases: 'Releases',
   recommendations: 'Recommendations',
   history: 'History',
+  browse: 'Browse',
   nowPlaying: 'NowPlaying',
 } as const;
 
@@ -37,6 +38,7 @@ export type ScreenTarget =
 /** Logical screen aliases used by domain configs (e.g. Home sections). */
 export const SCREENS = {
   recommendations: { type: 'stack', name: 'Recommendations' } as ScreenTarget,
+  releases: { type: 'stack', name: 'Releases' } as ScreenTarget,
   history: { type: 'stack', name: 'History' } as ScreenTarget,
   library: { type: 'tab', name: 'LibraryTab' } as ScreenTarget,
   discover: { type: 'stack', name: 'Discover' } as ScreenTarget,

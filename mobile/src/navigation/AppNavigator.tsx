@@ -15,6 +15,7 @@ import { ArtistDetailScreen } from '@/pages/artists/ArtistDetailScreen';
 import { AlbumDetailScreen } from '@/pages/albums/AlbumDetailScreen';
 import { RecommendationsScreen } from '@/pages/recommendations/RecommendationsScreen';
 import { ReleasesScreen } from '@/pages/releases/ReleasesScreen';
+import { BrowseScreen } from '@/pages/browse/BrowseScreen';
 import { DiscoverScreen } from '@/pages/discover/DiscoverScreen';
 import { HistoryScreen } from '@/pages/history/HistoryScreen';
 import { StatsScreen } from '@/pages/stats/StatsScreen';
@@ -57,6 +58,7 @@ export function AppNavigator() {
         <Stack.Screen name="AlbumDetail" component={AlbumDetailScreen} />
         <Stack.Screen name="Recommendations" component={RecommendationsScreen} />
         <Stack.Screen name="Releases" component={ReleasesScreen} />
+        <Stack.Screen name="Browse" component={BrowseScreen} />
         <Stack.Screen name="Discover" component={DiscoverScreen} />
         <Stack.Screen name="History" component={HistoryScreen} />
         <Stack.Screen name="Stats" component={StatsScreen} />
