@@ -9,7 +9,7 @@ export function QueueScreen({ navigation }: { navigation: any }) {
   const queue = usePlayerStore((s) => s.queue);
   const currentIndex = usePlayerStore((s) => s.currentIndex);
   const currentSong = usePlayerStore((s) => s.currentSong);
-  const setQueue = usePlayerStore((s) => s.setQueue);
+  const removeFromQueue = usePlayerStore((s) => s.removeFromQueue);
 
   return (
     <Screen source={BACKGROUNDS.queue}>
@@ -18,7 +18,11 @@ export function QueueScreen({ navigation }: { navigation: any }) {
         data={queue}
         keyExtractor={(s) => s.id}
         renderItem={({ item, index }) => (
-          <SongRow song={item} onMore={() => void setQueue(queue, index)} />
+          <SongRow
+            song={item}
+            removable="queue"
+            onRemove={() => removeFromQueue(index)}
+          />
         )}
         contentContainerStyle={{ paddingBottom: 40 }}
         ListEmptyComponent={

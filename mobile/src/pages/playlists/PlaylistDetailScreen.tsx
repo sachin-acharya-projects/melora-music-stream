@@ -87,22 +87,6 @@ export function PlaylistDetailScreen({ route, navigation }: Props) {
     ]);
   };
 
-  const onMore = (song: Song) => {
-    Alert.alert(song.title, undefined, [
-      { text: 'Play', onPress: () => void playSong(song, songs, songs.indexOf(song)) },
-      {
-        text: 'Remove from playlist',
-        style: 'destructive',
-        onPress: () => {
-          void playlistsApi.removeSong(id, song.id).then(() =>
-            qc.invalidateQueries({ queryKey: ['playlist', id] })
-          );
-        },
-      },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
-  };
-
   if (isLoading || !playlist) {
     return (
       <Screen>
@@ -141,7 +125,17 @@ export function PlaylistDetailScreen({ route, navigation }: Props) {
           </View>
         </View>
         {songs.map((s, i) => (
-          <SongRow key={s.id} song={s} index={i + 1} onMore={onMore} />
+          <SongRow
+            key={s.id}
+            song={s}
+            index={i + 1}
+            removable="playlist"
+            onRemove={(song) =>
+              void playlistsApi
+                .removeSong(id, song.id)
+                .then(() => qc.invalidateQueries({ queryKey: ['playlist', id] }))
+            }
+          />
         ))}
         {songs.length === 0 ? <Text style={styles.empty}>This playlist is empty.</Text> : null}
       </ScrollView>

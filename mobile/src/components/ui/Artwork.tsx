@@ -29,7 +29,6 @@ export function Artwork({ uri, size, radius = Radius.md, style }: ArtworkProps) 
 const styles = StyleSheet.create({
   wrap: {
     overflow: 'hidden',
-    backgroundColor: Colors.surface2,
   },
   image: {
     width: '100%',

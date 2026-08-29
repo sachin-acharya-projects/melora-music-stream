@@ -12,6 +12,7 @@ import {
 import { getStreamUrl, getDownloadUrl } from '@/services/stream';
 import { saveState, recordHistory } from '@/services/playerApi';
 import { proxied } from '@/config';
+import { toast } from '@/components/ui/Toast';
 
 export type RepeatMode = 'none' | 'one' | 'all';
 
@@ -27,6 +28,9 @@ interface PlayerState {
   duration: number;
   playSong: (song: Song, queue?: Song[], startIndex?: number) => Promise<void>;
   setQueue: (songs: Song[], startIndex?: number) => Promise<void>;
+  addToQueue: (song: Song) => void;
+  playNext: (song: Song) => void;
+  removeFromQueue: (index: number) => void;
   toggle: () => void;
   next: () => void;
   previous: (positionSec?: number) => void;
@@ -38,6 +42,8 @@ interface PlayerState {
   syncStatus: (position: number, duration: number, playing: boolean) => void;
 }
 
+let loadToken = 0;
+
 async function loadTrack(song: Song): Promise<void> {
   const state = usePlayerStore.getState();
   let stream = await getStreamUrl(song.id);
@@ -45,9 +51,21 @@ async function loadTrack(song: Song): Promise<void> {
     stream = { url: getDownloadUrl(song.id), title: song.title, thumbnail: song.thumbnail };
   }
   const url = stream?.url;
-  if (!url) return;
+  if (!url) {
+    toast('Playback failed: no stream URL was returned by the backend.');
+    return;
+  }
   loadAndPlay(url);
   usePlayerStore.setState({ currentSong: song, isPlaying: true });
+  const token = ++loadToken;
+  setTimeout(() => {
+    if (token !== loadToken) return;
+    const st = usePlayerStore.getState();
+    if (st.isPlaying && st.currentSong?.id === song.id && !getPlayer().playing) {
+      usePlayerStore.setState({ isPlaying: false });
+      toast('Playback failed to start — the audio backend returned no stream (404 on /stream).');
+    }
+  }, 2000);
   setLockScreenActive(true, {
     title: song.title,
     artist: song.uploader ?? song.artist ?? '',
@@ -84,6 +102,46 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   setQueue: async (songs, startIndex = 0) => {
     set({ queue: songs, currentIndex: startIndex });
     if (songs[startIndex]) await loadTrack(songs[startIndex]);
+  },
+
+  addToQueue: (song) => {
+    const { queue, currentIndex, currentSong } = get();
+    const next = [...queue, song];
+    set({ queue: next });
+    if (currentIndex === -1 || !currentSong) {
+      set({ currentIndex: next.length - 1, currentSong: song, isPlaying: true });
+      void loadTrack(song);
+    }
+  },
+
+  playNext: (song) => {
+    const { queue, currentIndex } = get();
+    const at = currentIndex === -1 ? queue.length : currentIndex + 1;
+    const next = [...queue.slice(0, at), song, ...queue.slice(at)];
+    if (currentIndex === -1) {
+      set({ queue: next, currentIndex: next.length - 1, currentSong: song, isPlaying: true });
+      void loadTrack(song);
+    } else {
+      set({ queue: next });
+    }
+  },
+
+  removeFromQueue: (index) => {
+    const { queue, currentIndex } = get();
+    if (index < 0 || index >= queue.length) return;
+    const next = queue.filter((_, i) => i !== index);
+    if (index === currentIndex) {
+      getPlayer().pause();
+      if (next.length === 0) {
+        set({ queue: [], currentIndex: -1, currentSong: null, isPlaying: false });
+      } else {
+        const ni = Math.min(currentIndex, next.length - 1);
+        set({ queue: next, currentIndex: ni, currentSong: next[ni], isPlaying: true });
+        void loadTrack(next[ni]);
+      }
+    } else {
+      set({ queue: next, currentIndex: index < currentIndex ? currentIndex - 1 : currentIndex });
+    }
   },
 
   toggle: () => {
