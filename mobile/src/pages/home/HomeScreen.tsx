@@ -10,6 +10,7 @@ import {
   artistsApi,
   albumsApi,
   discoverApi,
+  releasesApi,
 } from '@/services/api';
 import { SongRow } from '@/components/SongRow';
 import { PlaylistCard } from '@/components/ui/PlaylistCard';
@@ -54,6 +55,10 @@ export function HomeScreen() {
     queryKey: queryKeys.home.discoverFeed,
     queryFn: () => discoverApi.feed(),
   });
+  const newReleasesSongs = useQuery({
+    queryKey: queryKeys.releases.list,
+    queryFn: () => releasesApi.list({ limit: HOME_LIMITS.sectionItems }),
+  });
 
 
   const refetchAll = () => {
@@ -63,6 +68,7 @@ export function HomeScreen() {
     artists.refetch();
     albums.refetch();
     feed.refetch();
+    newReleasesSongs.refetch();
   };
 
   const loading = recs.isLoading && !recs.data && !playlists.data && !albums.data;
@@ -105,25 +111,19 @@ export function HomeScreen() {
           </Section>
         ) : null;
       case 'trending':
-        return feed.data?.trending?.length ? (
+        return feed.data?.top_songs?.length ? (
           <Section meta={HOME_SECTIONS.trending}>
-            {feed.data.trending.slice(0, HOME_LIMITS.sectionItems).map((s) => (
+            {feed.data.top_songs.slice(0, HOME_LIMITS.sectionItems).map((s) => (
               <SongRow key={s.id} song={s} />
             ))}
           </Section>
         ) : null;
       case 'newReleases':
-        return feed.data?.new_releases?.length ? (
+        return newReleasesSongs.data?.length ? (
           <Section meta={HOME_SECTIONS.newReleases}>
-            <HorizontalRow>
-              {feed.data.new_releases.slice(0, HOME_LIMITS.sectionItems).map((a) => (
-                <AlbumCard
-                  key={a.browse_id}
-                  album={a}
-                  onPress={() => navigation.navigate('AlbumDetail', { browseId: a.browse_id })}
-                />
-              ))}
-            </HorizontalRow>
+            {newReleasesSongs.data.slice(0, HOME_LIMITS.sectionItems).map((s) => (
+              <SongRow key={s.id} song={s} />
+            ))}
           </Section>
         ) : null;
       case 'playlists':

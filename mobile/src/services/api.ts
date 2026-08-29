@@ -126,12 +126,16 @@ export const releasesApi = {
 };
 
 export const discoverApi = {
-  feed: () =>
+  feed: (params?: {
+    top_songs_limit?: number;
+    new_releases_limit?: number;
+    mood_playlists_limit?: number;
+  }) =>
     get<{
-      trending?: Song[];
+      top_songs?: Song[];
       new_releases?: Album[];
       mood_playlists?: Playlist[];
-    }>('/discover/'),
+    }>('/discover/', params as never),
 };
 
 /* ---------------- History & Stats ---------------- */
