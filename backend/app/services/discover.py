@@ -22,8 +22,8 @@ from app.services.ytmusic import ytmusic_service
 logger = logging.getLogger(__name__)
 
 TOP_SONGS_LIMIT = 10
-NEW_RELEASES_LIMIT = 3
-MOOD_PLAYLISTS_LIMIT = 3
+NEW_RELEASES_LIMIT = 6
+MOOD_PLAYLISTS_LIMIT = 6
 SECTION_SONGS_LIMIT = 8
 
 
