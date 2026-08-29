@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "Melora",
+    "slug": "melora",
+    "scheme": "com.melora.app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "primaryColor": "#1DB954",
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.melora.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0A0A0A",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "POST_NOTIFICATIONS",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+        "INTERNET"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-secure-store"
+      ],
+      "expo-web-browser",
+      "expo-image",
+      "expo-audio",
+      "expo-font",
+      "expo-asset"
+    ],
+    "extra": {
+      "apiUrl": "https://melora.sachinacharya.name.np/api/v1"
+    }
+  }
+}

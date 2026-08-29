@@ -240,6 +240,26 @@ frontend-preview: ## Preview production frontend build
 	$(NODE_PM) run preview
 
 
+##@ Mobile (React Native / Expo)
+
+.PHONY: mobile-start mobile-run-android mobile-build-android
+
+ANDROID_JAVA_HOME ?= /usr/lib/jvm/java-17-openjdk-amd64
+
+MOBILE_DIR := $(ROOT_DIR)/mobile
+
+mobile-start: ## Start the Expo dev server (Metro) for the mobile app
+	cd $(MOBILE_DIR) && npx expo start
+
+mobile-run-android: ## Build + install the debug APK on a connected device (dev build)
+	cd $(MOBILE_DIR) && JAVA_HOME=$(ANDROID_JAVA_HOME) npx expo run:android
+
+mobile-build-android: ## Build the release Android App Bundle (AAB)
+	cd $(MOBILE_DIR) && npx expo prebuild --platform android
+	cd $(MOBILE_DIR)/android && JAVA_HOME=$(ANDROID_JAVA_HOME) ./gradlew bundleRelease
+	@printf "$(SUCCESS) AAB at mobile/android/app/build/outputs/bundle/release/app-release.aab\n"
+
+
 ##@ Docker
 
 .PHONY: docker-build-fullstack docker-run-fullstack \
