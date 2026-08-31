@@ -340,7 +340,7 @@ export default function Home() {
                     recentSearches={recentSearchesData?.map((e) => e.query) ?? []}
                 />
 
-                <div className='mt-4 grid w-full max-w-4xl grid-cols-2 gap-4 md:grid-cols-5'>
+                {/* <div className='mt-4 grid w-full max-w-4xl grid-cols-2 gap-4 md:grid-cols-5'>
                     {quickActions.map((action) => (
                         <Link
                             key={action.to}
@@ -358,7 +358,7 @@ export default function Home() {
                             </span>
                         </Link>
                     ))}
-                </div>
+                </div>Sea */}
             </div>
 
             {/* Content Section */}
