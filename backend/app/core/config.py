@@ -52,6 +52,7 @@ class Settings(BaseSettings):
 
     # Frontend
     FRONTEND_URL: str = "http://localhost:5173"
+    BACKEND_URL: str = "http://localhost:8000"
 
     # Service tunables
     ARTIST_SEARCH_LIMIT: int = 6
@@ -154,6 +155,13 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+def resolve_avatar_url(url: str | None) -> str | None:
+    """Resolve a relative avatar URL to an absolute one using BACKEND_URL."""
+    if url and url.startswith("/"):
+        return f"{settings.BACKEND_URL.rstrip('/')}{url}"
+    return url
 
 # Ensure directories exist
 Path(settings.DOWNLOADS_DIR).mkdir(parents=True, exist_ok=True)

@@ -4,6 +4,7 @@ from fastapi import HTTPException
 from sqlalchemy import asc, desc, func, select, update
 from sqlalchemy.orm import Query, Session, contains_eager, selectinload
 
+from app.core.config import resolve_avatar_url
 from app.core.messages import Messages
 from app.db.models.associations import playlist_song
 from app.db.models.playlist import (
@@ -377,7 +378,7 @@ class PlaylistService:
                 "role": collab.role,
                 "username": collab.user.username if collab.user else None,
                 "display_name": collab.user.display_name if collab.user else None,
-                "avatar_url": collab.user.avatar_url if collab.user else None,
+                "avatar_url": resolve_avatar_url(collab.user.avatar_url) if collab.user else None,
             }
             for collab in db_playlist.collaborators
         ]

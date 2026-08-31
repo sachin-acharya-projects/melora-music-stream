@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any
 from fastapi import HTTPException
 from sqlalchemy import asc, desc, func, or_
 
-from app.core.config import settings
+from app.core.config import resolve_avatar_url, settings
 from app.core.messages import Messages
 from app.db.base import SessionLocal
 from app.db.models.artist import ArtistModel
@@ -531,7 +531,7 @@ class AdminService:
             "email": user.email,
             "username": user.username,
             "display_name": user.display_name,
-            "avatar_url": user.avatar_url,
+            "avatar_url": resolve_avatar_url(user.avatar_url),
             "role": user.role,
             "is_active": user.is_active,
             "is_super_admin": AuthService.is_super_admin(user),

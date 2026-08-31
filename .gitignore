@@ -3,3 +3,6 @@
 
 # Virtual Environment
 .venv
+
+# Local asset source (optimized copies live in mobile/src/assets/backgrounds)
+melora-assets/
