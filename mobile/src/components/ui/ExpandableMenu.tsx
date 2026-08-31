@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { View, TouchableOpacity, Animated, StyleSheet, Pressable, Dimensions } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BlurView } from 'expo-blur';
+import { SafeBlurView } from '@/components/ui/SafeBlurView';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { usePlayerStore } from '@/store/playerStore';
@@ -95,7 +95,7 @@ export function ExpandableMenu() {
         style={[styles.backdrop, { opacity: backdropOpacity }]}
         pointerEvents={open ? 'auto' : 'none'}
       >
-        <BlurView intensity={20} tint="dark" blurMethod="dimezisBlurViewSdk31Plus" blurTarget={blurRef} style={StyleSheet.absoluteFill} />
+        <SafeBlurView intensity={20} tint="dark" blurMethod="dimezisBlurViewSdk31Plus" blurTarget={blurRef} style={StyleSheet.absoluteFill} />
         <Pressable style={StyleSheet.absoluteFill} onPress={toggle} />
       </Animated.View>
 

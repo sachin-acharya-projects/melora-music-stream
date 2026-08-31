@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, useRef, useEffect, type ReactNode } from 'react';
 import { View, Text, TouchableOpacity, Animated, Linking, StyleSheet } from 'react-native';
-import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { usePlayerStore } from '@/store/playerStore';
@@ -9,6 +8,7 @@ import { getDownloadUrl } from '@/services/stream';
 import { toast } from '@/components/ui/Toast';
 import { Colors, Radius, Spacing, FontSize } from '@/theme';
 import { useBlurTarget } from '@/components/ui/BlurTargetProvider';
+import { SafeBlurView } from '@/components/ui/SafeBlurView';
 import type { Song } from '@/types';
 
 
@@ -85,7 +85,7 @@ export function SongActionSheetProvider({ children }: { children: ReactNode }) {
       {children}
       {state ? (
         <View style={styles.overlay} pointerEvents="box-none">
-          <BlurView intensity={48} tint="dark" blurMethod="dimezisBlurViewSdk31Plus" blurTarget={blurRef} style={StyleSheet.absoluteFill} />
+          <SafeBlurView intensity={48} tint="dark" blurMethod="dimezisBlurViewSdk31Plus" blurTarget={blurRef} style={StyleSheet.absoluteFill} />
           <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={requestClose} />
           <Animated.View
             style={[

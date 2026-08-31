@@ -1,8 +1,8 @@
 import { ReactNode } from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
-import { BlurView } from 'expo-blur';
 import { Colors, Radius } from '@/theme';
 import { useBlurTarget } from '@/components/ui/BlurTargetProvider';
+import { SafeBlurView } from '@/components/ui/SafeBlurView';
 
 interface GlassProps {
   children?: ReactNode;
@@ -33,7 +33,7 @@ export function Glass({
         style,
       ]}
     >
-      <BlurView intensity={intensity} tint="dark" blurMethod="dimezisBlurViewSdk31Plus" blurTarget={blurRef} style={StyleSheet.absoluteFill} />
+      <SafeBlurView intensity={intensity} tint="dark" blurMethod="dimezisBlurViewSdk31Plus" blurTarget={blurRef} style={StyleSheet.absoluteFill} />
       <View
         style={[
           StyleSheet.absoluteFill,

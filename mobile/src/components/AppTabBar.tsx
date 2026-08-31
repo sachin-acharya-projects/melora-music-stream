@@ -1,5 +1,4 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { BlurView } from 'expo-blur';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePlayerStore } from '@/store/playerStore';
@@ -11,6 +10,7 @@ import { Gradients } from '@/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MENU_ITEMS } from '@/config/menu';
 import { useBlurTarget } from '@/components/ui/BlurTargetProvider';
+import { SafeBlurView } from '@/components/ui/SafeBlurView';
 
 interface AppTabBarProps {
   state: { index: number; routes: { name: string }[] };
@@ -40,7 +40,7 @@ export function AppTabBar({ state, navigation }: AppTabBarProps) {
 
   if (isHome && currentSong) {
     return (
-      <BlurView intensity={28} tint="dark" blurMethod="dimezisBlurViewSdk31Plus" blurTarget={blurRef} style={styles.blur}>
+      <SafeBlurView intensity={28} tint="dark" blurMethod="dimezisBlurViewSdk31Plus" blurTarget={blurRef} style={styles.blur}>
         <View style={[styles.unified, { paddingBottom: insets.bottom + Spacing.xs }]}>
           <View style={styles.playerRow}>
             <Artwork uri={currentSong.thumbnail} size={44} radius={Radius.xs} />
@@ -109,12 +109,12 @@ export function AppTabBar({ state, navigation }: AppTabBarProps) {
             })}
           </View>
         </View>
-      </BlurView>
+      </SafeBlurView>
     );
   }
 
   return (
-    <BlurView intensity={28} tint="dark" blurMethod="dimezisBlurViewSdk31Plus" blurTarget={blurRef} style={styles.blur}>
+    <SafeBlurView intensity={28} tint="dark" blurMethod="dimezisBlurViewSdk31Plus" blurTarget={blurRef} style={styles.blur}>
       <View style={[styles.container, { paddingBottom: insets.bottom + Spacing.xs, marginHorizontal: Spacing.sm, marginBottom: Spacing.xs, borderRadius: Radius.lg, overflow: 'hidden' }]}>
         <View style={styles.row}>
           {MENU_ITEMS.map((item, i) => {
@@ -141,7 +141,7 @@ export function AppTabBar({ state, navigation }: AppTabBarProps) {
           })}
         </View>
       </View>
-    </BlurView>
+    </SafeBlurView>
   );
 }
 

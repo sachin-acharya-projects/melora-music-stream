@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useNavigation, type NavigationProp, useNavigationState } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
+import { SafeBlurView } from '@/components/ui/SafeBlurView';
 import { LinearGradient } from 'expo-linear-gradient';
 import { HomeScreen } from '@/pages/home/HomeScreen';
 import { SearchScreen } from '@/pages/search/SearchScreen';
@@ -72,7 +72,7 @@ function FloatingBall({ onPress }: { onPress: () => void }) {
   return (
     <View style={[styles.ballWrap, { bottom: insets.bottom + Spacing.md }]} pointerEvents="box-none">
       <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={styles.ball}>
-        <BlurView intensity={28} tint="dark" blurMethod="dimezisBlurViewSdk31Plus" style={StyleSheet.absoluteFill} />
+        <SafeBlurView intensity={28} tint="dark" blurMethod="dimezisBlurViewSdk31Plus" style={StyleSheet.absoluteFill} />
         <View style={styles.ballInner}>
           <Artwork uri={currentSong.thumbnail} size={46} radius={23} />
         </View>

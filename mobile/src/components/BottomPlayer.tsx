@@ -2,11 +2,11 @@ import { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 import { usePlayerStore } from '@/store/playerStore';
 import { getPlayer } from '@/services/audioEngine';
 import { useAudioPlayerStatus } from 'expo-audio';
 import { useBlurTarget } from '@/components/ui/BlurTargetProvider';
+import { SafeBlurView } from '@/components/ui/SafeBlurView';
 
 import { Artwork } from '@/components/ui/Artwork';
 import { Colors, Gradients, Radius, FontSize, Spacing } from '@/theme';
@@ -68,7 +68,7 @@ export function BottomPlayer({ onPress }: { onPress: () => void }) {
 
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.9} style={styles.container}>
-      <BlurView intensity={20} tint="dark" blurMethod="dimezisBlurViewSdk31Plus" blurTarget={blurRef} style={StyleSheet.absoluteFill} />
+      <SafeBlurView intensity={20} tint="dark" blurMethod="dimezisBlurViewSdk31Plus" blurTarget={blurRef} style={StyleSheet.absoluteFill} />
       <View style={styles.inner}>
         <Artwork uri={currentSong.thumbnail} size={56} radius={Radius.sm} />
         <View style={styles.meta}>

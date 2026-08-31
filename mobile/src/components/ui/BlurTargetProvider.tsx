@@ -1,8 +1,14 @@
 import { createContext, useContext, useRef, type ReactNode } from 'react';
-import { View } from 'react-native';
-import { BlurTargetView } from 'expo-blur';
+import { View, type View as ViewType } from 'react-native';
 
-const BlurTargetContext = createContext<React.RefObject<View | null>>({ current: null });
+let BlurTargetView: typeof View;
+try {
+  BlurTargetView = require('expo-blur').BlurTargetView;
+} catch {
+  BlurTargetView = View;
+}
+
+const BlurTargetContext = createContext<React.RefObject<ViewType | null>>({ current: null });
 
 export function useBlurTarget() {
   return useContext(BlurTargetContext);
