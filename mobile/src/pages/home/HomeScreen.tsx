@@ -7,6 +7,7 @@ import { PlaylistCard } from '@/components/ui/PlaylistCard';
 import { Screen } from '@/components/ui/Screen';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { BACKGROUNDS } from '@/config/backgrounds';
+import { proxied } from '@/config';
 import { queryKeys } from '@/config/domains';
 import { navigateTo } from '@/config/nav';
 import type { RootStackParamList } from '@/navigation/types';
@@ -102,8 +103,8 @@ export function HomeScreen() {
     const paddingBottom = currentSong ? 230 : 110;
 
     const heroTranslateY = scrollY.interpolate({
-        inputRange: [-100, 0, HERO_HEIGHT * 1.5],
-        outputRange: [40, 0, HERO_HEIGHT * 0.4],
+        inputRange: [-100, 0, HERO_HEIGHT * 2],
+        outputRange: [30, 0, HERO_HEIGHT * 0.3],
         extrapolate: 'clamp',
     });
 
@@ -283,9 +284,9 @@ export function HomeScreen() {
                     </View>
                     <TouchableOpacity onPress={() => navigation.navigate('ProfileTab' as any)} activeOpacity={0.8} style={styles.avatarBtn}>
                         {user?.avatar ? (
-                            <Image source={{ uri: user.avatar }} style={styles.avatarImg} />
+                            <Image source={{ uri: proxied(user.avatar) }} style={styles.avatarImg} />
                         ) : (
-                            <MaterialCommunityIcons name="account-outline" size={20} color={Colors.textSecondary} />
+                            <MaterialCommunityIcons name="account-outline" size={22} color={Colors.textSecondary} />
                         )}
                     </TouchableOpacity>
                 </View>
@@ -393,9 +394,9 @@ const styles = StyleSheet.create({
         marginTop: Spacing.lg,
     },
     avatarBtn: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
+        width: 39,
+        height: 39,
+        borderRadius: 20,
         backgroundColor: Colors.glass,
         borderWidth: 1,
         borderColor: Colors.glassBorder,
@@ -404,9 +405,9 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
     },
     avatarImg: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
+        width: 39,
+        height: 39,
+        borderRadius: 20,
     },
     dropWrap: {
         position: 'absolute',

@@ -1,7 +1,10 @@
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useNavigation, type NavigationProp } from '@react-navigation/native';
+import { useNavigation, type NavigationProp, useNavigationState } from '@react-navigation/native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import { HomeScreen } from '@/pages/home/HomeScreen';
 import { SearchScreen } from '@/pages/search/SearchScreen';
 import { LibraryScreen } from '@/pages/library/LibraryScreen';
@@ -20,9 +23,13 @@ import { SettingsScreen } from '@/pages/settings/SettingsScreen';
 import { NotificationsScreen } from '@/pages/notifications/NotificationsScreen';
 import { QueueScreen } from '@/pages/queue/QueueScreen';
 import { AppTabBar } from '@/components/AppTabBar';
-import { BottomPlayer } from '@/components/BottomPlayer';
+import { Artwork } from '@/components/ui/Artwork';
 import { usePlayerStore } from '@/store/playerStore';
+import { getPlayer } from '@/services/audioEngine';
+import { useAudioPlayerStatus } from 'expo-audio';
+import { Colors, Gradients, Radius, Spacing } from '@/theme';
 import type { RootStackParamList, TabParamList } from '@/navigation/types';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const Tab = createBottomTabNavigator<TabParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -52,9 +59,42 @@ function TabNavigator() {
   );
 }
 
+function FloatingBall({ onPress }: { onPress: () => void }) {
+  const currentSong = usePlayerStore((s) => s.currentSong);
+  const toggle = usePlayerStore((s) => s.toggle);
+  const status = useAudioPlayerStatus(getPlayer());
+  const insets = useSafeAreaInsets();
+  const playing = currentSong ? !!status.playing : false;
+
+  if (!currentSong) return null;
+
+  return (
+    <View style={[styles.ballWrap, { bottom: insets.bottom + Spacing.md }]} pointerEvents="box-none">
+      <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={styles.ball}>
+        <BlurView intensity={28} tint="dark" style={StyleSheet.absoluteFill} />
+        <View style={styles.ballInner}>
+          <Artwork uri={currentSong.thumbnail} size={46} radius={23} />
+        </View>
+      </TouchableOpacity>
+      <TouchableOpacity onPress={(e) => { e.stopPropagation(); toggle(); }} style={styles.ballPlay} activeOpacity={0.8}>
+        <LinearGradient colors={Gradients.brand} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} />
+        <MaterialCommunityIcons name={playing ? 'pause' : 'play'} size={16} color={Colors.background} />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 export function AppNavigator() {
   const currentSong = usePlayerStore((s) => s.currentSong);
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+
+  const activeTab = useNavigationState((state) => {
+    const tabRoute = state.routes.find((r) => r.name === 'TabRoot');
+    if (!tabRoute?.state) return 'HomeTab';
+    return tabRoute.state.routes[tabRoute.state.index ?? 0]?.name ?? 'HomeTab';
+  });
+
+  const isHome = activeTab === 'HomeTab';
 
   return (
       <View style={styles.wrap}>
@@ -75,7 +115,9 @@ export function AppNavigator() {
             <Stack.Screen name="Queue" component={QueueScreen} />
           </Stack.Navigator>
         </View>
-        {currentSong && <BottomPlayer onPress={() => navigation.navigate('NowPlaying')} />}
+        {currentSong && !isHome && (
+          <FloatingBall onPress={() => navigation.navigate('NowPlaying')} />
+        )}
       </View>
   );
 }
@@ -87,5 +129,34 @@ const styles = StyleSheet.create({
   },
   tabRoot: {
     flex: 1,
+  },
+  ballWrap: {
+    position: 'absolute',
+    right: Spacing.lg,
+    zIndex: 20,
+  },
+  ball: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    overflow: 'hidden',
+  },
+  ballInner: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ballPlay: {
+    position: 'absolute',
+    bottom: -4,
+    right: -4,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: Colors.glassBorder,
   },
 });
