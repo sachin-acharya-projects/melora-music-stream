@@ -2,9 +2,6 @@ import { View, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
-import { usePlayerStore } from '@/store/playerStore';
-import { PlayerBar } from '@/components/PlayerBar';
-import { ExpandableMenu } from '@/components/ui/ExpandableMenu';
 import { HomeScreen } from '@/pages/home/HomeScreen';
 import { SearchScreen } from '@/pages/search/SearchScreen';
 import { LibraryScreen } from '@/pages/library/LibraryScreen';
@@ -22,6 +19,9 @@ import { StatsScreen } from '@/pages/stats/StatsScreen';
 import { SettingsScreen } from '@/pages/settings/SettingsScreen';
 import { NotificationsScreen } from '@/pages/notifications/NotificationsScreen';
 import { QueueScreen } from '@/pages/queue/QueueScreen';
+import { AppTabBar } from '@/components/AppTabBar';
+import { BottomPlayer } from '@/components/BottomPlayer';
+import { usePlayerStore } from '@/store/playerStore';
 import type { RootStackParamList, TabParamList } from '@/navigation/types';
 
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -31,8 +31,16 @@ function TabNavigator() {
   return (
     <View style={styles.tabRoot}>
       <Tab.Navigator
-        screenOptions={{ headerShown: false, tabBarStyle: { display: 'none' } }}
-        tabBar={() => null}
+        screenOptions={() => ({
+          headerShown: false,
+          tabBarStyle: {
+            position: 'absolute',
+            backgroundColor: 'transparent',
+            borderTopWidth: 0,
+            elevation: 0,
+          },
+        })}
+        tabBar={() => <AppTabBar />}
       >
         <Tab.Screen name="HomeTab" component={HomeScreen} options={{ title: 'Home' }} />
         <Tab.Screen name="SearchTab" component={SearchScreen} options={{ title: 'Search' }} />
@@ -40,7 +48,6 @@ function TabNavigator() {
         <Tab.Screen name="RadioTab" component={RadioScreen} options={{ title: 'Radio' }} />
         <Tab.Screen name="ProfileTab" component={ProfileScreen} options={{ title: 'Profile' }} />
       </Tab.Navigator>
-      <ExpandableMenu />
     </View>
   );
 }
@@ -68,7 +75,7 @@ export function AppNavigator() {
             <Stack.Screen name="Queue" component={QueueScreen} />
           </Stack.Navigator>
         </View>
-        {currentSong && <PlayerBar onPress={() => navigation.navigate('NowPlaying')} />}
+        {currentSong && <BottomPlayer onPress={() => navigation.navigate('NowPlaying')} />}
       </View>
   );
 }

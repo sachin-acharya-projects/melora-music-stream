@@ -23,6 +23,7 @@ export const Gradients = {
   brandVertical: ['#34E0A1', '#22D3EE'] as const,
   aurora: ['#0E3B2E', '#0B2746', '#281A4D'] as const,
   glow: ['rgba(52,224,161,0.50)', 'rgba(34,211,238,0.28)'] as const,
+  heroFade: ['transparent', 'rgba(7,7,9,0.5)', 'rgba(7,7,9,0.9)', '#081519'] as const,
 };
 
 export const Radius = {

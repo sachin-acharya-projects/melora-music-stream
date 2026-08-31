@@ -13,9 +13,12 @@ interface SongRowProps {
   index?: number;
   removable?: 'playlist' | 'queue';
   onRemove?: (song: Song) => void;
+  grouped?: boolean;
+  isDownloaded?: boolean;
+  inList?: boolean;
 }
 
-export function SongRow({ song, index, removable, onRemove }: SongRowProps) {
+export function SongRow({ song, index, removable, onRemove, grouped, isDownloaded, inList }: SongRowProps) {
   const playSong = usePlayerStore((s) => s.playSong);
   const toggle = usePlayerStore((s) => s.toggle);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
@@ -44,9 +47,9 @@ export function SongRow({ song, index, removable, onRemove }: SongRowProps) {
   );
 
   return (
-    <TouchableOpacity style={styles.row} onPress={onPlay} activeOpacity={0.7}>
+    <TouchableOpacity style={[styles.row, grouped && styles.rowGrouped]} onPress={onPlay} activeOpacity={0.7}>
         <View style={styles.artWrap}>
-          <Artwork uri={song.thumbnail} size={48} radius={Radius.sm} />
+          <Artwork uri={song.thumbnail} size={inList ? 64 : 48} radius={Radius.sm} />
           {isCurrent ? (
             <View style={styles.equalizer}>
               <MaterialCommunityIcons name="music-note" size={16} color={Colors.primary} />
@@ -63,6 +66,9 @@ export function SongRow({ song, index, removable, onRemove }: SongRowProps) {
           </Text>
         </View>
         <View style={styles.actions}>
+          {isDownloaded && (
+            <MaterialCommunityIcons name="arrow-down-circle-outline" size={20} color={Colors.primary} />
+          )}
           <TouchableOpacity onPress={onPlay} hitSlop={12} activeOpacity={0.6}>
             {trailing}
           </TouchableOpacity>
@@ -91,6 +97,17 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
+  },
+  rowGrouped: {
+    marginHorizontal: 0,
+    marginBottom: 0,
+    borderRadius: 0,
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border,
   },
   artWrap: {
     position: 'relative',
