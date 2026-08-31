@@ -72,6 +72,7 @@ function FloatingBall({ onPress }: { onPress: () => void }) {
     <View style={[styles.ballWrap, { bottom: insets.bottom + Spacing.md }]} pointerEvents="box-none">
       <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={styles.ball}>
         <BlurView intensity={28} tint="dark" style={StyleSheet.absoluteFill} />
+        <View style={styles.ballFallback} pointerEvents="none" />
         <View style={styles.ballInner}>
           <Artwork uri={currentSong.thumbnail} size={46} radius={23} />
         </View>
@@ -145,6 +146,15 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  ballFallback: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: Colors.glassStrong,
+    borderRadius: 27,
   },
   ballPlay: {
     position: 'absolute',

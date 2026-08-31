@@ -11,13 +11,6 @@ import { Gradients } from '@/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MENU_ITEMS } from '@/config/menu';
 
-function formatTime(s?: number): string {
-  if (!s || !isFinite(s) || s < 0) return '0:00';
-  const m = Math.floor(s / 60);
-  const sec = Math.floor(s % 60);
-  return `${m}:${sec.toString().padStart(2, '0')}`;
-}
-
 interface AppTabBarProps {
   state: { index: number; routes: { name: string }[] };
   navigation: { navigate: (name: string) => void };
@@ -30,12 +23,18 @@ export function AppTabBar({ state, navigation }: AppTabBarProps) {
 
   const currentSong = usePlayerStore((s) => s.currentSong);
   const toggle = usePlayerStore((s) => s.toggle);
+  const next = usePlayerStore((s) => s.next);
+  const previous = usePlayerStore((s) => s.previous);
+  const queue = usePlayerStore((s) => s.queue);
+  const currentIndex = usePlayerStore((s) => s.currentIndex);
   const status = useAudioPlayerStatus(getPlayer());
 
   const playing = currentSong ? !!status.playing : false;
   const duration = status.duration ?? 0;
   const current = status.currentTime ?? 0;
   const progress = duration ? Math.min(1, Math.max(0, current / duration)) : 0;
+  const hasPrev = currentIndex > 0;
+  const hasNext = currentIndex < queue.length - 1;
 
   if (isHome && currentSong) {
     return (
@@ -49,10 +48,30 @@ export function AppTabBar({ state, navigation }: AppTabBarProps) {
                 {currentSong.uploader ?? currentSong.artist ?? ''}
               </Text>
             </View>
-            <TouchableOpacity onPress={(e) => { e.stopPropagation(); toggle(); }} style={styles.playBtn} activeOpacity={0.8}>
-              <LinearGradient colors={Gradients.brand} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} />
-              <MaterialCommunityIcons name={playing ? 'pause' : 'play'} size={18} color={Colors.background} />
-            </TouchableOpacity>
+            <View style={styles.controls}>
+              <TouchableOpacity
+                onPress={(e) => { e.stopPropagation(); previous(); }}
+                hitSlop={10}
+                activeOpacity={0.6}
+                disabled={!hasPrev}
+                style={styles.skipBtn}
+              >
+                <MaterialCommunityIcons name="skip-previous" size={22} color={hasPrev ? Colors.text : Colors.textTertiary} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={(e) => { e.stopPropagation(); toggle(); }} style={styles.playBtn} activeOpacity={0.8}>
+                <LinearGradient colors={Gradients.brand} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} />
+                <MaterialCommunityIcons name={playing ? 'pause' : 'play'} size={18} color={Colors.background} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={(e) => { e.stopPropagation(); next(); }}
+                hitSlop={10}
+                activeOpacity={0.6}
+                disabled={!hasNext}
+                style={styles.skipBtn}
+              >
+                <MaterialCommunityIcons name="skip-next" size={22} color={hasNext ? Colors.text : Colors.textTertiary} />
+              </TouchableOpacity>
+            </View>
           </View>
           <View style={styles.trackBar}>
             <LinearGradient
@@ -159,6 +178,14 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xxs,
     marginTop: 2,
   },
+  controls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  skipBtn: {
+    padding: Spacing.xxs,
+  },
   playBtn: {
     width: 36,
     height: 36,
@@ -169,6 +196,7 @@ const styles = StyleSheet.create({
   },
   trackBar: {
     height: 2,
+    marginHorizontal: Spacing.sm,
     backgroundColor: 'rgba(255,255,255,0.08)',
   },
   trackFill: {
