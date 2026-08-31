@@ -1,13 +1,11 @@
 import { ReactNode } from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
-import { BlurView } from 'expo-blur';
-import { Colors, Radius, Shadow } from '@/theme';
+import { Colors, Radius } from '@/theme';
 
 interface GlassProps {
   children?: ReactNode;
   style?: ViewStyle;
   radius?: number;
-  intensity?: number;
   strong?: boolean;
   elevated?: boolean;
   padding?: number;
@@ -17,7 +15,6 @@ export function Glass({
   children,
   style,
   radius = Radius.lg,
-  intensity = 26,
   strong = false,
   elevated = false,
   padding,
@@ -31,7 +28,6 @@ export function Glass({
         style,
       ]}
     >
-      <BlurView intensity={intensity} tint="dark" style={StyleSheet.absoluteFill} />
       <View
         style={[
           StyleSheet.absoluteFill,

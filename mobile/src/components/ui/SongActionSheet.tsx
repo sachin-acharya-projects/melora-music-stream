@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useRef, useEffect, type ReactNode } from 'react';
 import { View, Text, TouchableOpacity, Animated, Linking, StyleSheet } from 'react-native';
-import { BlurView } from 'expo-blur';
+
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { usePlayerStore } from '@/store/playerStore';
@@ -82,7 +82,7 @@ export function SongActionSheetProvider({ children }: { children: ReactNode }) {
       {children}
       {state ? (
         <View style={styles.overlay} pointerEvents="box-none">
-          <BlurView intensity={48} tint="dark" style={StyleSheet.absoluteFill} />
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.6)' }]} pointerEvents="none" />
           <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={requestClose} />
           <Animated.View
             style={[

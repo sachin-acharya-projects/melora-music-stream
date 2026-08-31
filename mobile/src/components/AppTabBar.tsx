@@ -1,5 +1,4 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { BlurView } from 'expo-blur';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePlayerStore } from '@/store/playerStore';
@@ -38,82 +37,49 @@ export function AppTabBar({ state, navigation }: AppTabBarProps) {
 
   if (isHome && currentSong) {
     return (
-      <BlurView intensity={28} tint="dark" style={styles.blur}>
-        <View style={[styles.unified, { paddingBottom: insets.bottom + Spacing.xs }]}>
-          <View style={styles.playerRow}>
-            <Artwork uri={currentSong.thumbnail} size={44} radius={Radius.xs} />
-            <View style={styles.playerMeta}>
-              <Text style={styles.playerTitle} numberOfLines={1}>{currentSong.title}</Text>
-              <Text style={styles.playerArtist} numberOfLines={1}>
-                {currentSong.uploader ?? currentSong.artist ?? ''}
-              </Text>
-            </View>
-            <View style={styles.controls}>
-              <TouchableOpacity
-                onPress={(e) => { e.stopPropagation(); previous(); }}
-                hitSlop={10}
-                activeOpacity={0.6}
-                disabled={!hasPrev}
-                style={styles.skipBtn}
-              >
-                <MaterialCommunityIcons name="skip-previous" size={22} color={hasPrev ? Colors.text : Colors.textTertiary} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={(e) => { e.stopPropagation(); toggle(); }} style={styles.playBtn} activeOpacity={0.8}>
-                <LinearGradient colors={Gradients.brand} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} />
-                <MaterialCommunityIcons name={playing ? 'pause' : 'play'} size={18} color={Colors.background} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={(e) => { e.stopPropagation(); next(); }}
-                hitSlop={10}
-                activeOpacity={0.6}
-                disabled={!hasNext}
-                style={styles.skipBtn}
-              >
-                <MaterialCommunityIcons name="skip-next" size={22} color={hasNext ? Colors.text : Colors.textTertiary} />
-              </TouchableOpacity>
-            </View>
+      <View style={[styles.unified, { bottom: 0, paddingBottom: insets.bottom + Spacing.xs }]}>
+        <View style={styles.playerRow}>
+          <Artwork uri={currentSong.thumbnail} size={44} radius={Radius.xs} />
+          <View style={styles.playerMeta}>
+            <Text style={styles.playerTitle} numberOfLines={1}>{currentSong.title}</Text>
+            <Text style={styles.playerArtist} numberOfLines={1}>
+              {currentSong.uploader ?? currentSong.artist ?? ''}
+            </Text>
           </View>
-          <View style={styles.trackBar}>
-            <LinearGradient
-              colors={Gradients.brand}
-              style={[styles.trackFill, { width: `${progress * 100}%` }]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            />
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.row}>
-            {MENU_ITEMS.map((item, i) => {
-              const active = i === activeIndex;
-              return (
-                <TouchableOpacity
-                  key={item.name}
-                  style={styles.tabItem}
-                  activeOpacity={0.7}
-                  onPress={() => navigation.navigate(item.name)}
-                >
-                  <View style={[styles.pill, active && styles.pillActive]}>
-                    <MaterialCommunityIcons
-                      name={item.icon}
-                      size={20}
-                      color={active ? Colors.primary : Colors.textSecondary}
-                    />
-                  </View>
-                  <Text style={[styles.label, active && styles.labelActive]}>
-                    {item.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+          <View style={styles.controls}>
+            <TouchableOpacity
+              onPress={(e) => { e.stopPropagation(); previous(); }}
+              hitSlop={10}
+              activeOpacity={0.6}
+              disabled={!hasPrev}
+              style={styles.skipBtn}
+            >
+              <MaterialCommunityIcons name="skip-previous" size={22} color={hasPrev ? Colors.text : Colors.textTertiary} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={(e) => { e.stopPropagation(); toggle(); }} style={styles.playBtn} activeOpacity={0.8}>
+              <LinearGradient colors={Gradients.brand} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} />
+              <MaterialCommunityIcons name={playing ? 'pause' : 'play'} size={18} color={Colors.background} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={(e) => { e.stopPropagation(); next(); }}
+              hitSlop={10}
+              activeOpacity={0.6}
+              disabled={!hasNext}
+              style={styles.skipBtn}
+            >
+              <MaterialCommunityIcons name="skip-next" size={22} color={hasNext ? Colors.text : Colors.textTertiary} />
+            </TouchableOpacity>
           </View>
         </View>
-      </BlurView>
-    );
-  }
-
-  return (
-    <BlurView intensity={28} tint="dark" style={styles.blur}>
-      <View style={[styles.container, { paddingBottom: insets.bottom + Spacing.xs, marginHorizontal: Spacing.sm, marginBottom: Spacing.xs, borderRadius: Radius.lg, overflow: 'hidden' }]}>
+        <View style={styles.trackBar}>
+          <LinearGradient
+            colors={Gradients.brand}
+            style={[styles.trackFill, { width: `${progress * 100}%` }]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          />
+        </View>
+        <View style={styles.divider} />
         <View style={styles.row}>
           {MENU_ITEMS.map((item, i) => {
             const active = i === activeIndex;
@@ -127,7 +93,7 @@ export function AppTabBar({ state, navigation }: AppTabBarProps) {
                 <View style={[styles.pill, active && styles.pillActive]}>
                   <MaterialCommunityIcons
                     name={item.icon}
-                    size={22}
+                    size={20}
                     color={active ? Colors.primary : Colors.textSecondary}
                   />
                 </View>
@@ -139,18 +105,44 @@ export function AppTabBar({ state, navigation }: AppTabBarProps) {
           })}
         </View>
       </View>
-    </BlurView>
+    );
+  }
+
+  return (
+    <View style={[styles.container, { bottom: 0, paddingBottom: insets.bottom + Spacing.xs, marginHorizontal: Spacing.sm, marginBottom: Spacing.xs, borderRadius: Radius.lg, overflow: 'hidden' }]}>
+      <View style={styles.row}>
+        {MENU_ITEMS.map((item, i) => {
+          const active = i === activeIndex;
+          return (
+            <TouchableOpacity
+              key={item.name}
+              style={styles.tabItem}
+              activeOpacity={0.7}
+              onPress={() => navigation.navigate(item.name)}
+            >
+              <View style={[styles.pill, active && styles.pillActive]}>
+                <MaterialCommunityIcons
+                  name={item.icon}
+                  size={22}
+                  color={active ? Colors.primary : Colors.textSecondary}
+                />
+              </View>
+              <Text style={[styles.label, active && styles.labelActive]}>
+                {item.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  blur: {
+  unified: {
     position: 'absolute',
-    bottom: 0,
     left: 0,
     right: 0,
-  },
-  unified: {
     marginHorizontal: Spacing.sm,
     marginBottom: Spacing.xs,
     borderRadius: Radius.lg,
@@ -209,6 +201,9 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.sm,
   },
   container: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
     backgroundColor: Colors.glassStrong,
     borderWidth: 1,
     borderColor: Colors.border,
