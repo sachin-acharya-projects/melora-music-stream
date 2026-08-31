@@ -22,6 +22,7 @@ x-backend-env: &backend-env
   JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-in-production-use-a-random-secret}
   ROOT_ADMIN_EMAIL: ${ROOT_ADMIN_EMAIL:-}
   FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+  BACKEND_URL: ${BACKEND_URL:-http://localhost:8000}
   BACKEND_CORS_ORIGINS: '${BACKEND_CORS_ORIGINS:-["*"]}'
   # Database (shared homelab Postgres, reached via networks.db_net).
   # The homelab "postgres" service exposes no host port; it is reachable

@@ -1,7 +1,9 @@
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, model_validator
+
+from app.core.config import resolve_avatar_url
 
 
 class TokenResponse(BaseModel):
@@ -27,6 +29,11 @@ class UserResponse(BaseModel):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+    @model_validator(mode="after")
+    def _resolve_avatar(self) -> "UserResponse":
+        self.avatar_url = resolve_avatar_url(self.avatar_url)
+        return self
 
 
 class UserUpdate(BaseModel):

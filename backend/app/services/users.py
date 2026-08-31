@@ -3,6 +3,7 @@ from typing import Any
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
+from app.core.config import resolve_avatar_url
 from app.db.models.user import UserModel
 from app.schemas.auth import UserUpdate
 
@@ -43,7 +44,7 @@ class UserService:
                 "id": u.id,
                 "username": u.username,
                 "display_name": u.display_name,
-                "avatar_url": u.avatar_url,
+                "avatar_url": resolve_avatar_url(u.avatar_url),
             }
             for u in users
         ]
