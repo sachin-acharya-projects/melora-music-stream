@@ -40,7 +40,7 @@ function TabNavigator() {
             elevation: 0,
           },
         })}
-        tabBar={() => <AppTabBar />}
+        tabBar={(props) => <AppTabBar {...props} />}
       >
         <Tab.Screen name="HomeTab" component={HomeScreen} options={{ title: 'Home' }} />
         <Tab.Screen name="SearchTab" component={SearchScreen} options={{ title: 'Search' }} />

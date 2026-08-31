@@ -21,6 +21,7 @@ import {
     releasesApi,
 } from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
+import { usePlayerStore } from '@/store/playerStore';
 import { Colors, FontSize, Gradients, Radius, Spacing } from '@/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -28,14 +29,27 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Fragment, type ReactNode } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Fragment, type ReactNode, useRef } from 'react';
+import {
+    ActivityIndicator,
+    Animated,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
+
+const HERO_HEIGHT = 320;
 
 export function HomeScreen() {
     const navigation = useNavigation<Nav>();
     const user = useAuthStore((s) => s.user);
+    const currentSong = usePlayerStore((s) => s.currentSong);
+    const scrollY = useRef(new Animated.Value(0)).current;
 
     const recs = useQuery({
         queryKey: queryKeys.home.recommendations,
@@ -66,7 +80,6 @@ export function HomeScreen() {
         queryFn: () => releasesApi.list({ limit: HOME_LIMITS.sectionItems }),
     });
 
-
     const refetchAll = () => {
         recs.refetch();
         recent.refetch();
@@ -78,6 +91,20 @@ export function HomeScreen() {
     };
 
     const loading = recs.isLoading && !recs.data && !playlists.data && !albums.data;
+
+    const paddingBottom = currentSong ? 230 : 110;
+
+    const heroTranslateY = scrollY.interpolate({
+        inputRange: [-100, 0, HERO_HEIGHT],
+        outputRange: [60, 0, 120],
+        extrapolate: 'clamp',
+    });
+
+    const heroOpacity = scrollY.interpolate({
+        inputRange: [0, HERO_HEIGHT],
+        outputRange: [1, 0.3],
+        extrapolate: 'clamp',
+    });
 
     const blocks: { key: string; node: ReactNode }[] = [
         {
@@ -114,8 +141,8 @@ export function HomeScreen() {
                 return recent.data?.length ? (
                     <Section meta={HOME_SECTIONS.recent}>
                         <Glass style={{ marginHorizontal: Spacing.lg, paddingTop: Spacing.sm + 10, paddingBottom: Spacing.xs }}>
-                            {recent.data.slice(0, HOME_LIMITS.sectionItems).map((s, idx) => (
-                                <SongRow key={s.id} song={s} grouped={true} isDownloaded={idx === 1} inList />
+                            {recent.data.slice(0, HOME_LIMITS.sectionItems).map((s, idx, arr) => (
+                                <SongRow key={s.id} song={s} grouped={true} isDownloaded={idx === 1} inList isLast={idx === arr.length - 1} />
                             ))}
                         </Glass>
                     </Section>
@@ -124,8 +151,8 @@ export function HomeScreen() {
                 return recs.data?.length ? (
                     <Section meta={HOME_SECTIONS.recs}>
                         <Glass style={{ marginHorizontal: Spacing.lg, paddingTop: Spacing.sm + 10, paddingBottom: Spacing.xs }}>
-                            {recs.data.slice(0, HOME_LIMITS.sectionItems).map((s, idx) => (
-                                <SongRow key={s.id} song={s} grouped={true} isDownloaded={idx === 1} inList />
+                            {recs.data.slice(0, HOME_LIMITS.sectionItems).map((s, idx, arr) => (
+                                <SongRow key={s.id} song={s} grouped={true} isDownloaded={idx === 1} inList isLast={idx === arr.length - 1} />
                             ))}
                         </Glass>
                     </Section>
@@ -134,8 +161,8 @@ export function HomeScreen() {
                 return feed.data?.top_songs?.length ? (
                     <Section meta={HOME_SECTIONS.trending}>
                         <Glass style={{ marginHorizontal: Spacing.lg, paddingTop: Spacing.sm + 10, paddingBottom: Spacing.xs }}>
-                            {feed.data.top_songs.slice(0, HOME_LIMITS.sectionItems).map((s, idx) => (
-                                <SongRow key={s.id} song={s} grouped={true} isDownloaded={idx === 1} inList />
+                            {feed.data.top_songs.slice(0, HOME_LIMITS.sectionItems).map((s, idx, arr) => (
+                                <SongRow key={s.id} song={s} grouped={true} isDownloaded={idx === 1} inList isLast={idx === arr.length - 1} />
                             ))}
                         </Glass>
                     </Section>
@@ -144,8 +171,8 @@ export function HomeScreen() {
                 return newReleasesSongs.data?.length ? (
                     <Section meta={HOME_SECTIONS.newReleases}>
                         <Glass style={{ marginHorizontal: Spacing.lg, paddingTop: Spacing.sm + 10, paddingBottom: Spacing.xs }}>
-                            {newReleasesSongs.data.slice(0, HOME_LIMITS.sectionItems).map((s, idx) => (
-                                <SongRow key={s.id} song={s} grouped={true} isDownloaded={idx === 1} inList />
+                            {newReleasesSongs.data.slice(0, HOME_LIMITS.sectionItems).map((s, idx, arr) => (
+                                <SongRow key={s.id} song={s} grouped={true} isDownloaded={idx === 1} inList isLast={idx === arr.length - 1} />
                             ))}
                         </Glass>
                     </Section>
@@ -216,33 +243,51 @@ export function HomeScreen() {
 
     return (
         <Screen noBackground>
-            <View style={styles.heroBackground} pointerEvents="none">
-                <Image
-                    source={BACKGROUNDS.hero}
-                    style={styles.heroImage}
-                    contentFit="cover"
-                />
-                <LinearGradient
-                    colors={Gradients.heroFade}
-                    locations={[ 0, 0.5, 0.8, 1 ]}
-                    style={StyleSheet.absoluteFill}
-                />
+            <View style={styles.heroClip}>
+                <Animated.View
+                    style={[
+                        styles.heroBackground,
+                        {
+                            transform: [{ translateY: heroTranslateY }],
+                            opacity: heroOpacity,
+                        },
+                    ]}
+                    pointerEvents="none"
+                >
+                    <Image
+                        source={BACKGROUNDS.hero}
+                        style={styles.heroImage}
+                        contentFit="cover"
+                    />
+                    <LinearGradient
+                        colors={Gradients.heroFade}
+                        locations={[0, 0.4, 0.75, 1]}
+                        style={StyleSheet.absoluteFill}
+                    />
+                </Animated.View>
             </View>
-            <ScrollView
-                contentContainerStyle={styles.content}
+            <Animated.ScrollView
+                contentContainerStyle={[styles.content, { paddingBottom }]}
                 showsVerticalScrollIndicator={false}
+                onScroll={Animated.event(
+                    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+                    { useNativeDriver: true },
+                )}
+                scrollEventThrottle={16}
                 refreshControl={
                     <RefreshControl
                         refreshing={recs.isFetching || recent.isFetching}
                         onRefresh={refetchAll}
                         tintColor={Colors.primary}
+                        colors={[Colors.primary]}
+                        progressBackgroundColor={Colors.surface}
                     />
                 }
             >
                 {blocks.map((b) => (
                     <Fragment key={b.key}>{b.node}</Fragment>
                 ))}
-            </ScrollView>
+            </Animated.ScrollView>
         </Screen>
     );
 }
@@ -263,7 +308,7 @@ function Section({ meta, children }: { meta: HomeSectionMeta; children: ReactNod
 
 const styles = StyleSheet.create({
     content: {
-        paddingBottom: 230,
+        paddingBottom: 110,
     },
     headerRow: {
         flexDirection: 'row',
@@ -302,12 +347,16 @@ const styles = StyleSheet.create({
     section: {
         marginTop: Spacing.lg,
     },
+    heroClip: {
+        height: HERO_HEIGHT,
+        overflow: 'hidden',
+    },
     heroBackground: {
         position: 'absolute',
         top: 0,
         left: 0,
         right: 0,
-        height: 320,
+        height: HERO_HEIGHT + 120,
     },
     heroImage: {
         width: '100%',

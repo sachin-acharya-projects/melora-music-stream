@@ -16,9 +16,10 @@ interface SongRowProps {
   grouped?: boolean;
   isDownloaded?: boolean;
   inList?: boolean;
+  isLast?: boolean;
 }
 
-export function SongRow({ song, index, removable, onRemove, grouped, isDownloaded, inList }: SongRowProps) {
+export function SongRow({ song, index, removable, onRemove, grouped, isDownloaded, inList, isLast }: SongRowProps) {
   const playSong = usePlayerStore((s) => s.playSong);
   const toggle = usePlayerStore((s) => s.toggle);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
@@ -47,7 +48,7 @@ export function SongRow({ song, index, removable, onRemove, grouped, isDownloade
   );
 
   return (
-    <TouchableOpacity style={[styles.row, grouped && styles.rowGrouped]} onPress={onPlay} activeOpacity={0.7}>
+    <TouchableOpacity style={[styles.row, grouped && styles.rowGrouped, grouped && isLast && styles.rowLast]} onPress={onPlay} activeOpacity={0.7}>
         <View style={styles.artWrap}>
           <Artwork uri={song.thumbnail} size={inList ? 64 : 48} radius={Radius.sm} />
           {isCurrent ? (
@@ -108,6 +109,9 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.border,
+  },
+  rowLast: {
+    borderBottomWidth: 0,
   },
   artWrap: {
     position: 'relative',
