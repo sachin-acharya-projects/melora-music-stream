@@ -13,5 +13,6 @@ export const OAUTH_SCHEME = 'com.melora.app';
 
 export function proxied(url?: string | null): string | undefined {
   if (!url) return undefined;
-  return `${API_URL}/thumbnail?url=${encodeURIComponent(url)}`;
+  const resolved = url.startsWith('/') ? `${WEB_BASE}${url}` : url;
+  return `${API_URL}/thumbnail?url=${encodeURIComponent(resolved)}`;
 }
