@@ -102,13 +102,13 @@ export function HomeScreen() {
     const paddingBottom = currentSong ? 230 : 110;
 
     const heroTranslateY = scrollY.interpolate({
-        inputRange: [-100, 0, HERO_HEIGHT],
-        outputRange: [40, 0, HERO_HEIGHT * 0.6],
+        inputRange: [-100, 0, HERO_HEIGHT * 1.5],
+        outputRange: [40, 0, HERO_HEIGHT * 0.4],
         extrapolate: 'clamp',
     });
 
     const heroOpacity = scrollY.interpolate({
-        inputRange: [0, HERO_HEIGHT * 0.8],
+        inputRange: [0, HERO_HEIGHT * 2],
         outputRange: [1, 0],
         extrapolate: 'clamp',
     });
@@ -281,11 +281,11 @@ export function HomeScreen() {
                         <Text style={styles.helloCyan}>see you</Text>
                         <Text style={styles.sub}>Pick up where you left off</Text>
                     </View>
-                    <TouchableOpacity onPress={() => navigation.navigate('ProfileTab' as any)} activeOpacity={0.8}>
+                    <TouchableOpacity onPress={() => navigation.navigate('ProfileTab' as any)} activeOpacity={0.8} style={styles.avatarBtn}>
                         {user?.avatar ? (
-                            <Image source={{ uri: user.avatar }} style={{ width: 48, height: 48, borderRadius: 24 }} />
+                            <Image source={{ uri: user.avatar }} style={styles.avatarImg} />
                         ) : (
-                            <MaterialCommunityIcons name="account-circle" size={48} color={Colors.textSecondary} />
+                            <MaterialCommunityIcons name="account-outline" size={20} color={Colors.textSecondary} />
                         )}
                     </TouchableOpacity>
                 </View>
@@ -391,6 +391,22 @@ const styles = StyleSheet.create({
     },
     section: {
         marginTop: Spacing.lg,
+    },
+    avatarBtn: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: Colors.glass,
+        borderWidth: 1,
+        borderColor: Colors.glassBorder,
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
+    },
+    avatarImg: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
     },
     dropWrap: {
         position: 'absolute',
