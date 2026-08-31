@@ -30,7 +30,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Fragment, type ReactNode, useCallback, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Animated,
@@ -316,7 +316,7 @@ export function HomeScreen() {
             >
                 <View key="hero-spacer" style={{ height: HERO_HEIGHT }} />
                 {blocks.map((b) => (
-                    <Fragment key={b.key}>{b.node}</Fragment>
+                    <View key={b.key}>{b.node}</View>
                 ))}
             </Animated.ScrollView>
         </Screen>
@@ -391,12 +391,12 @@ const styles = StyleSheet.create({
         marginTop: Spacing.xl,
     },
     section: {
-        marginTop: Spacing.lg,
+        marginTop: 7,
     },
     avatarBtn: {
-        width: 39,
-        height: 39,
-        borderRadius: 20,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
         backgroundColor: Colors.glass,
         borderWidth: 1,
         borderColor: Colors.glassBorder,
@@ -405,9 +405,9 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
     },
     avatarImg: {
-        width: 39,
-        height: 39,
-        borderRadius: 20,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
     },
     dropWrap: {
         position: 'absolute',

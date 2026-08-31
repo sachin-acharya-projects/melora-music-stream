@@ -27,6 +27,7 @@ interface PlayerState {
   repeat: RepeatMode;
   position: number;
   duration: number;
+  unshuffledQueue: Song[] | null;
   playSong: (song: Song, queue?: Song[], startIndex?: number) => Promise<void>;
   setQueue: (songs: Song[], startIndex?: number) => Promise<void>;
   addToQueue: (song: Song) => void;
@@ -72,7 +73,7 @@ async function loadTrack(song: Song): Promise<void> {
   }
 
   loadAndPlay(url);
-  usePlayerStore.setState({ currentSong: song, isPlaying: true, pendingSongId: null });
+  usePlayerStore.setState({ isPlaying: true, pendingSongId: null });
   const token = ++loadToken;
   setTimeout(() => {
     if (token !== loadToken) return;
@@ -108,16 +109,17 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   repeat: 'none',
   position: 0,
   duration: 0,
+  unshuffledQueue: null,
 
   playSong: async (song, queue, startIndex = 0) => {
     const q = queue && queue.length ? queue : [song];
     const idx = queue && queue.length ? Math.min(startIndex, q.length - 1) : 0;
-    set({ queue: q, currentIndex: idx });
+    set({ queue: q, currentIndex: idx, currentSong: q[idx], position: 0 });
     await loadTrack(q[idx]);
   },
 
   setQueue: async (songs, startIndex = 0) => {
-    set({ queue: songs, currentIndex: startIndex });
+    set({ queue: songs, currentIndex: startIndex, currentSong: songs[startIndex], position: 0 });
     if (songs[startIndex]) await loadTrack(songs[startIndex]);
   },
 
@@ -126,7 +128,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     const next = [...queue, song];
     set({ queue: next });
     if (currentIndex === -1 || !currentSong) {
-      set({ currentIndex: next.length - 1, currentSong: song, isPlaying: true });
+      set({ currentIndex: next.length - 1, currentSong: song, isPlaying: true, position: 0 });
       void loadTrack(song);
     }
   },
@@ -136,7 +138,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     const at = currentIndex === -1 ? queue.length : currentIndex + 1;
     const next = [...queue.slice(0, at), song, ...queue.slice(at)];
     if (currentIndex === -1) {
-      set({ queue: next, currentIndex: next.length - 1, currentSong: song, isPlaying: true });
+      set({ queue: next, currentIndex: next.length - 1, currentSong: song, isPlaying: true, position: 0 });
       void loadTrack(song);
     } else {
       set({ queue: next });
@@ -150,10 +152,10 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     if (index === currentIndex) {
       getPlayer().pause();
       if (next.length === 0) {
-        set({ queue: [], currentIndex: -1, currentSong: null, isPlaying: false });
+        set({ queue: [], currentIndex: -1, currentSong: null, isPlaying: false, position: 0 });
       } else {
         const ni = Math.min(currentIndex, next.length - 1);
-        set({ queue: next, currentIndex: ni, currentSong: next[ni], isPlaying: true });
+        set({ queue: next, currentIndex: ni, currentSong: next[ni], isPlaying: true, position: 0 });
         void loadTrack(next[ni]);
       }
     } else {
@@ -178,7 +180,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         return;
       }
     }
-    set({ currentIndex: idx });
+    set({ currentIndex: idx, currentSong: queue[idx], position: 0 });
     void loadTrack(queue[idx]);
   },
 
@@ -192,7 +194,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     }
     let idx = currentIndex - 1;
     if (idx < 0) idx = queue.length - 1;
-    set({ currentIndex: idx });
+    set({ currentIndex: idx, currentSong: queue[idx], position: 0 });
     void loadTrack(queue[idx]);
   },
 
@@ -207,22 +209,31 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   toggleShuffle: () => {
-    const { shuffle, queue, currentIndex } = get();
+    const { shuffle, queue, currentIndex, currentSong, unshuffledQueue } = get();
     if (!shuffle) {
-      const current = queue[currentIndex];
       const rest = queue.filter((_, i) => i !== currentIndex);
       for (let i = rest.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [rest[i], rest[j]] = [rest[j], rest[i]];
       }
-      set({ shuffle: true, queue: [current, ...rest], currentIndex: 0 });
+      const newQueue = currentSong ? [currentSong, ...rest] : rest;
+      set({ shuffle: true, queue: newQueue, currentIndex: 0, unshuffledQueue: queue });
     } else {
-      set({ shuffle: false });
+      const restored = unshuffledQueue ?? queue;
+      const newIndex = currentSong
+        ? restored.findIndex((s) => s.id === currentSong.id)
+        : 0;
+      set({
+        shuffle: false,
+        queue: restored,
+        currentIndex: newIndex >= 0 ? newIndex : 0,
+        unshuffledQueue: null,
+      });
     }
   },
 
   cycleRepeat: () => {
-    const order: RepeatMode[] = ['none', 'one', 'all'];
+    const order: RepeatMode[] = ['none', 'all', 'one'];
     const i = order.indexOf(get().repeat);
     set({ repeat: order[(i + 1) % order.length] });
   },

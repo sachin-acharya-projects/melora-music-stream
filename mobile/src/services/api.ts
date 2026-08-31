@@ -143,8 +143,12 @@ export const discoverApi = {
 export const historyApi = {
   list: (params?: ListParams) => get<Song[]>('/history/', params as never),
   recent: () => get<Song[]>('/history/recent'),
-  recentlyPlayed: (params?: ListParams) =>
-    get<Song[]>('/history/recently-played', params as never),
+  recentlyPlayed: async (params?: { limit?: number }) => {
+    const { data } = await http.get<{ items: Song[] }>('/history/recently-played', {
+      params: { page: 1, page_size: params?.limit ?? 50 },
+    });
+    return data.items ?? [];
+  },
   stats: () => get('/history/stats'),
 };
 
