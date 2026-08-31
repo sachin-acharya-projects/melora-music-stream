@@ -12,22 +12,22 @@ export function AppTabBar() {
     <View style={StyleSheet.absoluteFill}>
       <BlurView intensity={24} tint="dark" style={StyleSheet.absoluteFill} />
       <View style={[styles.container, { paddingBottom: insets.bottom }]}>
-      <View style={styles.row}>
-        {MENU_ITEMS.map((item) => (
-          <TouchableOpacity
-            key={item.name}
-            style={styles.tabItem}
-            activeOpacity={0.7}
-          >
-            <MaterialCommunityIcons
-              name={item.icon}
-              size={22}
-              color={Colors.primary}
-            />
-          </TouchableOpacity>
-        ))}
+        <View style={styles.row}>
+          {MENU_ITEMS.map((item) => (
+            <TouchableOpacity
+              key={item.name}
+              style={styles.tabItem}
+              activeOpacity={0.7}
+            >
+              <MaterialCommunityIcons
+                name={item.icon}
+                size={22}
+                color={Colors.primary}
+              />
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
-    </View>
     </View>
   );
 }
