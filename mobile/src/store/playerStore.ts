@@ -88,7 +88,7 @@ async function loadTrack(song: Song): Promise<void> {
     albumTitle: '',
     artworkUrl: proxied(song.thumbnail) ?? '',
   });
-  recordHistory(song.id);
+  recordHistory(song);
   void saveState({
     last_song_id: song.id,
     current_queue: usePlayerStore.getState().queue,

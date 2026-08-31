@@ -294,7 +294,7 @@ export function HomeScreen() {
 
             <Animated.View style={[styles.dropWrap, { transform: [{ scale: dropScale }], opacity: dropOpacity }]} pointerEvents="none">
                 <View style={styles.dropOuter}>
-                    <Animated.View style={[styles.dropInner, { height: Animated.add(20, Animated.multiply(dropBounce, 12)) }]} />
+                    <Animated.View style={[styles.dropInner, { transform: [{ scaleY: Animated.add(1, Animated.multiply(dropBounce, 0.6)) }] }]} />
                     <View style={styles.dropStem} />
                 </View>
             </Animated.View>
@@ -314,7 +314,7 @@ export function HomeScreen() {
                 )}
                 scrollEventThrottle={16}
             >
-                <View style={{ height: HERO_HEIGHT }} />
+                <View key="hero-spacer" style={{ height: HERO_HEIGHT }} />
                 {blocks.map((b) => (
                     <Fragment key={b.key}>{b.node}</Fragment>
                 ))}

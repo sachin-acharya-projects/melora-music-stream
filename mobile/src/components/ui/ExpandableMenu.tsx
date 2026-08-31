@@ -2,10 +2,11 @@ import { useState, useRef } from 'react';
 import { View, TouchableOpacity, Animated, StyleSheet, Pressable, Dimensions } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
+import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { usePlayerStore } from '@/store/playerStore';
+import { useBlurTarget } from '@/components/ui/BlurTargetProvider';
 import { Colors, Gradients, Radius, Spacing } from '@/theme';
 import type { RootStackParamList, TabParamList } from '@/navigation/types';
 import { MENU_CONFIG, MENU_ITEMS, type MenuItem } from '@/config/menu';
@@ -20,6 +21,7 @@ export function ExpandableMenu() {
   const [open, setOpen] = useState(false);
   const fabProgress = useRef(new Animated.Value(0)).current;
   const itemProgressRef = useRef<Animated.Value[] | null>(null);
+  const blurRef = useBlurTarget();
   if (!itemProgressRef.current) {
     itemProgressRef.current = MENU_ITEMS.map(() => new Animated.Value(0));
   }
@@ -93,6 +95,7 @@ export function ExpandableMenu() {
         style={[styles.backdrop, { opacity: backdropOpacity }]}
         pointerEvents={open ? 'auto' : 'none'}
       >
+        <BlurView intensity={20} tint="dark" blurMethod="dimezisBlurViewSdk31Plus" blurTarget={blurRef} style={StyleSheet.absoluteFill} />
         <Pressable style={StyleSheet.absoluteFill} onPress={toggle} />
       </Animated.View>
 

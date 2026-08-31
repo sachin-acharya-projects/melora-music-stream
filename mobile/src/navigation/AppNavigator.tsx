@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useNavigation, type NavigationProp, useNavigationState } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { HomeScreen } from '@/pages/home/HomeScreen';
 import { SearchScreen } from '@/pages/search/SearchScreen';
@@ -23,6 +24,7 @@ import { NotificationsScreen } from '@/pages/notifications/NotificationsScreen';
 import { QueueScreen } from '@/pages/queue/QueueScreen';
 import { AppTabBar } from '@/components/AppTabBar';
 import { Artwork } from '@/components/ui/Artwork';
+import { BlurTargetProvider } from '@/components/ui/BlurTargetProvider';
 import { usePlayerStore } from '@/store/playerStore';
 import { getPlayer } from '@/services/audioEngine';
 import { useAudioPlayerStatus } from 'expo-audio';
@@ -70,6 +72,7 @@ function FloatingBall({ onPress }: { onPress: () => void }) {
   return (
     <View style={[styles.ballWrap, { bottom: insets.bottom + Spacing.md }]} pointerEvents="box-none">
       <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={styles.ball}>
+        <BlurView intensity={28} tint="dark" blurMethod="dimezisBlurViewSdk31Plus" style={StyleSheet.absoluteFill} />
         <View style={styles.ballInner}>
           <Artwork uri={currentSong.thumbnail} size={46} radius={23} />
         </View>
@@ -96,23 +99,25 @@ export function AppNavigator() {
 
   return (
       <View style={styles.wrap}>
-        <View style={{ flex: 1 }}>
-          <Stack.Navigator screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="TabRoot" component={TabNavigator} />
-            <Stack.Screen name="PlaylistDetail" component={PlaylistDetailScreen} />
-            <Stack.Screen name="ArtistDetail" component={ArtistDetailScreen} />
-            <Stack.Screen name="AlbumDetail" component={AlbumDetailScreen} />
-            <Stack.Screen name="Recommendations" component={RecommendationsScreen} />
-            <Stack.Screen name="Releases" component={ReleasesScreen} />
-            <Stack.Screen name="Browse" component={BrowseScreen} />
-            <Stack.Screen name="Discover" component={DiscoverScreen} />
-            <Stack.Screen name="History" component={HistoryScreen} />
-            <Stack.Screen name="Stats" component={StatsScreen} />
-            <Stack.Screen name="Settings" component={SettingsScreen} />
-            <Stack.Screen name="Notifications" component={NotificationsScreen} />
-            <Stack.Screen name="Queue" component={QueueScreen} />
-          </Stack.Navigator>
-        </View>
+        <BlurTargetProvider>
+          <View style={{ flex: 1 }}>
+            <Stack.Navigator screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="TabRoot" component={TabNavigator} />
+              <Stack.Screen name="PlaylistDetail" component={PlaylistDetailScreen} />
+              <Stack.Screen name="ArtistDetail" component={ArtistDetailScreen} />
+              <Stack.Screen name="AlbumDetail" component={AlbumDetailScreen} />
+              <Stack.Screen name="Recommendations" component={RecommendationsScreen} />
+              <Stack.Screen name="Releases" component={ReleasesScreen} />
+              <Stack.Screen name="Browse" component={BrowseScreen} />
+              <Stack.Screen name="Discover" component={DiscoverScreen} />
+              <Stack.Screen name="History" component={HistoryScreen} />
+              <Stack.Screen name="Stats" component={StatsScreen} />
+              <Stack.Screen name="Settings" component={SettingsScreen} />
+              <Stack.Screen name="Notifications" component={NotificationsScreen} />
+              <Stack.Screen name="Queue" component={QueueScreen} />
+            </Stack.Navigator>
+          </View>
+        </BlurTargetProvider>
         {currentSong && !isHome && (
           <FloatingBall onPress={() => navigation.navigate('NowPlaying')} />
         )}
