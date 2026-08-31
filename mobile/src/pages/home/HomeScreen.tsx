@@ -29,27 +29,30 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Fragment, type ReactNode, useRef } from 'react';
+import { Fragment, type ReactNode, useCallback, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Animated,
-    RefreshControl,
-    ScrollView,
+    Easing,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-const HERO_HEIGHT = 320;
+const HERO_HEIGHT = 340;
+const PULL_THRESHOLD = 80;
 
 export function HomeScreen() {
     const navigation = useNavigation<Nav>();
     const user = useAuthStore((s) => s.user);
     const currentSong = usePlayerStore((s) => s.currentSong);
+    const insets = useSafeAreaInsets();
     const scrollY = useRef(new Animated.Value(0)).current;
+    const [refreshing, setRefreshing] = useState(false);
 
     const recs = useQuery({
         queryKey: queryKeys.home.recommendations,
@@ -80,15 +83,19 @@ export function HomeScreen() {
         queryFn: () => releasesApi.list({ limit: HOME_LIMITS.sectionItems }),
     });
 
-    const refetchAll = () => {
-        recs.refetch();
-        recent.refetch();
-        playlists.refetch();
-        artists.refetch();
-        albums.refetch();
-        feed.refetch();
-        newReleasesSongs.refetch();
-    };
+    const refetchAll = useCallback(async () => {
+        setRefreshing(true);
+        await Promise.all([
+            recs.refetch(),
+            recent.refetch(),
+            playlists.refetch(),
+            artists.refetch(),
+            albums.refetch(),
+            feed.refetch(),
+            newReleasesSongs.refetch(),
+        ]);
+        setRefreshing(false);
+    }, [recs, recent, playlists, artists, albums, feed, newReleasesSongs]);
 
     const loading = recs.isLoading && !recs.data && !playlists.data && !albums.data;
 
@@ -96,44 +103,45 @@ export function HomeScreen() {
 
     const heroTranslateY = scrollY.interpolate({
         inputRange: [-100, 0, HERO_HEIGHT],
-        outputRange: [60, 0, 120],
+        outputRange: [40, 0, HERO_HEIGHT * 0.6],
         extrapolate: 'clamp',
     });
 
     const heroOpacity = scrollY.interpolate({
-        inputRange: [0, HERO_HEIGHT],
-        outputRange: [1, 0.3],
+        inputRange: [0, HERO_HEIGHT * 0.8],
+        outputRange: [1, 0],
         extrapolate: 'clamp',
     });
 
-    const blocks: { key: string; node: ReactNode }[] = [
-        {
-            key: 'greeting',
-            node: (
-                <View style={styles.headerRow}>
-                    <View style={styles.greeting}>
-                        <Text style={styles.helloWhite}>Good to</Text>
-                        <Text style={styles.helloCyan}>see you</Text>
-                        <Text style={styles.sub}>Pick up where you left off</Text>
-                    </View>
-                    <TouchableOpacity onPress={() => navigation.navigate('ProfileTab' as any)} activeOpacity={0.8}>
-                        {user?.avatar ? (
-                            <Image source={{ uri: user.avatar }} style={{ width: 48, height: 48, borderRadius: 24 }} />
-                        ) : (
-                            <MaterialCommunityIcons name="account-circle" size={48} color={Colors.textSecondary} />
-                        )}
-                    </TouchableOpacity>
-                </View>
-            ),
-        },
-    ];
+    const greetingOpacity = scrollY.interpolate({
+        inputRange: [0, 140],
+        outputRange: [1, 0],
+        extrapolate: 'clamp',
+    });
 
-    if (loading) {
-        blocks.push({
-            key: 'loader',
-            node: <ActivityIndicator style={styles.loader} color={Colors.primary} />,
-        });
-    }
+    const greetingTranslateY = scrollY.interpolate({
+        inputRange: [0, 140],
+        outputRange: [0, -40],
+        extrapolate: 'clamp',
+    });
+
+    const dropScale = scrollY.interpolate({
+        inputRange: [-PULL_THRESHOLD * 1.5, -PULL_THRESHOLD, 0],
+        outputRange: [1.4, 1, 0],
+        extrapolate: 'clamp',
+    });
+
+    const dropOpacity = scrollY.interpolate({
+        inputRange: [-PULL_THRESHOLD * 1.2, -PULL_THRESHOLD * 0.5, 0],
+        outputRange: [1, 0.6, 0],
+        extrapolate: 'clamp',
+    });
+
+    const dropBounce = scrollY.interpolate({
+        inputRange: [-PULL_THRESHOLD * 2, -PULL_THRESHOLD, 0],
+        outputRange: [0, 1, 0],
+        extrapolate: 'clamp',
+    });
 
     const sectionNode = (key: HomeSectionKey): ReactNode | null => {
         switch (key) {
@@ -236,6 +244,10 @@ export function HomeScreen() {
         }
     };
 
+    const blocks: { key: string; node: ReactNode }[] = [];
+    if (loading) {
+        blocks.push({ key: 'loader', node: <ActivityIndicator style={styles.loader} color={Colors.primary} /> });
+    }
     for (const key of HOME_SECTION_ORDER) {
         const node = sectionNode(key);
         if (node) blocks.push({ key, node });
@@ -243,29 +255,55 @@ export function HomeScreen() {
 
     return (
         <Screen noBackground>
-            <View style={styles.heroClip}>
-                <Animated.View
-                    style={[
-                        styles.heroBackground,
-                        {
-                            transform: [{ translateY: heroTranslateY }],
-                            opacity: heroOpacity,
-                        },
-                    ]}
-                    pointerEvents="none"
-                >
-                    <Image
-                        source={BACKGROUNDS.hero}
-                        style={styles.heroImage}
-                        contentFit="cover"
-                    />
-                    <LinearGradient
-                        colors={Gradients.heroFade}
-                        locations={[0, 0.4, 0.75, 1]}
-                        style={StyleSheet.absoluteFill}
-                    />
-                </Animated.View>
-            </View>
+            <Animated.View
+                style={[styles.heroWrap, { transform: [{ translateY: heroTranslateY }], opacity: heroOpacity }]}
+                pointerEvents="none"
+            >
+                <Image
+                    source={BACKGROUNDS.hero}
+                    style={styles.heroImage}
+                    contentFit="cover"
+                />
+                <LinearGradient
+                    colors={['transparent', 'transparent', 'rgba(7,7,9,0.4)', 'rgba(7,7,9,0.85)', Colors.background]}
+                    locations={[0, 0.35, 0.65, 0.88, 1]}
+                    style={StyleSheet.absoluteFill}
+                />
+            </Animated.View>
+
+            <Animated.View
+                style={[styles.greetingWrap, { opacity: greetingOpacity, transform: [{ translateY: greetingTranslateY }] }]}
+                pointerEvents="box-none"
+            >
+                <View style={[styles.headerRow, { paddingTop: Spacing.xxl }]}>
+                    <View style={styles.greeting}>
+                        <Text style={styles.helloWhite}>Good to</Text>
+                        <Text style={styles.helloCyan}>see you</Text>
+                        <Text style={styles.sub}>Pick up where you left off</Text>
+                    </View>
+                    <TouchableOpacity onPress={() => navigation.navigate('ProfileTab' as any)} activeOpacity={0.8}>
+                        {user?.avatar ? (
+                            <Image source={{ uri: user.avatar }} style={{ width: 48, height: 48, borderRadius: 24 }} />
+                        ) : (
+                            <MaterialCommunityIcons name="account-circle" size={48} color={Colors.textSecondary} />
+                        )}
+                    </TouchableOpacity>
+                </View>
+            </Animated.View>
+
+            <Animated.View style={[styles.dropWrap, { transform: [{ scale: dropScale }], opacity: dropOpacity }]} pointerEvents="none">
+                <View style={styles.dropOuter}>
+                    <Animated.View style={[styles.dropInner, { height: Animated.add(20, Animated.multiply(dropBounce, 12)) }]} />
+                    <View style={styles.dropStem} />
+                </View>
+            </Animated.View>
+
+            {refreshing && (
+                <View style={styles.refreshIndicator}>
+                    <ActivityIndicator size="small" color={Colors.primary} />
+                </View>
+            )}
+
             <Animated.ScrollView
                 contentContainerStyle={[styles.content, { paddingBottom }]}
                 showsVerticalScrollIndicator={false}
@@ -274,16 +312,8 @@ export function HomeScreen() {
                     { useNativeDriver: true },
                 )}
                 scrollEventThrottle={16}
-                refreshControl={
-                    <RefreshControl
-                        refreshing={recs.isFetching || recent.isFetching}
-                        onRefresh={refetchAll}
-                        tintColor={Colors.primary}
-                        colors={[Colors.primary]}
-                        progressBackgroundColor={Colors.surface}
-                    />
-                }
             >
+                <View style={{ height: HERO_HEIGHT }} />
                 {blocks.map((b) => (
                     <Fragment key={b.key}>{b.node}</Fragment>
                 ))}
@@ -310,12 +340,30 @@ const styles = StyleSheet.create({
     content: {
         paddingBottom: 110,
     },
+    heroWrap: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: HERO_HEIGHT + 100,
+    },
+    heroImage: {
+        width: '100%',
+        height: '100%',
+        opacity: 1,
+    },
+    greetingWrap: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 2,
+    },
     headerRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
         paddingHorizontal: Spacing.lg,
-        paddingTop: Spacing.xxl,
         paddingBottom: Spacing.xxl,
     },
     greeting: {
@@ -338,29 +386,45 @@ const styles = StyleSheet.create({
         fontSize: FontSize.sm,
         marginTop: 6,
     },
-    profileBtn: {
-        paddingLeft: Spacing.md,
-    },
     loader: {
         marginTop: Spacing.xl,
     },
     section: {
         marginTop: Spacing.lg,
     },
-    heroClip: {
-        height: HERO_HEIGHT,
-        overflow: 'hidden',
-    },
-    heroBackground: {
+    dropWrap: {
         position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: HERO_HEIGHT + 120,
+        top: HERO_HEIGHT / 2 - 24,
+        alignSelf: 'center',
+        zIndex: 3,
     },
-    heroImage: {
-        width: '100%',
-        height: '100%',
-        opacity: 1,
+    dropOuter: {
+        alignItems: 'center',
+    },
+    dropInner: {
+        width: 18,
+        borderRadius: 9,
+        backgroundColor: Colors.primary,
+        opacity: 0.8,
+    },
+    dropStem: {
+        width: 2,
+        height: 10,
+        backgroundColor: Colors.primary,
+        opacity: 0.5,
+        marginTop: -2,
+        borderRadius: 1,
+    },
+    refreshIndicator: {
+        position: 'absolute',
+        top: HERO_HEIGHT / 2 - 14,
+        alignSelf: 'center',
+        zIndex: 4,
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: 'rgba(10,10,14,0.7)',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
 });
