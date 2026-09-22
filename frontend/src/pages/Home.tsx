@@ -19,18 +19,13 @@ import { type HistoryItem, type SearchTopResult, type Song } from "@/types"
 import { openDownload, openDownloads } from "@/utils/download"
 import { MESSAGES } from "@/utils/messages"
 import {
-    ListEnd,
-    ListMusic,
     Loader2,
     Music2,
-    Radio as RadioIcon,
     Search,
-    User,
-    type LucideIcon,
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
-import { Link } from "react-router-dom"
+
 import { toast } from "react-toastify"
 
 const RECENT_LIMIT = 10
@@ -60,24 +55,6 @@ export default function Home() {
         const timer = setTimeout(() => setDebouncedQuery(searchQuery), 300)
         return () => clearTimeout(timer)
     }, [searchQuery])
-
-    const quickActions: Array<{
-        to: string
-        label: string
-        description: string
-        icon: LucideIcon
-    }> = [
-        {
-            to: "/playlists",
-            label: "Playlists",
-            description: "Manage your collections",
-            icon: ListMusic,
-        },
-        { to: "/now-playing", label: "Now Playing", description: "Control playback", icon: Music2 },
-        { to: "/queue", label: "Queue", description: "See what's next", icon: ListEnd },
-        { to: "/profile", label: "Profile", description: "Your account", icon: User },
-        { to: "/radio", label: "Radio", description: "Tune into moods", icon: RadioIcon },
-    ]
 
     const { viewMode, setViewMode } = useThemeStore()
     const addDownloadQueue = useQueueStore((s) => s.add)
