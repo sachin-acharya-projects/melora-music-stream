@@ -1,32 +1,34 @@
 import React from 'react';
 import { View, StyleSheet, type ViewProps } from 'react-native';
 
-let RealBlurView: React.ComponentType<any>;
-try {
-  RealBlurView = require('expo-blur').BlurView;
-} catch {
-  RealBlurView = View as any;
-}
-
 interface SafeBlurViewProps extends ViewProps {
   intensity?: number;
   tint?: string;
-  blurMethod?: string;
-  blurTarget?: React.RefObject<any>;
+  blurMethod?: 'dark' | 'light' | 'xlight';
+  blurTarget?: any;
   children?: React.ReactNode;
 }
 
-export function SafeBlurView({ intensity, tint, blurMethod, blurTarget, style, children, ...rest }: SafeBlurViewProps) {
+export function SafeBlurView({ intensity = 10, tint = 'dark', blurMethod = 'dark', blurTarget, style, children, ...rest }: SafeBlurViewProps) {
+  const overlayColor = tint === 'dark'
+    ? 'rgba(10,10,14,0.7)'
+    : tint === 'light'
+      ? 'rgba(255,255,255,0.65)'
+      : 'rgba(245,246,248,0.5)';
+  const opacity = (intensity ?? 10) / 100;
+
   return (
-    <RealBlurView
-      intensity={intensity}
-      tint={tint}
-      blurMethod={blurMethod}
-      blurTarget={blurTarget}
-      style={style}
-      {...rest}
+    <View
+      style={[
+        style,
+        {
+          backgroundColor: overlayColor,
+          opacity,
+          ...rest,
+        },
+      ]}
     >
       {children}
-    </RealBlurView>
+    </View>
   );
 }

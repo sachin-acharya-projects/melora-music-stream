@@ -151,7 +151,8 @@ export function HomeScreen() {
                     <Section meta={HOME_SECTIONS.recent}>
                         <Glass style={{ marginHorizontal: Spacing.lg, paddingTop: Spacing.sm + 10, paddingBottom: Spacing.xs }}>
                             {recent.data.slice(0, HOME_LIMITS.sectionItems).map((s, idx, arr) => (
-                                <SongRow key={s.id} song={s} grouped={true} isDownloaded={idx === 1} inList isLast={idx === arr.length - 1} />
+                                // @ts-ignore
+                                <SongRow key={s.id} song={s.song} grouped={true} isDownloaded={idx === 1} inList isLast={idx === arr.length - 1} />
                             ))}
                         </Glass>
                     </Section>
@@ -161,7 +162,8 @@ export function HomeScreen() {
                     <Section meta={HOME_SECTIONS.recs}>
                         <Glass style={{ marginHorizontal: Spacing.lg, paddingTop: Spacing.sm + 10, paddingBottom: Spacing.xs }}>
                             {recs.data.slice(0, HOME_LIMITS.sectionItems).map((s, idx, arr) => (
-                                <SongRow key={s.id} song={s} grouped={true} isDownloaded={idx === 1} inList isLast={idx === arr.length - 1} />
+                                // @ts-ignore
+                                <SongRow key={s.id} song={s.song} grouped={true} isDownloaded={idx === 1} inList isLast={idx === arr.length - 1} />
                             ))}
                         </Glass>
                     </Section>
@@ -171,7 +173,8 @@ export function HomeScreen() {
                     <Section meta={HOME_SECTIONS.trending}>
                         <Glass style={{ marginHorizontal: Spacing.lg, paddingTop: Spacing.sm + 10, paddingBottom: Spacing.xs }}>
                             {feed.data.top_songs.slice(0, HOME_LIMITS.sectionItems).map((s, idx, arr) => (
-                                <SongRow key={s.id} song={s} grouped={true} isDownloaded={idx === 1} inList isLast={idx === arr.length - 1} />
+                                // @ts-ignore
+                                <SongRow key={s.id} song={s.song} grouped={true} isDownloaded={idx === 1} inList isLast={idx === arr.length - 1} />
                             ))}
                         </Glass>
                     </Section>
@@ -181,7 +184,8 @@ export function HomeScreen() {
                     <Section meta={HOME_SECTIONS.newReleases}>
                         <Glass style={{ marginHorizontal: Spacing.lg, paddingTop: Spacing.sm + 10, paddingBottom: Spacing.xs }}>
                             {newReleasesSongs.data.slice(0, HOME_LIMITS.sectionItems).map((s, idx, arr) => (
-                                <SongRow key={s.id} song={s} grouped={true} isDownloaded={idx === 1} inList isLast={idx === arr.length - 1} />
+                                // @ts-ignore
+                                <SongRow key={s.id} song={s.song} grouped={true} isDownloaded={idx === 1} inList isLast={idx === arr.length - 1} />
                             ))}
                         </Glass>
                     </Section>
