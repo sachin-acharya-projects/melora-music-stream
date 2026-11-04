@@ -1,3 +1,4 @@
+from typing import Any
 from urllib.parse import urlsplit
 
 from fastapi import HTTPException, status
@@ -26,7 +27,7 @@ def _validate_https_url(value: str, field: str) -> str:
     return value
 
 
-def _provider_response(provider: OIDCProviderModel) -> dict:
+def _provider_response(provider: OIDCProviderModel) -> dict[str, Any]:
     return {
         "id": provider.id,
         "name": provider.name,
@@ -48,7 +49,7 @@ class OIDCProviderService:
     """Admin operations for configured external OIDC identity providers."""
 
     @staticmethod
-    def list(db: Session, *, enabled_only: bool = False) -> list[dict]:
+    def list(db: Session, *, enabled_only: bool = False) -> list[dict[str, Any]]:
         query = db.query(OIDCProviderModel)
         if enabled_only:
             query = query.filter(OIDCProviderModel.enabled.is_(True))
@@ -56,7 +57,7 @@ class OIDCProviderService:
         return [_provider_response(provider) for provider in providers]
 
     @staticmethod
-    def list_public(db: Session) -> list[dict]:
+    def list_public(db: Session) -> list[dict[str, Any]]:
         """Return only enabled provider labels required by the sign-in screen."""
         providers = (
             db.query(OIDCProviderModel)
@@ -76,7 +77,7 @@ class OIDCProviderService:
         ]
 
     @staticmethod
-    def create(db: Session, data: OIDCProviderCreate) -> dict:
+    def create(db: Session, data: OIDCProviderCreate) -> dict[str, Any]:
         issuer = _validate_https_url(data.issuer, "issuer")
         discovery_url = (
             _validate_https_url(data.discovery_url, "discovery_url")
@@ -116,7 +117,7 @@ class OIDCProviderService:
         return _provider_response(provider)
 
     @staticmethod
-    def update(db: Session, provider_id: str, data: OIDCProviderUpdate) -> dict:
+    def update(db: Session, provider_id: str, data: OIDCProviderUpdate) -> dict[str, Any]:
         provider = db.query(OIDCProviderModel).filter(OIDCProviderModel.id == provider_id).first()
         if provider is None:
             raise HTTPException(status_code=404, detail="OIDC provider not found")
