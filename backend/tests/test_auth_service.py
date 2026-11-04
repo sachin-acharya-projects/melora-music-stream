@@ -229,7 +229,9 @@ class TestUpsertGoogleUser:
         assert user.oauth_provider == "google"
         assert user.oauth_id == "google-123"
 
-    def test_updates_existing_user(self, db: Session) -> None:
+    def test_matching_email_does_not_implicitly_link_google_identity(
+        self, db: Session
+    ) -> None:
         existing = UserModel(
             email="existing@example.com",
             username="existing",
@@ -239,11 +241,18 @@ class TestUpsertGoogleUser:
         db.add(existing)
         db.commit()
 
-        user = AuthService.upsert_google_user(
-            db, google_id="new-id", email="existing@example.com", name="Updated Name"
-        )
-        assert user.id == existing.id
-        assert user.display_name == "Updated Name"
+        with pytest.raises(Exception) as excinfo:
+            AuthService.upsert_google_user(
+                db,
+                google_id="new-id",
+                email="existing@example.com",
+                name="Updated Name",
+            )
+
+        assert excinfo.value.status_code == 409
+        db.refresh(existing)
+        assert existing.oauth_id == "old-id"
+        assert existing.display_name is None
 
     def test_deactivated_existing_user_raises_clear_message(self, db: Session) -> None:
         existing = UserModel(
