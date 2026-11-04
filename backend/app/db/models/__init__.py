@@ -16,6 +16,7 @@ from app.db.models.bug_report import (
 )
 from app.db.models.external_identity import ExternalIdentityModel
 from app.db.models.listening_history import ListeningHistoryModel
+from app.db.models.machine_client import MachineClientModel, MachineUserGrantModel
 from app.db.models.notification import NotificationModel
 from app.db.models.oauth_application import OAuthApplicationModel
 from app.db.models.oauth_tokens import (
@@ -43,6 +44,8 @@ __all__ = [
     "BugReportStatus",
     "ExternalIdentityModel",
     "ListeningHistoryModel",
+    "MachineClientModel",
+    "MachineUserGrantModel",
     "NotificationModel",
     "OAuthApplicationModel",
     "OAuthAuthorizationCodeModel",
