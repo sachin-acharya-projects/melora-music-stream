@@ -7,6 +7,7 @@ import secrets
 from datetime import UTC, datetime, timedelta
 
 from fastapi import HTTPException
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -277,7 +278,11 @@ class MachineClientService:
             .filter(
                 MachineUserGrantModel.id == grant_id,
                 MachineClientModel.id == client_record_id,
-                MachineClientModel.owner_user_id == owner.id,
+                or_(
+                    MachineClientModel.owner_user_id == owner.id,
+                    MachineUserGrantModel.user_id == owner.id,
+                    owner.role == UserRole.ADMIN.value,
+                ),
             )
             .first()
         )
