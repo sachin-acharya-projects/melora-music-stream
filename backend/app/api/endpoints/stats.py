@@ -2,14 +2,19 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Query
 
-from app.api.deps import CurrentUser, SessionDep
+from fastapi import Depends
+
+from app.api.deps import SessionDep
+from app.api.deps.auth import require_user_or_scopes
+from app.db.models.user import UserModel
 from app.services.stats import StatsService
 
 router = APIRouter()
+StatsReadUser = Annotated[UserModel, Depends(require_user_or_scopes("history:read"))]
 
 
 @router.get("/")
-def get_stats(db: SessionDep, current_user: CurrentUser) -> dict[str, Any]:
+def get_stats(db: SessionDep, current_user: StatsReadUser) -> dict[str, Any]:
     return StatsService.get_stats(db, user_id=current_user.id)
 
 
