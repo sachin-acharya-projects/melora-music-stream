@@ -1,8 +1,12 @@
 from typing import Any
 
-from fastapi import APIRouter, Response, status
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Response, status
 
 from app.api.deps import CurrentUser, SessionDep
+from app.api.deps.auth import require_user_or_scopes
+from app.db.models.user import UserModel
 from app.core.scopes import serialize_scope_catalog
 from app.core.webhook_events import serialize_webhook_events
 from app.schemas.machine_clients import (
@@ -33,6 +37,7 @@ from app.services.personal_access_tokens import PersonalAccessTokenService
 from app.services.webhooks import WebhookSubscriptionService
 
 router = APIRouter()
+WebhookManageUser = Annotated[UserModel, Depends(require_user_or_scopes("webhooks:manage"))]
 
 
 @router.get("/scopes", response_model=list[dict[str, str | bool]])
@@ -237,7 +242,7 @@ def list_webhook_events() -> list[dict[str, str]]:
 )
 def create_webhook_subscription(
     data: WebhookSubscriptionCreate,
-    user: CurrentUser,
+    user: WebhookManageUser,
     db: SessionDep,
 ) -> dict[str, Any]:
     """Create a webhook subscription and return its signing secret once."""
