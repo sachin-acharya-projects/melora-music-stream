@@ -48,6 +48,26 @@ class OIDCProviderService:
         return [_provider_response(provider) for provider in providers]
 
     @staticmethod
+    def list_public(db: Session) -> list[dict]:
+        """Return only enabled provider labels required by the sign-in screen."""
+        providers = (
+            db.query(OIDCProviderModel)
+            .filter(OIDCProviderModel.enabled.is_(True))
+            .order_by(OIDCProviderModel.sort_order, OIDCProviderModel.display_name)
+            .all()
+        )
+        return [
+            {
+                "id": provider.id,
+                "name": provider.name,
+                "display_name": provider.display_name,
+                "button_label": provider.button_label,
+                "sort_order": provider.sort_order,
+            }
+            for provider in providers
+        ]
+
+    @staticmethod
     def create(db: Session, data: OIDCProviderCreate) -> dict:
         issuer = _validate_https_url(str(data.issuer), "issuer")
         discovery_url = (
