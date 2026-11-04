@@ -219,3 +219,67 @@ def test_webhook_subscription_api(client, db, auth_headers, monkeypatch) -> None
         headers=auth_headers,
     )
     assert deleted.status_code == 204
+
+
+
+def test_pat_scope_controls_playlist_read_and_write(client, auth_headers) -> None:
+    created = client.post(
+        "/api/v1/developer/tokens",
+        headers=auth_headers,
+        json={"name": "Playlist reader", "scopes": ["playlists:read"]},
+    )
+    assert created.status_code == 201
+    pat_headers = {"Authorization": f"Bearer {created.json()['token']}"}
+
+    readable = client.get("/api/v1/playlists/", headers=pat_headers)
+    assert readable.status_code == 200
+
+    denied = client.post(
+        "/api/v1/playlists/",
+        headers=pat_headers,
+        json={"name": "Should not be created", "visibility": "private"},
+    )
+    assert denied.status_code == 403
+
+
+def test_machine_playlist_access_requires_explicit_user_header_and_grant(
+    client, auth_headers, test_user
+) -> None:
+    created = client.post(
+        "/api/v1/developer/machine-clients",
+        headers=auth_headers,
+        json={
+            "name": "Playlist sync service",
+            "service_identity": "urn:melora:playlist-sync-api",
+            "scopes": ["playlists:read"],
+        },
+    )
+    assert created.status_code == 201
+    machine = created.json()
+
+    grant = client.post(
+        f"/api/v1/developer/machine-clients/{machine['id']}/user-grants",
+        headers=auth_headers,
+        json={"user_id": test_user.id, "scopes": ["playlists:read"]},
+    )
+    assert grant.status_code == 201
+
+    token = client.post(
+        "/api/v1/oauth/token",
+        json={
+            "grant_type": "client_credentials",
+            "client_id": machine["client_id"],
+            "client_secret": machine["client_secret"],
+        },
+    )
+    assert token.status_code == 200
+    machine_headers = {"Authorization": f"Bearer {token.json()['access_token']}"}
+
+    missing_target = client.get("/api/v1/playlists/", headers=machine_headers)
+    assert missing_target.status_code == 400
+
+    allowed = client.get(
+        "/api/v1/playlists/",
+        headers={**machine_headers, "X-Melora-User-ID": test_user.id},
+    )
+    assert allowed.status_code == 200
