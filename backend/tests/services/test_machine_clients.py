@@ -1,11 +1,11 @@
 import pytest
 from fastapi import HTTPException
+from fastapi.security import HTTPAuthorizationCredentials
 
-from app.db.models.machine_client import MachineClientModel
 from app.api.deps.auth import require_machine_scopes
+from app.db.models.machine_client import MachineClientModel
 from app.services.auth import AuthService
 from app.services.machine_clients import MachineClientService
-from fastapi.security import HTTPAuthorizationCredentials
 
 
 def _create_machine(db, owner):
@@ -95,7 +95,6 @@ def test_machine_client_deactivation_invalidates_credentials(db, test_user) -> N
             str(created["client_secret"]),
         )
     assert exc.value.status_code == 401
-
 
 
 def test_machine_token_uses_machine_scope_dependency(db, test_user) -> None:
