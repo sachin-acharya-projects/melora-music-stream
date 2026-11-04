@@ -122,7 +122,6 @@ def deactivate_oauth_application(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-
 @router.post(
     "/machine-clients",
     response_model=MachineClientCreated,
