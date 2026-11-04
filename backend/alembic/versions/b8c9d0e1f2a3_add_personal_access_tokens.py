@@ -38,7 +38,6 @@ def upgrade() -> None:
     )
     op.create_index("ix_personal_access_tokens_id", "personal_access_tokens", ["id"])
     op.create_index("ix_personal_access_tokens_user_id", "personal_access_tokens", ["user_id"])
-    op.create_index("ix_personal_access_tokens_token_hash", "personal_access_tokens", ["token_hash"])
     op.create_index("ix_personal_access_tokens_token_prefix", "personal_access_tokens", ["token_prefix"])
     op.create_index("ix_personal_access_tokens_expires_at", "personal_access_tokens", ["expires_at"])
 
@@ -46,7 +45,6 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_index("ix_personal_access_tokens_expires_at", table_name="personal_access_tokens")
     op.drop_index("ix_personal_access_tokens_token_prefix", table_name="personal_access_tokens")
-    op.drop_index("ix_personal_access_tokens_token_hash", table_name="personal_access_tokens")
     op.drop_index("ix_personal_access_tokens_user_id", table_name="personal_access_tokens")
     op.drop_index("ix_personal_access_tokens_id", table_name="personal_access_tokens")
     op.drop_table("personal_access_tokens")
