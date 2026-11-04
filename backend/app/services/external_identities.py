@@ -3,6 +3,7 @@ from typing import Any
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.db.models.external_identity import ExternalIdentityModel
 from app.db.models.oidc_provider import OIDCProviderModel
 from app.db.models.user import UserModel
@@ -48,14 +49,21 @@ class ExternalIdentityService:
 
         other_identity_exists = (
             db.query(ExternalIdentityModel.id)
+            .join(OIDCProviderModel, OIDCProviderModel.id == ExternalIdentityModel.provider_id)
             .filter(
                 ExternalIdentityModel.user_id == user.id,
                 ExternalIdentityModel.id != identity.id,
+                OIDCProviderModel.enabled.is_(True),
             )
             .first()
             is not None
         )
-        has_legacy_google_login = bool(user.oauth_provider == "google" and user.oauth_id)
+        has_legacy_google_login = bool(
+            user.oauth_provider == "google"
+            and user.oauth_id
+            and settings.GOOGLE_CLIENT_ID
+            and settings.GOOGLE_CLIENT_SECRET
+        )
         if not user.password_hash and not other_identity_exists and not has_legacy_google_login:
             raise HTTPException(
                 status_code=409,
