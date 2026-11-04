@@ -79,6 +79,23 @@ Machine-to-machine client credentials are also implemented:
 
 A dedicated browser consent screen and frontend developer-management UI remain outstanding. Existing music endpoints have not yet all been migrated to delegated or machine scope enforcement.
 
+Webhook subscriptions and the delivery outbox now have a backend foundation:
+
+- `POST /api/v1/developer/webhooks` creates a subscription and returns a generated signing secret once. Secrets are encrypted at rest with the separate `WEBHOOK_SECRET_ENCRYPTION_KEY`; rotation returns a replacement secret once, and list responses never include it.
+- `GET /api/v1/developer/webhook-events` lists supported event types. The initial catalog covers playback, song/library, playlist, artist, upload, settings, user, and automation events.
+- `WebhookEventService.enqueue_event` writes durable per-subscription outbox rows. Playlist create/update/delete, track changes, import, sync, and reorder operations currently enqueue events.
+- The worker signs the exact JSON request body with HMAC-SHA256 over `timestamp + "." + body`. It sends `X-Melora-Event`, `X-Melora-Event-ID`, `X-Melora-Timestamp`, and `X-Melora-Signature` headers.
+- Deliveries are claimed durably, do not follow redirects, reject non-HTTPS destinations and DNS results containing non-public IP addresses, and retry failures with exponential backoff up to ten attempts.
+- Run the worker with `python -m app.workers.webhook_worker` from the backend environment. Production Compose/service-manager integration is intentionally not changed; the worker must be deployed as a separate process after its encryption key is configured.
+
+Generate the dedicated key with:
+
+```bash
+python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+```
+
+Keep `WEBHOOK_SECRET_ENCRYPTION_KEY` stable and backed up. Losing or rotating it without re-encrypting stored secrets makes existing webhook signatures impossible to reproduce.
+
 A single authorization policy must be shared by browser sessions, personal access tokens, OAuth applications, and machine clients.
 
 A single authorization policy must be shared by browser sessions, personal access tokens, OAuth applications, and machine clients.
