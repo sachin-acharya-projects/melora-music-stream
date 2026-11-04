@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Response, status
 
@@ -17,7 +17,7 @@ router = APIRouter()
 def list_oidc_providers(
     db: SessionDep,
     _: Annotated[UserModel, Depends(require_admin)],
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """List configured OIDC providers. Client secrets are never returned."""
     return OIDCProviderService.list(db)
 
@@ -31,7 +31,7 @@ def create_oidc_provider(
     data: OIDCProviderCreate,
     db: SessionDep,
     _: Annotated[None, Depends(require_admin)],
-) -> dict:
+) -> dict[str, Any]:
     """Register an external OIDC provider."""
     return OIDCProviderService.create(db, data)
 
