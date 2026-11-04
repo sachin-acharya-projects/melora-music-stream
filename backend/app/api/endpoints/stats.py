@@ -28,7 +28,7 @@ def get_top_artists(
 @router.get("/top-songs")
 def get_top_songs(
     db: SessionDep,
-    current_user: CurrentUser,
+    current_user: StatsReadUser,
     limit: Annotated[int, Query(ge=1, le=100)] = 10,
 ) -> list[dict[str, Any]]:
     return StatsService.get_top_songs(db, user_id=current_user.id, limit=limit)
