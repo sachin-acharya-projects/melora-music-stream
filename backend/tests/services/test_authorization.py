@@ -2,9 +2,9 @@ import pytest
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
 
+from app.api.deps.auth import require_scopes
 from app.core.scopes import ALL_SCOPES, ADMIN_SCOPES, normalize_scopes
 from app.services.auth import AuthService
-from app.api.deps.auth import require_scopes
 from app.services.authorization import (
     effective_scope_ceiling,
     require_delegated_scopes,
@@ -91,7 +91,6 @@ def test_delegated_access_requires_explicit_scope_and_owner(test_user) -> None:
     assert wrong_owner.value.status_code == 403
 
 
-
 def test_delegated_access_token_contains_only_validated_scopes(test_user) -> None:
     token = AuthService.create_delegated_access_token(
         test_user,
@@ -120,7 +119,6 @@ def test_delegated_access_token_cannot_exceed_user_role(admin_user, test_user) -
     payload = AuthService.decode_token(admin_token)
     assert payload is not None
     assert payload["scopes"] == ["admin:users:write"]
-
 
 
 def test_browser_session_token_cannot_satisfy_delegated_scope_dependency(
