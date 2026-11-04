@@ -1,12 +1,17 @@
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { BackgroundWave } from "@/components/login/background-wave"
 import { useAuth } from "@/hooks/useAuth"
-import { AUTH_ERROR_STORAGE_KEY } from "@/services/auth.service"
+import { authService, AUTH_ERROR_STORAGE_KEY, type OIDCProvider } from "@/services/auth.service"
 import { Loader2, Music } from "lucide-react"
 import { toast } from "react-toastify"
 
 export default function Login() {
     const { login, isLoading } = useAuth()
+    const [providers, setProviders] = useState<OIDCProvider[]>([])
+
+    useEffect(() => {
+        authService.getOIDCProviders().then(setProviders).catch(() => setProviders([]))
+    }, [])
 
     useEffect(() => {
         const error = sessionStorage.getItem(AUTH_ERROR_STORAGE_KEY)
@@ -66,6 +71,25 @@ export default function Login() {
                         Continue with Google
                     </button>
                 </div>
+
+                {providers.length > 0 && (
+                    <div className='space-y-3'>
+                        <div className='flex items-center gap-3 text-xs font-medium uppercase tracking-[0.18em] text-neutral-400'>
+                            <span className='h-px flex-1 bg-neutral-200 dark:bg-neutral-700' />
+                            More sign-in options
+                            <span className='h-px flex-1 bg-neutral-200 dark:bg-neutral-700' />
+                        </div>
+                        {providers.map((provider) => (
+                            <button
+                                key={provider.id}
+                                onClick={() => authService.loginWithOIDC(provider.id)}
+                                className='flex w-full cursor-pointer items-center justify-center rounded-xl border border-neutral-300 bg-white px-6 py-3.5 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700'
+                            >
+                                {provider.button_label || "Continue with " + provider.display_name}
+                            </button>
+                        ))}
+                    </div>
+                )}
 
                 <p className='text-center text-sm text-neutral-400 dark:text-neutral-500'>
                     By continuing, you agree to our Terms of Service and Privacy Policy
