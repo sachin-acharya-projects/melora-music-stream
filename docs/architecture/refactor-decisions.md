@@ -53,8 +53,8 @@ The first delegated authorization foundation is now implemented on `refactor`:
 - Personal access tokens are now implemented on this foundation:
 
 - `POST /api/v1/developer/tokens` creates a named PAT with explicit scopes and a 1–365 day expiry (30 days by default). The raw `mlpat_` token is returned only in the creation response.
-- `GET /api/v1/developer/tokens` lists metadata only; raw values and hashes are never returned.
-- `DELETE /api/v1/developer/tokens/{id}` revokes a token owned by the current user.
+- `GET /api/v1/developer/tokens` lists token metadata; `DELETE /api/v1/developer/tokens/{id}` revokes a token owned by the caller.
+- List responses contain metadata only; raw values and hashes are never returned.
 - Only a SHA-256 digest is stored. Authentication checks revocation, expiry, owner account status, and the user's current scope ceiling; successful use updates `last_used_at`.
 - PATs are accepted by the same `require_scopes(...)` endpoint dependency as scoped delegated JWTs. Browser-session JWTs remain ineligible for delegated-only routes.
 
