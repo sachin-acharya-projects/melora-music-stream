@@ -1,3 +1,8 @@
+import base64
+import hashlib
+from urllib.parse import parse_qs, urlsplit
+
+
 def test_scope_catalog_is_public_and_descriptive(client) -> None:
     response = client.get("/api/v1/developer/scopes")
 
@@ -75,10 +80,6 @@ def test_oauth_application_registration_and_management(client, auth_headers) -> 
 
 
 def test_oauth_authorize_and_token_endpoints(client, auth_headers) -> None:
-    import base64
-    import hashlib
-    from urllib.parse import parse_qs, urlsplit
-
     app_response = client.post(
         "/api/v1/developer/applications",
         headers=auth_headers,
