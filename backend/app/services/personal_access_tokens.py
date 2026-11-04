@@ -13,6 +13,8 @@ from app.services.authorization import validate_scope_grant
 
 
 class PersonalAccessTokenService:
+    MIN_LIFETIME_DAYS = 1
+    MAX_LIFETIME_DAYS = 365
     TOKEN_PREFIX = "mlpat_"  # noqa: S105
 
     @staticmethod
@@ -30,7 +32,7 @@ class PersonalAccessTokenService:
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Token name cannot be blank",
             )
-        if not 1 <= expires_in_days <= 365:
+        if not PersonalAccessTokenService.MIN_LIFETIME_DAYS <= expires_in_days <= PersonalAccessTokenService.MAX_LIFETIME_DAYS:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Token lifetime must be between 1 and 365 days",
