@@ -54,7 +54,7 @@ def create_personal_access_token(
     )
 
 
-@router.get("/tokens", response_model=list[PersonalAccessTokenResponse])
+@router.get("/tokens")
 def list_personal_access_tokens(
     user: CurrentUser,
     db: SessionDep,
@@ -99,7 +99,7 @@ def register_oauth_application(
     )
 
 
-@router.get("/applications", response_model=list[OAuthApplicationResponse])
+@router.get("/applications")
 def list_oauth_applications(
     user: CurrentUser,
     db: SessionDep,
@@ -143,7 +143,7 @@ def create_machine_client(
     )
 
 
-@router.get("/machine-clients", response_model=list[MachineClientResponse])
+@router.get("/machine-clients")
 def list_machine_clients(
     user: CurrentUser,
     db: SessionDep,
@@ -166,7 +166,6 @@ def deactivate_machine_client(
 
 @router.post(
     "/machine-clients/{client_record_id}/user-grants",
-    response_model=MachineUserGrantResponse,
     status_code=status.HTTP_201_CREATED,
 )
 def grant_machine_user_access(
@@ -187,7 +186,6 @@ def grant_machine_user_access(
 
 @router.get(
     "/machine-clients/{client_record_id}/user-grants",
-    response_model=list[MachineUserGrantResponse],
 )
 def list_machine_user_grants(
     client_record_id: str,
