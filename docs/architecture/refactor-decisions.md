@@ -58,7 +58,15 @@ The first delegated authorization foundation is now implemented on `refactor`:
 - Only a SHA-256 digest is stored. Authentication checks revocation, expiry, owner account status, and the user's current scope ceiling; successful use updates `last_used_at`.
 - PATs are accepted by the same `require_scopes(...)` endpoint dependency as scoped delegated JWTs. Browser-session JWTs remain ineligible for delegated-only routes.
 
-This is the shared foundation for OAuth app grants and M2M clients. Those credential types are not yet issued, and existing music endpoints have not yet all been migrated to delegated scope enforcement.
+OAuth application registration is now implemented:
+
+- `POST /api/v1/developer/applications` registers an application with an exact redirect-URI allowlist and a maximum scope ceiling bounded by the registering user's current permissions.
+- `GET /api/v1/developer/applications` lists only applications owned by the caller. Client secrets and hashes are never returned.
+- `DELETE /api/v1/developer/applications/{id}` deactivates an application owned by the caller.
+- Confidential client secrets are generated once and stored only as SHA-256 hashes. Public clients can be registered without a secret and will require PKCE in the authorization flow.
+- Redirect URIs reject wildcards, fragments, user-info, malformed authorities, and non-HTTPS web callbacks. HTTP is permitted only for loopback development callbacks; reverse-domain custom schemes are accepted for native clients.
+
+OAuth authorization/consent, code exchange, refresh-token rotation, and client authentication are the next part of this implementation. Existing music endpoints have not yet all been migrated to delegated scope enforcement.
 
 A single authorization policy must be shared by browser sessions, personal access tokens, OAuth applications, and machine clients.
 
