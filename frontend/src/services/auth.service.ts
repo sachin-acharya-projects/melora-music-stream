@@ -70,6 +70,14 @@ export const authService = {
         localStorage.removeItem(REFRESH_TOKEN_KEY)
     },
 
+    exchangeOIDCHandoff: async (handoffCode: string): Promise<TokenResponse> => {
+        const { data } = await http.post<TokenResponse>(ENDPOINTS.AUTH.OIDC_EXCHANGE, {
+            handoff_code: handoffCode,
+        })
+        authService.setTokens(data.access_token, data.refresh_token)
+        return data
+    },
+
     loginWithOIDC: (providerId: string) => {
         window.location.href = `${API_BASE_URL}${ENDPOINTS.AUTH.OIDC_LOGIN(providerId)}`
     },
