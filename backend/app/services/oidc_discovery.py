@@ -96,7 +96,7 @@ async def load_provider_metadata(provider: OIDCProviderModel) -> dict:
             detail="OIDC discovery document must be a JSON object",
         )
     metadata_issuer = metadata.get("issuer")
-    if not isinstance(metadata_issuer, str) or metadata_issuer.rstrip("/") != provider.issuer.rstrip("/"):
+    if not isinstance(metadata_issuer, str) or metadata_issuer != provider.issuer:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="OIDC discovery issuer does not match the configured issuer",
@@ -130,7 +130,8 @@ async def load_provider_metadata(provider: OIDCProviderModel) -> dict:
                 detail="OIDC discovery document contains an unsafe userinfo_endpoint",
             ) from exc
 
-    if "code" not in metadata.get("response_types_supported", ["code"]):
+    response_types = metadata.get("response_types_supported", ["code"])
+    if not isinstance(response_types, list) or "code" not in response_types:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="OIDC provider does not advertise authorization-code response support",
