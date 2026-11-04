@@ -11,8 +11,8 @@ from sqlalchemy.orm import Session
 from app.api.deps import CurrentUser, SessionDep
 from app.core.config import settings
 from app.db.models.oidc_provider import OIDCProviderModel
-from app.services.oidc_discovery import load_provider_metadata
 from app.schemas.oidc import OIDCLoginHandoffExchange
+from app.services.oidc_discovery import load_provider_metadata
 from app.services.oidc_handoffs import OIDCLoginHandoffService
 from app.services.oidc_login import OIDCLoginService
 from app.services.oidc_secrets import (
@@ -37,7 +37,7 @@ def _provider(db: Session, provider_id: str) -> OIDCProviderModel:
     return provider
 
 
-def _client(provider: OIDCProviderModel, metadata: dict) -> Any:
+def _client(provider: OIDCProviderModel, metadata: dict[str, Any]) -> Any:
     if not provider.client_secret_encrypted:
         raise HTTPException(status_code=503, detail="Identity provider is not fully configured")
     try:
@@ -68,7 +68,7 @@ def _client(provider: OIDCProviderModel, metadata: dict) -> Any:
     return client
 
 
-def _frontend_redirect(request: Request, **params: str) -> RedirectResponse:
+def _frontend_redirect(**params: str) -> RedirectResponse:
     origin = settings.FRONTEND_URL.rstrip("/")
     return RedirectResponse(
         url=f"{origin}/auth/callback?{urlencode(params)}",
@@ -158,7 +158,7 @@ async def oidc_callback(
         # Authlib validates state, PKCE, ID-token signature, issuer, audience,
         # expiry and nonce. Do not leak provider responses or token details.
         request.session.pop(f"oidc_link_user:{provider.id}", None)
-        return _frontend_redirect(request, error="identity_provider_authentication_failed")
+        return _frontend_redirect(error="identity_provider_authentication_failed")
 
     link_user_id = request.session.pop(f"oidc_link_user:{provider.id}", None)
     try:
@@ -177,7 +177,7 @@ async def oidc_callback(
                 email_verified=email_verified,
                 display_name=display_name,
             )
-            return _frontend_redirect(request, identity="linked")
+            return _frontend_redirect(identity="linked")
         user = OIDCLoginService.resolve_login_user(
             db,
             provider,
