@@ -12,7 +12,6 @@ class ExternalIdentityModel(BaseModel):
     _override_tablename = "external_identities"
     __table_args__ = (
         UniqueConstraint("issuer", "subject", name="uq_external_identity_issuer_subject"),
-        UniqueConstraint("user_id", "provider_id", name="uq_external_identity_user_provider"),
     )
 
     user_id: Mapped[str] = mapped_column(
