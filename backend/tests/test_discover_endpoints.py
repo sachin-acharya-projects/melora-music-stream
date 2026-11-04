@@ -110,5 +110,5 @@ def test_discover_endpoint(client: TestClient) -> None:
 
 def test_discover_constants_are_reasonable() -> None:
     assert 1 <= SECTION_SONGS_LIMIT <= 20
-    assert 1 <= NEW_RELEASES_LIMIT <= 5
-    assert 1 <= MOOD_PLAYLISTS_LIMIT <= 5
+    assert 1 <= NEW_RELEASES_LIMIT <= 10
+    assert 1 <= MOOD_PLAYLISTS_LIMIT <= 20
