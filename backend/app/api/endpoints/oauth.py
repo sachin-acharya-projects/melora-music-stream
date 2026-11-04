@@ -4,6 +4,7 @@ from app.api.deps.auth import CurrentUser
 from app.db.base import SessionDep
 from app.schemas.oauth import (
     OAuthAuthorizeRequest,
+    OAuthRevokeRequest,
     OAuthTokenRequest,
     OAuthTokenResponse,
 )
@@ -30,3 +31,14 @@ def exchange_oauth_token(
 ) -> dict[str, str | int]:
     """Exchange a PKCE authorization code or rotate a refresh token."""
     return OAuthTokenService.exchange(db, data)
+
+
+
+@router.post("/revoke", status_code=200)
+def revoke_oauth_token(
+    data: OAuthRevokeRequest,
+    db: SessionDep,
+) -> dict[str, bool]:
+    """Revoke an OAuth refresh token and its rotation family."""
+    OAuthTokenService.revoke(db, data)
+    return {"revoked": True}
