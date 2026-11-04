@@ -18,7 +18,14 @@ class OAuthApplicationService:
     def validate_redirect_uri(uri: str) -> str:
         """Validate an exact OAuth redirect URI without wildcards or fragments."""
         value = uri.strip()
-        parsed = urlsplit(value)
+        try:
+            parsed = urlsplit(value)
+            _ = parsed.port
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Invalid OAuth redirect URI: {uri}",
+            ) from exc
         if (
             not value
             or len(value) > 2048
