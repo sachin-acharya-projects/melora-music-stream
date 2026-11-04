@@ -1,3 +1,5 @@
+from typing import Any
+
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
@@ -10,7 +12,7 @@ class ExternalIdentityService:
     """Read and safely unlink external identities for the signed-in user."""
 
     @staticmethod
-    def list_for_user(db: Session, user: UserModel) -> list[dict]:
+    def list_for_user(db: Session, user: UserModel) -> list[dict[str, Any]]:
         rows = (
             db.query(ExternalIdentityModel, OIDCProviderModel)
             .join(OIDCProviderModel, OIDCProviderModel.id == ExternalIdentityModel.provider_id)
