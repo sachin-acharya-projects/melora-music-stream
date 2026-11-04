@@ -6,7 +6,7 @@ import re
 import secrets
 from datetime import UTC, datetime, timedelta
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -112,7 +112,7 @@ class MachineClientService:
             record is None
             or MachineClientService._is_expired(record.expires_at, datetime.now(UTC))
             or not hmac.compare_digest(
-                supplied_hash, record.client_secret_hash if record else ""
+                supplied_hash, record.client_secret_hash
             )
         ):
             raise HTTPException(
