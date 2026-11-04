@@ -1,10 +1,12 @@
 import logging
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.api.deps import CurrentUser, OptionalUser, SessionDep
+from app.api.deps import OptionalUser, SessionDep
+from app.api.deps.auth import require_user_or_scopes
+from app.db.models.user import UserModel
 from app.schemas.song import (
     CollaboratorCreate,
     PlaylistCreate,
@@ -19,11 +21,13 @@ from app.services.playlists import PlaylistService
 from app.services.webhooks import WebhookEventService
 
 router = APIRouter()
+PlaylistReadUser = Annotated[UserModel, Depends(require_user_or_scopes("playlists:read"))]
+PlaylistWriteUser = Annotated[UserModel, Depends(require_user_or_scopes("playlists:write"))]
 logger = logging.getLogger(__name__)
 
 
 def _emit_playlist_event(
-    db: SessionDep, user: CurrentUser, event_type: str, data: dict[str, object]
+    db: SessionDep, user: PlaylistWriteUser, event_type: str, data: dict[str, object]
 ) -> None:
     """Keep webhook delivery enqueue failures from breaking completed user actions."""
     try:
@@ -36,7 +40,7 @@ def _emit_playlist_event(
 @router.get("/")
 def get_playlists(
     db: SessionDep,
-    user: CurrentUser,
+    user: PlaylistReadUser,
     sort_by: Annotated[str, Query(pattern="^(name|created_at)$")] = "created_at",
     order: Annotated[str, Query(pattern="^(asc|desc)$")] = "desc",
     q: Annotated[str | None, Query(max_length=100)] = None,
@@ -67,7 +71,7 @@ def get_following_playlists(
 
 @router.get("/options")
 def get_playlist_options(
-    db: SessionDep, user: CurrentUser
+    db: SessionDep, user: PlaylistReadUser
 ) -> list[dict[str, str]]:
     """Lightweight id + name pairs for pickers (no song payload)."""
     return PlaylistService.get_playlist_options(db, user)
