@@ -16,7 +16,7 @@ def _validate_https_url(value: str, field: str) -> str:
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"{field} must be an HTTPS URL without embedded credentials",
         )
-    return value.rstrip("/")
+    return value
 
 
 def _provider_response(provider: OIDCProviderModel) -> dict:
