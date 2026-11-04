@@ -25,7 +25,7 @@ def get_current_user(
     """Get current user from JWT token, fetched from DB."""
     token = credentials.credentials if credentials else None
     payload = AuthService.decode_token(token) if token else None
-    if payload and payload.get("credential_type") is not None:
+    if payload and "credential_type" in payload:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Delegated credentials must use a scope-protected endpoint",
@@ -245,8 +245,7 @@ def require_user_or_scopes(*required_scopes: str) -> Callable[..., UserModel]:
         payload = AuthService.decode_token(token) if token else None
 
         if payload and payload.get("type") == "access":
-            credential_type = payload.get("credential_type")
-            if credential_type is None:
+            if "credential_type" not in payload:
                 return AuthService.get_current_user_from_token(token, db=db)
             if credential_type == "machine":
                 principal = require_machine_scopes(*required_scopes)(
@@ -291,8 +290,7 @@ def optional_user_or_scopes(
         token = credentials.credentials
         payload = AuthService.decode_token(token)
         if payload and payload.get("type") == "access":
-            credential_type = payload.get("credential_type")
-            if credential_type is None:
+            if "credential_type" not in payload:
                 return AuthService.get_current_user_from_token(token, db=db)
             if credential_type == "machine":
                 principal = require_machine_scopes(*required_scopes)(
