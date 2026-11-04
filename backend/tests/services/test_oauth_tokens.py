@@ -4,6 +4,9 @@ from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from fastapi import HTTPException
+from fastapi.security import HTTPAuthorizationCredentials
+
+from app.api.deps.auth import require_scopes
 
 from app.db.models.oauth_tokens import (
     OAuthAuthorizationCodeModel,
@@ -220,3 +223,33 @@ def test_oauth_refresh_token_revocation_invalidates_family(db, test_user) -> Non
                 refresh_token=str(tokens["refresh_token"]),
             ),
         )
+
+
+
+def test_deactivated_oauth_app_invalidates_existing_access_token(db, test_user) -> None:
+    app_data = _create_app(db, test_user)
+    code, verifier = _authorize(db, test_user, app_data)
+    tokens = OAuthTokenService.exchange(
+        db,
+        OAuthTokenRequest(
+            grant_type="authorization_code",
+            client_id=str(app_data["client_id"]),
+            client_secret=str(app_data["client_secret"]),
+            redirect_uri="https://client.example.com/callback",
+            code=code,
+            code_verifier=verifier,
+        ),
+    )
+    app = OAuthApplicationService.list_for_owner(db, test_user)[0]
+    OAuthApplicationService.deactivate(db, test_user, app.id)
+
+    with pytest.raises(HTTPException) as exc:
+        require_scopes("profile:read")(
+            credentials=HTTPAuthorizationCredentials(
+                scheme="Bearer",
+                credentials=str(tokens["access_token"]),
+            ),
+            db=db,
+        )
+
+    assert exc.value.status_code == 401
