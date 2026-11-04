@@ -188,7 +188,7 @@ async def oidc_callback(
         )
     except HTTPException as exc:
         error = "account_link_required" if exc.status_code == 409 else "identity_sign_in_failed"
-        return _frontend_redirect(request, error=error)
+        return _frontend_redirect(error=error)
 
     handoff_code = OIDCLoginHandoffService.create(db, user.id)
     origin = settings.FRONTEND_URL.rstrip("/")
