@@ -24,10 +24,10 @@ from app.schemas.oauth import (
     OAuthAuthorizeRequest,
     OAuthRevokeRequest,
     OAuthTokenRequest,
- )
+)
 from app.services.auth import AuthService
-from app.services.machine_clients import MachineClientService
 from app.services.authorization import validate_scope_grant
+from app.services.machine_clients import MachineClientService
 from app.services.oauth_applications import OAuthApplicationService
 
 
