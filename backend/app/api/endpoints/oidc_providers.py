@@ -19,7 +19,7 @@ def list_oidc_providers(
     _: Annotated[UserModel, Depends(require_admin)],
 ) -> list[dict[str, Any]]:
     """List configured OIDC providers. Client secrets are never returned."""
-    return OIDCProviderService.list(db)
+    return OIDCProviderService.list_providers(db)
 
 
 @router.post(
@@ -44,7 +44,7 @@ def update_oidc_provider(
     provider_id: str,
     data: OIDCProviderUpdate,
     db: SessionDep,
-    _: Annotated[None, Depends(require_admin)],
+    _: Annotated[UserModel, Depends(require_admin)],
 ) -> dict[str, Any]:
     """Update provider configuration; omit client_secret to keep the current secret."""
     return OIDCProviderService.update(db, provider_id, data)
