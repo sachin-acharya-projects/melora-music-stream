@@ -120,6 +120,11 @@ class OAuthTokenService:
             )
 
         owner = AuthService.get_user_by_id(db, app.owner_user_id)
+        if not scopes.issubset(normalize_scopes(app.allowed_scopes)):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Granted scopes exceed this application's current scope ceiling",
+            )
         scopes = validate_scope_grant(owner, scopes)
         scopes = validate_scope_grant(user, scopes)
         access_token = AuthService.create_delegated_access_token(
