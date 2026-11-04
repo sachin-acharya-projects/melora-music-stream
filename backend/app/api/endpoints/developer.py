@@ -1,13 +1,11 @@
-from typing import Any
-
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Response, status
 
 from app.api.deps import CurrentUser, SessionDep
 from app.api.deps.auth import require_user_or_scopes
-from app.db.models.user import UserModel
 from app.core.scopes import serialize_scope_catalog
+from app.db.models.user import UserModel
 from app.core.webhook_events import serialize_webhook_events
 from app.schemas.machine_clients import (
     MachineClientCreate,
@@ -257,7 +255,7 @@ def create_webhook_subscription(
 
 @router.get("/webhooks")
 def list_webhook_subscriptions(
-    user: CurrentUser,
+    user: WebhookManageUser,
     db: SessionDep,
 ) -> list[WebhookSubscriptionResponse]:
     """List the caller's webhook subscriptions without their signing secrets."""
@@ -273,7 +271,7 @@ def list_webhook_subscriptions(
 )
 def rotate_webhook_secret(
     subscription_id: str,
-    user: CurrentUser,
+    user: WebhookManageUser,
     db: SessionDep,
 ) -> dict[str, str]:
     """Rotate a signing secret; the new value is returned exactly once."""
@@ -287,7 +285,7 @@ def rotate_webhook_secret(
 @router.delete("/webhooks/{subscription_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_webhook_subscription(
     subscription_id: str,
-    user: CurrentUser,
+    user: WebhookManageUser,
     db: SessionDep,
 ) -> Response:
     WebhookSubscriptionService.delete(db, user, subscription_id)
