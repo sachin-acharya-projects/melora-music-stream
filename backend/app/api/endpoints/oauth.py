@@ -28,10 +28,9 @@ def authorize_oauth_application(
 def exchange_oauth_token(
     data: OAuthTokenRequest,
     db: SessionDep,
-) -> dict[str, str | int]:
+) -> dict[str, str | int | None]:
     """Exchange a PKCE authorization code or rotate a refresh token."""
     return OAuthTokenService.exchange(db, data)
-
 
 
 @router.post("/revoke", status_code=200)
