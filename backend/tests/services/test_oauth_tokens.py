@@ -7,12 +7,11 @@ from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
 
 from app.api.deps.auth import require_scopes
-
 from app.db.models.oauth_tokens import (
     OAuthAuthorizationCodeModel,
     OAuthRefreshTokenModel,
 )
-from app.schemas.oauth import OAuthAuthorizeRequest, OAuthRevokeRequest, OAuthTokenRequest
+from app.schemas.oauth import (\n    OAuthAuthorizeRequest,\n    OAuthRevokeRequest,\n    OAuthTokenRequest,\n)
 from app.services.oauth_applications import OAuthApplicationService
 from app.services.oauth_tokens import OAuthTokenService
 
@@ -179,7 +178,7 @@ def test_confidential_client_secret_is_required(db, test_user) -> None:
             OAuthTokenRequest(
                 grant_type="authorization_code",
                 client_id=str(app_data["client_id"]),
-                client_secret="wrong-secret",
+                client_secret="wrong-secret",  # noqa: S106
                 code="a" * 43,
                 redirect_uri="https://client.example.com/callback",
                 code_verifier="a" * 43,
