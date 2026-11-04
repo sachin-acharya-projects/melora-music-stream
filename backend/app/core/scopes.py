@@ -55,13 +55,20 @@ SENSITIVE_SCOPES = frozenset(
 class UnknownScopeError(ValueError):
     """Raised when an API client requests a scope Melora does not recognize."""
 
+    def __init__(self, unknown_scopes: set[str]) -> None:
+        self.unknown_scopes = tuple(sorted(unknown_scopes))
+        super().__init__(self.unknown_scopes)
+
+    def __str__(self) -> str:
+        return f"Unknown scope(s): {', '.join(self.unknown_scopes)}"
+
 
 def normalize_scopes(scopes: list[str] | tuple[str, ...] | set[str]) -> frozenset[str]:
     """Validate and normalize scope names without silently accepting unknown values."""
     normalized = frozenset(scope.strip() for scope in scopes if scope.strip())
     unknown = normalized - ALL_SCOPES
     if unknown:
-        raise UnknownScopeError(f"Unknown scope(s): {', '.join(sorted(unknown))}")
+        raise UnknownScopeError(unknown)
     return normalized
 
 
