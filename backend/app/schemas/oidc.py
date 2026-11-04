@@ -63,3 +63,7 @@ class OIDCProviderResponse(BaseModel):
     auto_provision: bool
     sort_order: int
     has_client_secret: bool
+
+
+class OIDCLoginHandoffExchange(BaseModel):
+    handoff_code: str = Field(min_length=32, max_length=256)
