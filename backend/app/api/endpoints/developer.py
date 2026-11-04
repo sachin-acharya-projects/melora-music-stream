@@ -5,8 +5,8 @@ from fastapi import APIRouter, Depends, Response, status
 from app.api.deps import CurrentUser, SessionDep
 from app.api.deps.auth import require_user_or_scopes
 from app.core.scopes import serialize_scope_catalog
-from app.db.models.user import UserModel
 from app.core.webhook_events import serialize_webhook_events
+from app.db.models.user import UserModel
 from app.schemas.machine_clients import (
     MachineClientCreate,
     MachineClientCreated,
@@ -18,16 +18,16 @@ from app.schemas.oauth_applications import (
     OAuthApplicationCreate,
     OAuthApplicationResponse,
 )
+from app.schemas.personal_access_tokens import (
+    PersonalAccessTokenCreate,
+    PersonalAccessTokenCreated,
+    PersonalAccessTokenResponse,
+)
 from app.schemas.webhooks import (
     WebhookSecretResponse,
     WebhookSubscriptionCreate,
     WebhookSubscriptionCreated,
     WebhookSubscriptionResponse,
-)
-from app.schemas.personal_access_tokens import (
-    PersonalAccessTokenCreate,
-    PersonalAccessTokenCreated,
-    PersonalAccessTokenResponse,
 )
 from app.services.machine_clients import MachineClientService
 from app.services.oauth_applications import OAuthApplicationService
