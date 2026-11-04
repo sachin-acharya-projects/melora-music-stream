@@ -35,8 +35,8 @@ export default function Profile() {
             await authService.unlinkIdentity(identity.id)
             setIdentities((current) => current.filter((item) => item.id !== identity.id))
             toast.success(identity.provider_name + " disconnected")
-        } catch (error: any) {
-            toast.error(error?.response?.data?.detail || "Unable to disconnect this identity")
+        } catch {
+            toast.error("Unable to disconnect this identity. Keep at least one sign-in method connected.")
         }
     }
 
@@ -149,11 +149,9 @@ export default function Profile() {
                         )}
                     </div>
 
-                    {providers.filter((provider) => !identities.some((identity) => identity.provider_id === provider.id)).length > 0 && (
+                    {providers.length > 0 && (
                         <div className='mt-4 flex flex-wrap gap-2'>
-                            {providers
-                                .filter((provider) => !identities.some((identity) => identity.provider_id === provider.id))
-                                .map((provider) => (
+                            {providers.map((provider) => (
                                     <button
                                         key={provider.id}
                                         onClick={() => void authService.linkOIDCIdentity(provider.id).catch(() => toast.error("Unable to start identity linking"))}
