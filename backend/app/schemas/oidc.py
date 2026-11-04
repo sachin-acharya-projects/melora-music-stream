@@ -53,6 +53,7 @@ class OIDCProviderResponse(BaseModel):
     name: str
     issuer: str
     discovery_url: str | None
+    redirect_uri: str
     client_id: str
     scopes: list[str]
     display_name: str
