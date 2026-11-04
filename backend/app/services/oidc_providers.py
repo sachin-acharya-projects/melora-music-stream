@@ -4,6 +4,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.db.models.oidc_provider import OIDCProviderModel
 from app.schemas.oidc import OIDCProviderCreate, OIDCProviderUpdate
 from app.services.oidc_secrets import encrypt_oidc_client_secret
@@ -24,6 +25,7 @@ def _provider_response(provider: OIDCProviderModel) -> dict:
         "id": provider.id,
         "name": provider.name,
         "issuer": provider.issuer,
+        "redirect_uri": f"{settings.BACKEND_URL.rstrip('/')}{settings.API_V1_STR}/auth/providers/{provider.id}/callback",
         "discovery_url": provider.discovery_url,
         "client_id": provider.client_id,
         "scopes": provider.scopes,
