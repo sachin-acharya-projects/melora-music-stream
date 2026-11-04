@@ -3,7 +3,7 @@ from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
 
 from app.api.deps.auth import require_scopes
-from app.core.scopes import ALL_SCOPES, ADMIN_SCOPES, normalize_scopes
+from app.core.scopes import ADMIN_SCOPES, ALL_SCOPES, normalize_scopes
 from app.services.auth import AuthService
 from app.services.authorization import (
     effective_scope_ceiling,
