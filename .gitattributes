@@ -1,0 +1,6 @@
+# Force shell scripts and config files to always use LF
+*.sh text eol=lf
+*.py text eol=lf
+*.js text eol=lf
+Dockerfile text eol=lf
+docker-compose.yml text eol=lf
