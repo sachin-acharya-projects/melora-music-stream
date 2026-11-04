@@ -50,7 +50,15 @@ The first delegated authorization foundation is now implemented on `refactor`:
 - A user's maximum grant is derived from their current Melora role. Regular users cannot grant server-administration scopes.
 - Delegated access JWTs are marked `credential_type=delegated`, carry a sorted explicit `scopes` claim, and expire after `DELEGATED_ACCESS_TOKEN_EXPIRE_MINUTES` (15 minutes by default).
 - `require_scopes(...)` rejects ordinary browser-session JWTs, validates delegated claims against the user's current role, and checks endpoint-required scopes. Resource handlers must additionally enforce target ownership and their explicit admin policy.
-- This is the shared foundation for PATs, OAuth app grants, and M2M clients. It does not yet issue those credential types or retrofit every existing music endpoint.
+- Personal access tokens are now implemented on this foundation:
+
+- `POST /api/v1/developer/tokens` creates a named PAT with explicit scopes and a 1–365 day expiry (30 days by default). The raw `mlpat_` token is returned only in the creation response.
+- `GET /api/v1/developer/tokens` lists metadata only; raw values and hashes are never returned.
+- `DELETE /api/v1/developer/tokens/{id}` revokes a token owned by the current user.
+- Only a SHA-256 digest is stored. Authentication checks revocation, expiry, owner account status, and the user's current scope ceiling; successful use updates `last_used_at`.
+- PATs are accepted by the same `require_scopes(...)` endpoint dependency as scoped delegated JWTs. Browser-session JWTs remain ineligible for delegated-only routes.
+
+This is the shared foundation for OAuth app grants and M2M clients. Those credential types are not yet issued, and existing music endpoints have not yet all been migrated to delegated scope enforcement.
 
 A single authorization policy must be shared by browser sessions, personal access tokens, OAuth applications, and machine clients.
 
