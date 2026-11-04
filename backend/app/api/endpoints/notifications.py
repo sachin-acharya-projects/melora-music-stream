@@ -1,13 +1,11 @@
 from typing import Annotated, Any
 
-from typing import Annotated
-
 from fastapi import APIRouter, Depends, Query
 
 from app.api.deps import SessionDep
 from app.api.deps.auth import require_user_or_scopes
-from app.db.models.user import UserModel
 from app.db.models.notification import NotificationModel
+from app.db.models.user import UserModel
 from app.services.notifications import notification_service
 
 router = APIRouter()
@@ -51,7 +49,7 @@ def list_notifications(
 
 
 @router.get("/unread-count")
-def get_unread_count(db: SessionDep, current_user: NotificationWriteUser) -> dict[str, int]:
+def get_unread_count(db: SessionDep, current_user: NotificationReadUser) -> dict[str, int]:
     """Return how many in-app notifications are unread."""
     return {
         "unread_count": notification_service.unread_count(
@@ -64,7 +62,7 @@ def get_unread_count(db: SessionDep, current_user: NotificationWriteUser) -> dic
 def mark_notification_read(
     notification_id: str,
     db: SessionDep,
-    current_user: NotificationReadUser,
+    current_user: NotificationWriteUser,
 ) -> dict[str, Any]:
     notification = notification_service.mark_read(
         db, user_id=current_user.id, notification_id=notification_id
@@ -85,7 +83,7 @@ def mark_all_notifications_read(
 
 @router.get("/settings")
 def get_notification_settings(
-    current_user: CurrentUser,
+    current_user: NotificationReadUser,
 ) -> dict[str, Any]:
     """Return the user's per-event notification channel toggles."""
     return notification_service.get_settings(current_user)
@@ -95,7 +93,7 @@ def get_notification_settings(
 def update_notification_settings(
     payload: dict[str, Any],
     db: SessionDep,
-    current_user: CurrentUser,
+    current_user: NotificationWriteUser,
 ) -> dict[str, Any]:
     """Partially update the user's per-event notification channel toggles."""
     return notification_service.update_settings(
