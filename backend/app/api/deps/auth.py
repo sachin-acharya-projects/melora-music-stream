@@ -8,9 +8,10 @@ from sqlalchemy.orm import Session
 
 from app.db.base import get_db
 from app.db.models.machine_client import MachineClientModel
+from app.db.models.oauth_application import OAuthApplicationModel
 from app.db.models.user import UserModel, UserRole
 from app.services.auth import AuthService
-from app.services.authorization import require_delegated_scopes
+from app.services.authorization import require_delegated_scopes, validate_scope_grant
 from app.services.machine_clients import MachineClientService
 from app.services.personal_access_tokens import PersonalAccessTokenService
 
@@ -93,8 +94,41 @@ def require_scopes(*required_scopes: str) -> Callable[..., DelegatedPrincipal]:
                     detail="Delegated token claims are invalid",
                 )
             user = AuthService.get_user_by_id(db, user_id)
+            client_id = payload.get("client_id")
+            credential_id = None
+            if client_id is not None:
+                if not isinstance(client_id, str):
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="OAuth client claim is invalid",
+                    )
+                application = (
+                    db.query(OAuthApplicationModel)
+                    .filter(
+                        OAuthApplicationModel.client_id == client_id,
+                        OAuthApplicationModel.is_active.is_(True),
+                    )
+                    .first()
+                )
+                if application is None:
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="OAuth application is inactive or unavailable",
+                    )
+                owner = AuthService.get_user_by_id(db, application.owner_user_id)
+                owner_scopes = validate_scope_grant(owner, raw_scopes)
+                if not owner_scopes.issubset(set(application.allowed_scopes)):
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="OAuth token exceeds the application's current scope ceiling",
+                    )
+                credential_id = application.id
             scopes = require_delegated_scopes(user, raw_scopes, required_scopes)
-            return DelegatedPrincipal(user=user, scopes=scopes)
+            return DelegatedPrincipal(
+                user=user,
+                scopes=scopes,
+                credential_id=credential_id,
+            )
 
         if token.startswith(PersonalAccessTokenService.TOKEN_PREFIX):
             user, raw_scopes, credential_id = PersonalAccessTokenService.authenticate(
