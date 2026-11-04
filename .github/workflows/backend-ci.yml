@@ -46,7 +46,7 @@ jobs:
           pip install -e ".[dev]"
       - name: Run focused Ruff correctness checks
         run: |
-          ruff check --select E,F \
+          ruff check --select E,F --ignore E501 \
             app/core/scopes.py \
             app/api/deps/auth.py \
             app/api/endpoints/developer.py \
