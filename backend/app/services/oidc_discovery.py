@@ -30,6 +30,7 @@ def _validate_endpoint_url(value: str, field: str) -> str:
         or parsed.username
         or parsed.password
         or parsed.fragment
+        or (field == "issuer" and parsed.query)
     ):
         raise OIDCDiscoveryError(f"{field} must be an HTTPS URL without credentials or fragments")
     try:
@@ -121,6 +122,11 @@ async def load_provider_metadata(provider: OIDCProviderModel) -> dict[str, Any]:
             ) from exc
 
     userinfo_endpoint = metadata.get("userinfo_endpoint")
+    if userinfo_endpoint is not None and not isinstance(userinfo_endpoint, str):
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="OIDC discovery userinfo_endpoint must be a URL string",
+        )
     if userinfo_endpoint is not None:
         try:
             _validate_endpoint_url(userinfo_endpoint, "userinfo_endpoint")
