@@ -1,5 +1,5 @@
-from cryptography.fernet import Fernet
 import pytest
+from cryptography.fernet import Fernet
 from fastapi import HTTPException
 
 from app.core.config import settings
@@ -44,7 +44,7 @@ def test_update_without_secret_keeps_existing_secret(
             name="provider",
             issuer="https://identity.example.org",
             client_id="client",
-            client_secret="original-secret",
+            client_secret="original-secret",  # noqa: S106
             display_name="Provider",
         ),
     )
@@ -79,7 +79,7 @@ def test_provider_cannot_be_disabled_when_it_is_the_only_login_method(db, test_u
         name="only-login",
         issuer="https://only-login.example.com",
         client_id="client",
-        client_secret_encrypted="encrypted",
+        client_secret_encrypted="encrypted",  # noqa: S106
         display_name="Only Login",
         enabled=True,
     )
