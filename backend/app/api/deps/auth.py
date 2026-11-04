@@ -24,6 +24,13 @@ def get_current_user(
 ) -> UserModel:
     """Get current user from JWT token, fetched from DB."""
     token = credentials.credentials if credentials else None
+    payload = AuthService.decode_token(token) if token else None
+    if payload and payload.get("credential_type") is not None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Delegated credentials must use a scope-protected endpoint",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     return AuthService.get_current_user_from_token(token, db=db)
 
 
@@ -33,6 +40,13 @@ def get_current_user_optional(
 ) -> UserModel | None:
     """Get current user from JWT token. Returns None if not authenticated."""
     token = credentials.credentials if credentials else None
+    payload = AuthService.decode_token(token) if token else None
+    if payload and payload.get("credential_type") is not None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Delegated credentials must use a scope-protected endpoint",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     return AuthService.get_current_user_from_token_optional(token, db=db)
 
 
