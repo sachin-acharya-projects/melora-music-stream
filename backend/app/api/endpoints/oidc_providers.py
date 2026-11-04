@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Response, status
 
 from app.api.deps import SessionDep, require_admin
+from app.db.models.user import UserModel
 from app.schemas.oidc import OIDCProviderCreate, OIDCProviderResponse, OIDCProviderUpdate
 from app.services.oidc_providers import OIDCProviderService
 
@@ -15,7 +16,7 @@ router = APIRouter()
 )
 def list_oidc_providers(
     db: SessionDep,
-    _: Annotated[None, Depends(require_admin)],
+    _: Annotated[UserModel, Depends(require_admin)],
 ) -> list[dict]:
     """List configured OIDC providers. Client secrets are never returned."""
     return OIDCProviderService.list(db)
