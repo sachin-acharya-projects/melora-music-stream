@@ -39,3 +39,35 @@ def test_pat_create_list_and_revoke_api(client, auth_headers) -> None:
         headers=auth_headers,
     )
     assert revoked.status_code == 204
+
+
+
+def test_oauth_application_registration_and_management(client, auth_headers) -> None:
+    created = client.post(
+        "/api/v1/developer/applications",
+        headers=auth_headers,
+        json={
+            "name": "CLI Companion",
+            "description": "Test integration",
+            "redirect_uris": ["https://cli.example.com/oauth/callback"],
+            "allowed_scopes": ["profile:read"],
+            "is_confidential": True,
+        },
+    )
+    assert created.status_code == 201
+    app_data = created.json()
+    assert app_data["client_id"]
+    assert app_data["client_secret"]
+    assert app_data["allowed_scopes"] == ["profile:read"]
+
+    listed = client.get("/api/v1/developer/applications", headers=auth_headers)
+    assert listed.status_code == 200
+    assert len(listed.json()) == 1
+    assert listed.json()[0]["client_secret"] is None
+    assert app_data["client_secret"] not in listed.text
+
+    deactivated = client.delete(
+        f"/api/v1/developer/applications/{app_data['id']}",
+        headers=auth_headers,
+    )
+    assert deactivated.status_code == 204
