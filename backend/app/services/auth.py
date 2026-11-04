@@ -128,6 +128,8 @@ class AuthService:
     def create_delegated_access_token(
         user: UserModel,
         scopes: list[str] | tuple[str, ...] | set[str],
+        *,
+        client_id: str | None = None,
     ) -> str:
         """Create a short-lived access token with an explicit, role-bounded scope grant."""
         validated_scopes = validate_scope_grant(user, scopes)
@@ -137,6 +139,7 @@ class AuthService:
                 "email": user.email,
                 "credential_type": "delegated",
                 "scopes": sorted(validated_scopes),
+                **({"client_id": client_id} if client_id else {}),
             },
             expires_delta=timedelta(
                 minutes=settings.DELEGATED_ACCESS_TOKEN_EXPIRE_MINUTES
