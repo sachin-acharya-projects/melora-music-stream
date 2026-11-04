@@ -25,6 +25,11 @@ class PersonalAccessTokenService:
         expires_in_days: int = 30,
     ) -> dict[str, object]:
         """Create a PAT; the raw token is returned once and never persisted."""
+        if not name.strip():
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Token name cannot be blank",
+            )
         if not 1 <= expires_in_days <= 365:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
