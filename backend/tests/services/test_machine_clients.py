@@ -125,3 +125,28 @@ def test_machine_token_uses_machine_scope_dependency(db, test_user) -> None:
             db=db,
         )
     assert exc.value.status_code == 403
+
+
+
+def test_deactivating_machine_client_invalidates_existing_access_tokens(
+    db, test_user
+) -> None:
+    created = _create_machine(db, test_user)
+    tokens = MachineClientService.issue_access_token(
+        db,
+        str(created["client_id"]),
+        str(created["client_secret"]),
+    )
+    record = db.query(MachineClientModel).one()
+    MachineClientService.deactivate(db, test_user, record.id)
+
+    with pytest.raises(HTTPException) as exc:
+        require_machine_scopes("profile:read")(
+            credentials=HTTPAuthorizationCredentials(
+                scheme="Bearer",
+                credentials=str(tokens["access_token"]),
+            ),
+            db=db,
+        )
+
+    assert exc.value.status_code == 401
