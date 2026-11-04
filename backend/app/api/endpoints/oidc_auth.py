@@ -9,6 +9,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentUser, SessionDep
+from app.core.config import settings
 from app.db.models.oidc_provider import OIDCProviderModel
 from app.services.auth import AuthService
 from app.services.oidc_discovery import load_provider_metadata
@@ -64,7 +65,7 @@ def _client(provider: OIDCProviderModel) -> Any:
 
 
 def _frontend_redirect(request: Request, **params: str) -> RedirectResponse:
-    origin = f"{request.url.scheme}://{request.url.netloc}"
+    origin = settings.FRONTEND_URL.rstrip("/")
     return RedirectResponse(
         url=f"{origin}/auth/callback?{urlencode(params)}",
         status_code=status.HTTP_302_FOUND,
