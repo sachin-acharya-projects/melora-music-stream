@@ -97,7 +97,8 @@ class OIDCProviderService:
         if secret is not None:
             provider.client_secret_encrypted = encrypt_oidc_client_secret(secret)
         for field, value in changes.items():
-            setattr(provider, field, value)
+            if value is not None or field == "button_label":
+                setattr(provider, field, value)
         if provider.enabled and not provider.client_secret_encrypted:
             db.rollback()
             raise HTTPException(
