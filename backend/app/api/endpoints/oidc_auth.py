@@ -9,7 +9,6 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentUser, SessionDep
-from app.core.config import settings
 from app.db.models.oidc_provider import OIDCProviderModel
 from app.services.auth import AuthService
 from app.services.oidc_discovery import load_provider_metadata
@@ -149,7 +148,7 @@ async def oidc_callback(
         display_name = claims.get("name")
         if not isinstance(display_name, str):
             display_name = None
-    except Exception as exc:
+    except Exception:
         # Authlib validates state, PKCE, ID-token signature, issuer, audience,
         # expiry and nonce. Do not leak provider responses or token details.
         request.session.pop(f"oidc_link_user:{provider.id}", None)
