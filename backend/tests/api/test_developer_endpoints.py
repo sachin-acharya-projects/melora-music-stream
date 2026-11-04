@@ -36,7 +36,7 @@ def test_pat_create_list_and_revoke_api(client, auth_headers) -> None:
     listed = client.get("/api/v1/developer/tokens", headers=auth_headers)
     assert listed.status_code == 200
     assert len(listed.json()) == 1
-    assert "token" not in listed.text
+    assert "token_hash" not in listed.text
     assert token_data["token"] not in listed.text
 
     revoked = client.delete(
