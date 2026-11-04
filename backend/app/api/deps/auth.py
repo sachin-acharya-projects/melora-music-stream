@@ -259,3 +259,48 @@ def require_user_or_scopes(*required_scopes: str) -> Callable[..., UserModel]:
         return principal.user
 
     return user_checker
+
+
+
+def optional_user_or_scopes(
+    *required_scopes: str,
+) -> Callable[..., UserModel | None]:
+    """Allow public access while applying scopes to authenticated API credentials."""
+
+    def optional_checker(
+        credentials: HTTPAuthorizationCredentials | None = Depends(security),
+        db: Session = Depends(get_db),
+        target_user_id: str | None = Header(default=None, alias="X-Melora-User-ID"),
+    ) -> UserModel | None:
+        if credentials is None:
+            return None
+        token = credentials.credentials
+        payload = AuthService.decode_token(token)
+        if payload and payload.get("type") == "access":
+            credential_type = payload.get("credential_type")
+            if credential_type is None:
+                return AuthService.get_current_user_from_token(token, db=db)
+            if credential_type == "machine":
+                principal = require_machine_scopes(*required_scopes)(
+                    credentials=credentials,
+                    db=db,
+                )
+                if not target_user_id:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Machine requests must include X-Melora-User-ID",
+                    )
+                MachineClientService.require_user_grant(
+                    db,
+                    principal.client,
+                    target_user_id,
+                    list(required_scopes),
+                )
+                return AuthService.get_user_by_id(db, target_user_id)
+
+        return require_scopes(*required_scopes)(
+            credentials=credentials,
+            db=db,
+        ).user
+
+    return optional_checker
