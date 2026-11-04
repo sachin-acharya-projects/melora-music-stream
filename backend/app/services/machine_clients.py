@@ -205,6 +205,10 @@ class MachineClientService:
                 status_code=403,
                 detail="User grant exceeds the machine client's registered scopes",
             )
+        if not client.is_active or MachineClientService._is_expired(
+            client.expires_at, datetime.now(UTC)
+        ):
+            raise HTTPException(status_code=401, detail="Machine client is inactive or expired")
         grant = (
             db.query(MachineUserGrantModel)
             .filter(
@@ -292,6 +296,11 @@ class MachineClientService:
             )
         target_user = AuthService.get_user_by_id(db, target_user_id)
         scopes = validate_scope_grant(target_user, grant.scopes)
+        if not scopes.issubset(normalize_scopes(client.scopes)):
+            raise HTTPException(
+                status_code=403,
+                detail="Machine user grant exceeds the client's current scope ceiling",
+            )
         required = normalize_scopes(tuple(required_scopes))
         if not required.issubset(scopes):
             raise HTTPException(
