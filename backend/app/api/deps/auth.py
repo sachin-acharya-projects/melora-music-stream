@@ -1,13 +1,15 @@
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Annotated
 
-from fastapi import Depends
+from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
 from app.db.models.user import UserModel, UserRole
 from app.services.auth import AuthService
+from app.services.authorization import require_delegated_scopes
 
 security = HTTPBearer(auto_error=False)
 
@@ -46,3 +48,56 @@ def require_role(*roles: UserRole) -> Callable[..., UserModel]:
 
 require_admin = require_role(UserRole.ADMIN)
 require_user = require_role(UserRole.ADMIN, UserRole.USER)
+
+
+
+@dataclass(frozen=True, slots=True)
+class DelegatedPrincipal:
+    """Authenticated user plus the explicit scopes carried by a delegated token."""
+
+    user: UserModel
+    scopes: frozenset[str]
+
+
+def require_scopes(*required_scopes: str) -> Callable[..., DelegatedPrincipal]:
+    """Dependency for endpoints that require an explicitly scoped delegated token."""
+
+    def delegated_checker(
+        credentials: HTTPAuthorizationCredentials | None = Depends(security),
+        db: Session = Depends(get_db),
+    ) -> DelegatedPrincipal:
+        token = credentials.credentials if credentials else None
+        if not token:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=Messages.NOT_AUTHENTICATED,
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        payload = AuthService.decode_token(token)
+        if (
+            not payload
+            or payload.get("type") != "access"
+            or payload.get("credential_type") != "delegated"
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="A delegated access token is required",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        user_id = payload.get("sub")
+        raw_scopes = payload.get("scopes")
+        if not isinstance(user_id, str) or not isinstance(raw_scopes, list) or not all(
+            isinstance(scope, str) for scope in raw_scopes
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Delegated token claims are invalid",
+            )
+
+        user = AuthService.get_user_by_id(db, user_id)
+        scopes = require_delegated_scopes(user, raw_scopes, required_scopes)
+        return DelegatedPrincipal(user=user, scopes=scopes)
+
+    return delegated_checker
