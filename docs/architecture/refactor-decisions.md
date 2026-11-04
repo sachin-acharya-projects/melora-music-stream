@@ -43,6 +43,17 @@ This is an implementation slice, not a production-readiness claim: run the test 
 
 ## Authorization and developer platform
 
+The first delegated authorization foundation is now implemented on `refactor`:
+
+- Canonical scopes live in `backend/app/core/scopes.py`; the public catalog is available at `GET /api/v1/developer/scopes`.
+- Unknown scopes fail closed. Each scope includes a description, category, sensitivity flag, and admin-only flag.
+- A user's maximum grant is derived from their current Melora role. Regular users cannot grant server-administration scopes.
+- Delegated access JWTs are marked `credential_type=delegated`, carry a sorted explicit `scopes` claim, and expire after `DELEGATED_ACCESS_TOKEN_EXPIRE_MINUTES` (15 minutes by default).
+- `require_scopes(...)` rejects ordinary browser-session JWTs, validates delegated claims against the user's current role, and checks endpoint-required scopes. Resource handlers must additionally enforce target ownership and their explicit admin policy.
+- This is the shared foundation for PATs, OAuth app grants, and M2M clients. It does not yet issue those credential types or retrofit every existing music endpoint.
+
+A single authorization policy must be shared by browser sessions, personal access tokens, OAuth applications, and machine clients.
+
 A single authorization policy must be shared by browser sessions, personal access tokens, OAuth applications, and machine clients.
 
 - Personal access tokens are stored as hashes, shown only once, scoped, expiring, and revocable.
