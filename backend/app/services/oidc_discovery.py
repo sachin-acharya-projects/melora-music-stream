@@ -6,7 +6,9 @@ not follow redirects, preventing a metadata endpoint from redirecting the
 backend to an unrelated URL.
 """
 
+import asyncio
 import ipaddress
+import socket
 from urllib.parse import urlsplit
 
 import httpx
@@ -39,6 +41,22 @@ def _validate_endpoint_url(value: str, field: str) -> str:
     return value
 
 
+async def _validate_public_dns(value: str, field: str) -> None:
+    """Reject DNS names that resolve to loopback, private, or reserved addresses."""
+    host = urlsplit(value).hostname
+    if not host:
+        raise OIDCDiscoveryError(f"{field} has no hostname")
+    try:
+        records = await asyncio.get_running_loop().getaddrinfo(
+            host, 443, type=socket.SOCK_STREAM
+        )
+    except OSError as exc:
+        raise OIDCDiscoveryError(f"{field} hostname could not be resolved") from exc
+    addresses = {record[4][0] for record in records}
+    if not addresses or any(not ipaddress.ip_address(address).is_global for address in addresses):
+        raise OIDCDiscoveryError(f"{field} must resolve only to public IP addresses")
+
+
 def discovery_url_for(provider: OIDCProviderModel) -> str:
     """Return the configured discovery URL or the OIDC well-known default."""
     if provider.discovery_url:
@@ -50,6 +68,13 @@ def discovery_url_for(provider: OIDCProviderModel) -> str:
 async def load_provider_metadata(provider: OIDCProviderModel) -> dict:
     """Fetch and validate OIDC metadata for a configured provider."""
     discovery_url = discovery_url_for(provider)
+    try:
+        await _validate_public_dns(discovery_url, "discovery_url")
+    except OIDCDiscoveryError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="OIDC discovery URL is not publicly reachable",
+        ) from exc
     timeout = httpx.Timeout(8.0, connect=4.0)
     try:
         async with httpx.AsyncClient(timeout=timeout, follow_redirects=False) as client:
@@ -70,7 +95,8 @@ async def load_provider_metadata(provider: OIDCProviderModel) -> dict:
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="OIDC discovery document must be a JSON object",
         )
-    if metadata.get("issuer", "").rstrip("/") != provider.issuer.rstrip("/"):
+    metadata_issuer = metadata.get("issuer")
+    if not isinstance(metadata_issuer, str) or metadata_issuer.rstrip("/") != provider.issuer.rstrip("/"):
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="OIDC discovery issuer does not match the configured issuer",
@@ -86,6 +112,7 @@ async def load_provider_metadata(provider: OIDCProviderModel) -> dict:
             )
         try:
             _validate_endpoint_url(endpoint, field)
+            await _validate_public_dns(endpoint, field)
         except OIDCDiscoveryError as exc:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
@@ -96,6 +123,7 @@ async def load_provider_metadata(provider: OIDCProviderModel) -> dict:
     if userinfo_endpoint is not None:
         try:
             _validate_endpoint_url(userinfo_endpoint, "userinfo_endpoint")
+            await _validate_public_dns(userinfo_endpoint, "userinfo_endpoint")
         except OIDCDiscoveryError as exc:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
