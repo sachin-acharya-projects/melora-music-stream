@@ -30,7 +30,7 @@ def list_oidc_providers(
 def create_oidc_provider(
     data: OIDCProviderCreate,
     db: SessionDep,
-    _: Annotated[None, Depends(require_admin)],
+    _: Annotated[UserModel, Depends(require_admin)],
 ) -> dict[str, Any]:
     """Register an external OIDC provider."""
     return OIDCProviderService.create(db, data)
@@ -45,7 +45,7 @@ def update_oidc_provider(
     data: OIDCProviderUpdate,
     db: SessionDep,
     _: Annotated[None, Depends(require_admin)],
-) -> dict:
+) -> dict[str, Any]:
     """Update provider configuration; omit client_secret to keep the current secret."""
     return OIDCProviderService.update(db, provider_id, data)
 
