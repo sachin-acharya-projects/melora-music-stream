@@ -1,8 +1,10 @@
 from typing import Annotated, Any, Literal
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
 from app.api.deps import CurrentUser, SessionDep
+from app.api.deps.auth import require_user_or_scopes
+from app.db.models.user import UserModel
 from app.services.recommendations import (
     RADIO_DEFAULT_COUNT,
     RADIO_MAX_COUNT,
@@ -10,12 +12,13 @@ from app.services.recommendations import (
 )
 
 router = APIRouter()
+RadioUser = Annotated[UserModel, Depends(require_user_or_scopes("library:read"))]
 
 
 @router.get("/")
 def generate_radio(
     db: SessionDep,
-    current_user: CurrentUser,
+    current_user: RadioUser,
     seed_type: Annotated[Literal["genre", "artist", "mood"], Query()],
     seed_value: Annotated[str, Query(min_length=1, max_length=200)],
     count: Annotated[int, Query(ge=1, le=RADIO_MAX_COUNT)] = RADIO_DEFAULT_COUNT,
