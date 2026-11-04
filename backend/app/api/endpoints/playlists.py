@@ -2,6 +2,7 @@ import logging
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Query
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.api.deps import CurrentUser, OptionalUser, SessionDep
 from app.schemas.song import (
@@ -27,7 +28,7 @@ def _emit_playlist_event(
     """Keep webhook delivery enqueue failures from breaking completed user actions."""
     try:
         WebhookEventService.enqueue_event(db, user.id, event_type, data)
-    except Exception:
+    except SQLAlchemyError:
         logger.exception("Unable to enqueue webhook event %s", event_type)
 
 
