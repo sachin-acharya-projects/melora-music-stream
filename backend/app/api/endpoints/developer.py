@@ -77,7 +77,6 @@ def revoke_personal_access_token(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-
 @router.post(
     "/applications",
     response_model=OAuthApplicationResponse,
