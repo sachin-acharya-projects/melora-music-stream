@@ -17,6 +17,29 @@ Melora remains a personal music streaming and library-management service. The we
 - Provider discovery, authorization-code flow, state/nonce validation, issuer/audience/signature validation, and callback URL validation are mandatory.
 - Existing Google sign-in is migrated as one OIDC provider without breaking existing Google-linked accounts.
 
+## OIDC implementation notes
+
+The first provider-neutral OIDC slice is implemented on `refactor`:
+
+- Administrator endpoints: `/api/v1/admin/oidc-providers` (GET/POST) and `/api/v1/admin/oidc-providers/{id}` (PATCH/DELETE).
+- Public enabled-provider discovery: `GET /api/v1/auth/providers`.
+- Browser sign-in: `GET /api/v1/auth/providers/{id}/login`.
+- Authenticated account linking: `POST /api/v1/auth/providers/{id}/link`; the response contains an authorization URL for the browser to navigate to.
+- Callback: the provider administration response includes the exact `redirect_uri` to register at the identity provider.
+- Linked identity management: `GET /api/v1/auth/identities` and `DELETE /api/v1/auth/identities/{identity_id}`.
+
+Provider setup sequence:
+
+1. Set a dedicated `OIDC_SECRET_ENCRYPTION_KEY` environment variable. Generate it with `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`. Keep the key stable and back it up securely; changing it makes existing provider secrets undecryptable.
+2. Create a disabled provider using the admin endpoint. A temporary client ID is acceptable for this initial creation.
+3. Copy the returned `redirect_uri` into the identity provider's allowed redirect/callback URI list.
+4. PATCH the provider with its real client ID and client secret, then enable it.
+5. Confirm that the public provider list shows it before testing sign-in.
+
+The client secret is encrypted at rest with Fernet and is never returned by provider APIs. The OIDC flow uses Authlib's authorization-code integration with S256 PKCE, session-bound state and nonce, and ID-token validation. Auto-provisioning requires a verified email; a matching email never links an existing account automatically. The current web UI exposes enabled providers on login and linked-identity controls in the profile page.
+
+This is an implementation slice, not a production-readiness claim: run the test suite and security review, exercise the flow against a real test OIDC provider, and validate deployment callback URLs before enabling a provider in production. Existing Google sign-in remains on its legacy route until its provider record and existing identities are migrated safely.
+
 ## Authorization and developer platform
 
 A single authorization policy must be shared by browser sessions, personal access tokens, OAuth applications, and machine clients.
