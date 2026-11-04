@@ -11,9 +11,9 @@ from app.core.config import settings
 from app.core.messages import Messages
 from app.schemas.auth import TokenResponse, UserResponse, UserUpdate
 from app.schemas.identity import ExternalIdentityResponse, PublicOIDCProviderResponse
+from app.services.auth import AuthService
 from app.services.external_identities import ExternalIdentityService
 from app.services.oidc_providers import OIDCProviderService
-from app.services.auth import AuthService
 from app.services.users import UserService
 
 router = APIRouter()
