@@ -36,7 +36,7 @@ def _provider(db: Session, provider_id: str) -> OIDCProviderModel:
     return provider
 
 
-def _client(provider: OIDCProviderModel) -> Any:
+def _client(provider: OIDCProviderModel, metadata: dict) -> Any:
     if not provider.client_secret_encrypted:
         raise HTTPException(status_code=503, detail="Identity provider is not fully configured")
     try:
@@ -61,7 +61,10 @@ def _client(provider: OIDCProviderModel) -> Any:
             "code_challenge_method": "S256",
         },
     )
-    return oauth.create_client("melora_oidc")
+    client = oauth.create_client("melora_oidc")
+    # Use the exact metadata and JWKS that were already validated for this flow.
+    client.server_metadata = metadata
+    return client
 
 
 def _frontend_redirect(request: Request, **params: str) -> RedirectResponse:
@@ -82,8 +85,8 @@ async def _start_flow(
     provider = _provider(db, provider_id)
     # Validate issuer and every advertised endpoint before handing metadata to
     # the OAuth client. The callback uses Authlib's state, nonce and PKCE checks.
-    await load_provider_metadata(provider)
-    client = _client(provider)
+    metadata = await load_provider_metadata(provider)
+    client = _client(provider, metadata)
     redirect_uri = (
         f"{settings.BACKEND_URL.rstrip('/')}{settings.API_V1_STR}"
         f"/auth/providers/{provider.id}/callback"
@@ -131,8 +134,8 @@ async def oidc_callback(
     """Validate the OIDC response and sign in or link the verified subject."""
     provider = _provider(db, provider_id)
     try:
-        await load_provider_metadata(provider)
-        client = _client(provider)
+        metadata = await load_provider_metadata(provider)
+        client = _client(provider, metadata)
         token = await client.authorize_access_token(request)
         claims = token.get("userinfo")
         if not claims or not isinstance(claims, dict):
