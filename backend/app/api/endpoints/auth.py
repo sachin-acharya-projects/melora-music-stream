@@ -9,6 +9,9 @@ from app.api.deps import CurrentUser, SessionDep
 from app.core.config import settings
 from app.core.messages import Messages
 from app.schemas.auth import TokenResponse, UserResponse, UserUpdate
+from app.schemas.identity import ExternalIdentityResponse, PublicOIDCProviderResponse
+from app.services.external_identities import ExternalIdentityService
+from app.services.oidc_providers import OIDCProviderService
 from app.services.auth import AuthService
 from app.services.users import UserService
 
@@ -160,3 +163,25 @@ async def refresh_token_endpoint(request: Request, db: SessionDep) -> TokenRespo
 async def logout() -> dict[str, str]:
     """Logout (client should clear tokens)."""
     return {"message": "Logged out successfully"}
+
+
+@router.get("/providers", response_model=list[PublicOIDCProviderResponse])
+def list_login_providers(db: SessionDep) -> list[dict]:
+    """List enabled external identity providers available for sign-in."""
+    return OIDCProviderService.list_public(db)
+
+
+@router.get("/identities", response_model=list[ExternalIdentityResponse])
+def list_linked_identities(
+    db: SessionDep, current_user: CurrentUser
+) -> list[dict]:
+    """List external identities linked to the signed-in Melora account."""
+    return ExternalIdentityService.list_for_user(db, current_user)
+
+
+@router.delete("/identities/{identity_id}", status_code=204)
+def unlink_identity(
+    identity_id: str, db: SessionDep, current_user: CurrentUser
+) -> None:
+    """Unlink an external identity without removing the last sign-in method."""
+    ExternalIdentityService.unlink(db, current_user, identity_id)
