@@ -1,6 +1,7 @@
 """OIDC subject resolution and account-linking policy."""
 
 from fastapi import HTTPException, status
+from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -32,6 +33,7 @@ class OIDCLoginService:
         email_verified: bool,
         display_name: str | None,
     ) -> UserModel:
+        email = email.strip().lower() if email else None
         identity = (
             db.query(ExternalIdentityModel)
             .filter(
@@ -51,7 +53,7 @@ class OIDCLoginService:
             return user
 
         if email:
-            existing = db.query(UserModel).filter(UserModel.email == email).first()
+            existing = db.query(UserModel).filter(func.lower(UserModel.email) == email).first()
             if existing:
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
@@ -111,6 +113,7 @@ class OIDCLoginService:
         email_verified: bool,
         display_name: str | None,
     ) -> None:
+        email = email.strip().lower() if email else None
         existing = (
             db.query(ExternalIdentityModel)
             .filter(
