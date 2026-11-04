@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -18,7 +20,7 @@ class OAuthApplicationResponse(BaseModel):
     allowed_scopes: list[str]
     is_confidential: bool
     is_active: bool
-    created_at: str
+    created_at: datetime
     client_secret: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
