@@ -16,7 +16,7 @@ class OAuthApplicationModel(BaseModel):
     )
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    client_id: Mapped[str] = mapped_column(String(80), unique=True, nullable=False, index=True)
+    client_id: Mapped[str] = mapped_column(String(80), unique=True, nullable=False)
     client_secret_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     redirect_uris: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
     allowed_scopes: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
