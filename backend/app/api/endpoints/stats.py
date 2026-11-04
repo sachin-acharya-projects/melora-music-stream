@@ -1,8 +1,6 @@
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Query
-
-from fastapi import Depends
+from fastapi import APIRouter, Depends, Query
 
 from app.api.deps import SessionDep
 from app.api.deps.auth import require_user_or_scopes
@@ -21,7 +19,7 @@ def get_stats(db: SessionDep, current_user: StatsReadUser) -> dict[str, Any]:
 @router.get("/top-artists")
 def get_top_artists(
     db: SessionDep,
-    current_user: CurrentUser,
+    current_user: StatsReadUser,
     limit: Annotated[int, Query(ge=1, le=100)] = 10,
 ) -> list[dict[str, Any]]:
     return StatsService.get_top_artists(db, user_id=current_user.id, limit=limit)
