@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 30
+    DELEGATED_ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
 
     # Auth - root admin / super admin
     # If set, this email is granted the admin role on startup (idempotent),
