@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 def _emit_playlist_event(
-    db: SessionDep, user: PlaylistWriteUser, event_type: str, data: dict[str, object]
+    db: SessionDep, user: UserModel, event_type: str, data: dict[str, object]
 ) -> None:
     """Keep webhook delivery enqueue failures from breaking completed user actions."""
     try:
@@ -53,7 +53,7 @@ def get_playlists(
 @router.get("/discover")
 def get_discover_playlists(
     db: SessionDep,
-    user: CurrentUser,
+    user: PlaylistReadUser,
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
     q: Annotated[str | None, Query(max_length=100)] = None,
 ) -> list[dict[str, Any]]:
@@ -63,7 +63,7 @@ def get_discover_playlists(
 @router.get("/following")
 def get_following_playlists(
     db: SessionDep,
-    user: CurrentUser,
+    user: PlaylistReadUser,
     q: Annotated[str | None, Query(max_length=100)] = None,
 ) -> list[dict[str, Any]]:
     return PlaylistService.get_following_playlists(db, user, search=q)
@@ -84,7 +84,7 @@ def get_shared_playlist(token: str, db: SessionDep) -> dict[str, Any]:
 
 @router.post("/{playlist_id}/share")
 def create_share_link(
-    playlist_id: str, db: SessionDep, user: CurrentUser
+    playlist_id: str, db: SessionDep, user: PlaylistWriteUser
 ) -> dict[str, str]:
     return {
         "token": PlaylistShareService.create_share_link(
@@ -95,7 +95,7 @@ def create_share_link(
 
 @router.delete("/{playlist_id}/share")
 def revoke_share_link(
-    playlist_id: str, db: SessionDep, user: CurrentUser
+    playlist_id: str, db: SessionDep, user: PlaylistWriteUser
 ) -> dict[str, str]:
     return PlaylistShareService.revoke_share_link(
         db, playlist_id=playlist_id, user=user
@@ -129,28 +129,28 @@ def get_playlist(
 
 @router.post("/{playlist_id}/follow")
 def toggle_follow(
-    playlist_id: str, db: SessionDep, user: CurrentUser
+    playlist_id: str, db: SessionDep, user: PlaylistWriteUser
 ) -> dict[str, Any]:
     return PlaylistService.toggle_follow(db, playlist_id=playlist_id, user=user)
 
 
 @router.post("/{playlist_id}/collaborative")
 def toggle_collaborative(
-    playlist_id: str, db: SessionDep, user: CurrentUser
+    playlist_id: str, db: SessionDep, user: PlaylistWriteUser
 ) -> dict[str, Any]:
     return PlaylistService.toggle_collaborative(db, playlist_id=playlist_id, user=user)
 
 
 @router.get("/{playlist_id}/collaborators")
 def get_collaborators(
-    playlist_id: str, db: SessionDep, user: CurrentUser
+    playlist_id: str, db: SessionDep, user: PlaylistReadUser
 ) -> list[dict[str, Any]]:
     return PlaylistService.get_collaborators(db, playlist_id=playlist_id, user=user)
 
 
 @router.post("/{playlist_id}/collaborators")
 def add_collaborator(
-    playlist_id: str, data: CollaboratorCreate, db: SessionDep, user: CurrentUser
+    playlist_id: str, data: CollaboratorCreate, db: SessionDep, user: PlaylistWriteUser
 ) -> dict[str, Any]:
     return PlaylistService.add_collaborator(
         db,
@@ -163,7 +163,7 @@ def add_collaborator(
 
 @router.delete("/{playlist_id}/collaborators/{user_id}")
 def remove_collaborator(
-    playlist_id: str, user_id: str, db: SessionDep, user: CurrentUser
+    playlist_id: str, user_id: str, db: SessionDep, user: PlaylistWriteUser
 ) -> dict[str, str]:
     return PlaylistService.remove_collaborator(
         db, playlist_id=playlist_id, user_id=user_id, user=user
@@ -172,7 +172,7 @@ def remove_collaborator(
 
 @router.post("/")
 def create_playlist(
-    data: PlaylistCreate, db: SessionDep, user: CurrentUser
+    data: PlaylistCreate, db: SessionDep, user: PlaylistWriteUser
 ) -> dict[str, Any]:
     result = PlaylistService.create_playlist(
         db,
@@ -189,7 +189,7 @@ def create_playlist(
 
 @router.patch("/{playlist_id}")
 def update_playlist(
-    playlist_id: str, data: PlaylistUpdate, db: SessionDep, user: CurrentUser
+    playlist_id: str, data: PlaylistUpdate, db: SessionDep, user: PlaylistWriteUser
 ) -> dict[str, Any]:
     result = PlaylistService.update_playlist(
         db, playlist_id=playlist_id, user=user, data=data
@@ -200,7 +200,7 @@ def update_playlist(
 
 @router.delete("/{playlist_id}")
 def delete_playlist(
-    playlist_id: str, db: SessionDep, user: CurrentUser
+    playlist_id: str, db: SessionDep, user: PlaylistWriteUser
 ) -> dict[str, str]:
     result = PlaylistService.delete_playlist(db, playlist_id=playlist_id, user=user)
     _emit_playlist_event(db, user, "playlist.deleted", {"playlist_id": playlist_id})
@@ -212,7 +212,7 @@ def add_to_playlist(
     playlist_id_or_name: str,
     song: Song,
     db: SessionDep,
-    user: CurrentUser,
+    user: PlaylistWriteUser,
 ) -> dict[str, Any]:
     result = PlaylistService.add_song_to_playlist(
         db, playlist_id_or_name=playlist_id_or_name, song=song, user=user
@@ -228,7 +228,7 @@ def add_songs_to_playlist(
     playlist_id_or_name: str,
     songs: list[Song],
     db: SessionDep,
-    user: CurrentUser,
+    user: PlaylistWriteUser,
 ) -> dict[str, Any]:
     result = PlaylistService.add_songs_bulk_to_playlist(
         db, playlist_id_or_name=playlist_id_or_name, songs=songs, user=user
@@ -241,7 +241,7 @@ def add_songs_to_playlist(
 
 @router.delete("/{playlist_id}/songs/{song_id}")
 def remove_song_from_playlist(
-    playlist_id: str, song_id: str, db: SessionDep, user: CurrentUser
+    playlist_id: str, song_id: str, db: SessionDep, user: PlaylistWriteUser
 ) -> dict[str, str]:
     result = PlaylistService.remove_song_from_playlist(
         db, playlist_id=playlist_id, song_id=song_id, user=user
@@ -254,7 +254,7 @@ def remove_song_from_playlist(
 
 @router.post("/import")
 def import_playlist(
-    data: PlaylistImport, db: SessionDep, user: CurrentUser
+    data: PlaylistImport, db: SessionDep, user: PlaylistWriteUser
 ) -> dict[str, Any]:
     result = PlaylistImportService.import_playlist(db, data, user)
     _emit_playlist_event(
@@ -265,7 +265,7 @@ def import_playlist(
 
 @router.post("/{playlist_id}/sync")
 def sync_playlist(
-    playlist_id: str, db: SessionDep, user: CurrentUser
+    playlist_id: str, db: SessionDep, user: PlaylistWriteUser
 ) -> dict[str, Any]:
     result = PlaylistImportService.sync_playlist(
         db, playlist_id=playlist_id, user=user
@@ -276,7 +276,7 @@ def sync_playlist(
 
 @router.post("/{playlist_id}/reorder")
 def reorder_playlist_songs(
-    playlist_id: str, data: PlaylistReorder, db: SessionDep, user: CurrentUser
+    playlist_id: str, data: PlaylistReorder, db: SessionDep, user: PlaylistWriteUser
 ) -> dict[str, Any]:
     result = PlaylistService.reorder_songs(
         db, playlist_id=playlist_id, song_ids=data.song_ids, user=user
