@@ -18,6 +18,7 @@ from app.db.models.listening_history import ListeningHistoryModel
 from app.db.models.external_identity import ExternalIdentityModel
 from app.db.models.oidc_provider import OIDCProviderModel
 from app.db.models.oidc_login_handoff import OIDCLoginHandoffModel
+from app.db.models.personal_access_token import PersonalAccessTokenModel
 from app.db.models.notification import NotificationModel
 from app.db.models.playback_state import PlaybackStateModel
 from app.db.models.playlist import PlaylistModel
@@ -39,6 +40,7 @@ __all__ = [
     "ExternalIdentityModel",
     "OIDCProviderModel",
     "OIDCLoginHandoffModel",
+    "PersonalAccessTokenModel",
     "NotificationModel",
     "PlaybackStateModel",
     "PlaylistModel",
