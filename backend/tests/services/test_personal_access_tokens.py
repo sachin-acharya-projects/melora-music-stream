@@ -1,3 +1,5 @@
+from datetime import UTC, datetime, timedelta
+
 import pytest
 from fastapi import HTTPException
 
@@ -83,3 +85,21 @@ def test_pat_scopes_cannot_exceed_current_user_role(db, test_user) -> None:
         )
 
     assert exc.value.status_code == 403
+
+
+
+def test_expired_pat_is_rejected(db, test_user) -> None:
+    created = PersonalAccessTokenService.create(
+        db,
+        test_user,
+        name="expired",
+        scopes=["profile:read"],
+    )
+    record = db.query(PersonalAccessTokenModel).one()
+    record.expires_at = datetime.now(UTC) - timedelta(minutes=1)
+    db.commit()
+
+    with pytest.raises(HTTPException) as exc:
+        PersonalAccessTokenService.authenticate(db, str(created["token"]))
+
+    assert exc.value.status_code == 401
