@@ -12,7 +12,8 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from sqlalchemy.orm import Session
 
-from app.api.deps import CurrentUser, SessionDep, require_admin
+from app.api.deps import CurrentUser, SessionDep
+from app.api.deps.auth import require_admin_scopes
 from app.core.config import settings
 from app.db.models.bug_report import BugReportModel, BugReportSeverity
 from app.db.models.user import UserModel, UserRole
@@ -24,6 +25,8 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 admin_router = APIRouter()
+AdminReportRead = Annotated[UserModel, Depends(require_admin_scopes("admin:reports:read"))]
+AdminReportWrite = Annotated[UserModel, Depends(require_admin_scopes("admin:reports:write"))]
 
 ALLOWED_SCREENSHOT_TYPES = {"image/png", "image/jpeg", "image/webp"}
 
@@ -134,7 +137,7 @@ def get_bug_report(
 @admin_router.get("")
 def list_bug_reports(
     db: SessionDep,
-    _: Annotated[None, Depends(require_admin)],
+    _: AdminReportRead,
     status: Annotated[str | None, Query(pattern="^(pending|in_progress|resolved)$")] = None,
     severity: Annotated[str | None, Query(pattern="^(low|medium|high|critical)$")] = None,
     page: Annotated[int, Query(ge=1)] = 1,
@@ -155,7 +158,7 @@ def update_bug_report_status(
     report_id: str,
     update: BugReportUpdate,
     db: SessionDep,
-    _: Annotated[None, Depends(require_admin)],
+    _: AdminReportWrite,
 ) -> BugReportResponse:
     """Move a report through its status lifecycle (pending/in_progress/resolved)."""
     try:
@@ -171,7 +174,7 @@ def update_bug_report_status(
 def delete_bug_report(
     report_id: str,
     db: SessionDep,
-    _: Annotated[None, Depends(require_admin)],
+    _: AdminReportWrite,
 ) -> dict[str, Any]:
     """Delete a bug report."""
     try:
