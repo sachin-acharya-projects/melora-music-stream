@@ -86,6 +86,11 @@ export const ENDPOINTS = {
     AUTH: {
         LOGIN: "/auth/login",
         GOOGLE_CALLBACK: "/auth/google/callback",
+        OIDC_PROVIDERS: "/auth/providers",
+        OIDC_LOGIN: (providerId: string) => `/auth/providers/${encodeURIComponent(providerId)}/login`,
+        OIDC_IDENTITIES: "/auth/identities",
+        OIDC_LINK: (providerId: string) => `/auth/providers/${encodeURIComponent(providerId)}/link`,
+        OIDC_UNLINK: (identityId: string) => `/auth/identities/${encodeURIComponent(identityId)}`,
         ME: "/auth/me",
         REFRESH: "/auth/refresh",
         LOGOUT: "/auth/logout",
