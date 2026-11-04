@@ -47,7 +47,7 @@ def update_oidc_provider(
     provider_id: str,
     data: OIDCProviderUpdate,
     db: SessionDep,
-    _: Annotated[UserModel, Depends(require_admin)],
+    _: OIDCProviderWriteAdmin,
 ) -> dict[str, Any]:
     """Update provider configuration; omit client_secret to keep the current secret."""
     return OIDCProviderService.update(db, provider_id, data)
@@ -60,7 +60,7 @@ def update_oidc_provider(
 def delete_oidc_provider(
     provider_id: str,
     db: SessionDep,
-    _: Annotated[None, Depends(require_admin)],
+    _: OIDCProviderWriteAdmin,
 ) -> Response:
     """Delete a provider and its linked external identities."""
     OIDCProviderService.delete(db, provider_id)
