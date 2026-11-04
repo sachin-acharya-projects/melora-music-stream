@@ -34,6 +34,11 @@ def validate_scope_grant(
     """Validate both the catalog and the registering user's effective permission ceiling."""
     try:
         requested = normalize_scopes(tuple(requested_scopes))
+        if not requested:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="At least one scope must be requested",
+            )
         ceiling = (
             effective_scope_ceiling(user)
             if allowed_scopes is None
