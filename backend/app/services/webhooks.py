@@ -367,7 +367,7 @@ class WebhookDeliveryService:
                     delivery.status = "failed"
                     delivery.last_error = str(exc)[:1000]
                     failed += 1
-                except Exception as exc:
+                except Exception as exc:  # noqa: BLE001
                     delivery.last_error = type(exc).__name__
                     if delivery.attempts >= WebhookDeliveryService.MAX_ATTEMPTS:
                         delivery.status = "failed"
