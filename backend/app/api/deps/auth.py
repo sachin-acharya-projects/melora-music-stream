@@ -70,7 +70,7 @@ def require_scopes(*required_scopes: str) -> Callable[..., DelegatedPrincipal]:
         if not token:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=Messages.NOT_AUTHENTICATED,
+                detail="Not authenticated",
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
