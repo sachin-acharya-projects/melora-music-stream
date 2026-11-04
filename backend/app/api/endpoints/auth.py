@@ -1,4 +1,5 @@
 import time
+from typing import Any
 from urllib.parse import urlencode
 
 from authlib.integrations.starlette_client import OAuth
@@ -170,7 +171,7 @@ async def logout() -> dict[str, str]:
 
 
 @router.get("/providers", response_model=list[PublicOIDCProviderResponse])
-def list_login_providers(db: SessionDep) -> list[dict]:
+def list_login_providers(db: SessionDep) -> list[dict[str, Any]]:
     """List enabled external identity providers available for sign-in."""
     return OIDCProviderService.list_public(db)
 
@@ -178,7 +179,7 @@ def list_login_providers(db: SessionDep) -> list[dict]:
 @router.get("/identities", response_model=list[ExternalIdentityResponse])
 def list_linked_identities(
     db: SessionDep, current_user: CurrentUser
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """List external identities linked to the signed-in Melora account."""
     return ExternalIdentityService.list_for_user(db, current_user)
 
