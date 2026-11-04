@@ -2,11 +2,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Query
 
-from app.api.deps import (
-    CurrentUser,
-    OptionalUser,
-    SessionDep,
-)
+from app.api.deps import SessionDep
 from app.api.deps.auth import optional_user_or_scopes, require_user_or_scopes
 from app.db.models.user import UserModel
 from app.schemas.artist import YouTubeArtistImport
@@ -53,7 +49,7 @@ def get_featured_artists(db: SessionDep, user: ArtistReadUser) -> dict[str, Any]
 @router.get("/suggested")
 def get_suggested_artists(
     db: SessionDep,
-    user: ArtistWriteUser,
+    user: ArtistReadUser,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> dict[str, Any]:
@@ -65,7 +61,7 @@ def get_suggested_artists(
 @router.get("/following")
 def get_following_artists(
     db: SessionDep,
-    user: CurrentUser,
+    user: ArtistReadUser,
     search: Annotated[str | None, Query(max_length=100)] = None,
     source: Annotated[str | None, Query(pattern="^(youtube|platform)$")] = None,
 ) -> list[dict[str, Any]]:
@@ -106,7 +102,7 @@ def get_artist(
 @router.get("/{slug}/recently-played")
 def get_artist_recently_played(
     db: SessionDep,
-    user: CurrentUser,
+    user: ArtistReadUser,
     slug: str,
     limit: Annotated[int, Query(ge=1, le=500)] = 10,
 ) -> list[dict[str, Any]]:
@@ -124,5 +120,5 @@ def get_artist_albums(db: SessionDep, slug: str) -> dict[str, Any]:
 
 
 @router.post("/{artist_id}/follow")
-def toggle_follow(artist_id: str, db: SessionDep, user: CurrentUser) -> dict[str, Any]:
+def toggle_follow(artist_id: str, db: SessionDep, user: ArtistWriteUser) -> dict[str, Any]:
     return ArtistService.toggle_follow(db, artist_id=artist_id, user=user)
