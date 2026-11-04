@@ -5,6 +5,7 @@ from fastapi.security import HTTPAuthorizationCredentials
 from app.api.deps.auth import require_scopes
 from app.core.scopes import ALL_SCOPES, ADMIN_SCOPES, normalize_scopes
 from app.services.auth import AuthService
+from app.services.personal_access_tokens import PersonalAccessTokenService
 from app.services.authorization import (
     effective_scope_ceiling,
     require_delegated_scopes,
@@ -164,3 +165,25 @@ def test_delegated_scope_dependency_checks_token_grant_and_current_user(
         )
 
     assert exc.value.status_code == 403
+
+
+
+def test_personal_access_token_can_use_delegated_scope_dependency(test_user, db) -> None:
+    created = PersonalAccessTokenService.create(
+        db,
+        test_user,
+        name="scoped-client",
+        scopes=["profile:read"],
+    )
+    dependency = require_scopes("profile:read")
+    principal = dependency(
+        credentials=HTTPAuthorizationCredentials(
+            scheme="Bearer",
+            credentials=str(created["token"]),
+        ),
+        db=db,
+    )
+
+    assert principal.user.id == test_user.id
+    assert principal.scopes == {"profile:read"}
+    assert principal.credential_id == created["id"]
