@@ -2,7 +2,7 @@ from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, Query
 
-from app.api.deps import CurrentUser, SessionDep
+from app.api.deps import SessionDep
 from app.api.deps.auth import require_user_or_scopes
 from app.db.models.user import UserModel
 from app.services.recommendations import (
