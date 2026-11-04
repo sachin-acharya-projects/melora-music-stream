@@ -36,6 +36,10 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: str = ""
     GOOGLE_REDIRECT_URI: str = "http://localhost:8000/api/v1/auth/google/callback"
 
+    # OIDC client-secret encryption. Generate with Fernet.generate_key() and keep
+    # stable across restarts; never reuse the JWT signing key for this purpose.
+    OIDC_SECRET_ENCRYPTION_KEY: str = ""
+
     # Auth - JWT
     JWT_SECRET_KEY: str = "change-me-in-production-use-a-random-secret"  # noqa: S105
     JWT_ALGORITHM: str = "HS256"
