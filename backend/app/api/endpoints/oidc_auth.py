@@ -11,7 +11,6 @@ from sqlalchemy.orm import Session
 from app.api.deps import CurrentUser, SessionDep
 from app.core.config import settings
 from app.db.models.oidc_provider import OIDCProviderModel
-from app.services.auth import AuthService
 from app.services.oidc_discovery import load_provider_metadata
 from app.schemas.oidc import OIDCLoginHandoffExchange
 from app.services.oidc_handoffs import OIDCLoginHandoffService
