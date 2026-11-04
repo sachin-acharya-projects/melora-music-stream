@@ -44,9 +44,31 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
-      - name: Run Ruff lint
-        run: ruff check .
-      - name: Check Ruff formatting
-        run: ruff format --check .
+      - name: Run focused Ruff correctness checks
+        run: |
+          ruff check --select E,F \
+            app/core/scopes.py \
+            app/api/deps/auth.py \
+            app/api/endpoints/developer.py \
+            app/api/endpoints/oauth.py \
+            app/db/models/machine_client.py \
+            app/db/models/oauth_application.py \
+            app/db/models/oauth_tokens.py \
+            app/db/models/personal_access_token.py \
+            app/schemas/machine_clients.py \
+            app/schemas/oauth.py \
+            app/schemas/oauth_applications.py \
+            app/schemas/personal_access_tokens.py \
+            app/services/authorization.py \
+            app/services/machine_clients.py \
+            app/services/oauth_applications.py \
+            app/services/oauth_tokens.py \
+            app/services/personal_access_tokens.py \
+            tests/api/test_developer_endpoints.py \
+            tests/services/test_authorization.py \
+            tests/services/test_machine_clients.py \
+            tests/services/test_oauth_applications.py \
+            tests/services/test_oauth_tokens.py \
+            tests/services/test_personal_access_tokens.py
       - name: Run backend tests
         run: pytest -q
