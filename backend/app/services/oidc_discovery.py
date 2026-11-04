@@ -130,6 +130,29 @@ async def load_provider_metadata(provider: OIDCProviderModel) -> dict:
                 detail="OIDC discovery document contains an unsafe userinfo_endpoint",
             ) from exc
 
+
+    jwks_uri = metadata["jwks_uri"]
+    try:
+        await _validate_public_dns(jwks_uri, "jwks_uri")
+        async with httpx.AsyncClient(timeout=timeout, follow_redirects=False) as client:
+            jwks_response = await client.get(
+                jwks_uri,
+                headers={"Accept": "application/json"},
+            )
+            jwks_response.raise_for_status()
+            jwks = jwks_response.json()
+    except (httpx.HTTPError, ValueError, OIDCDiscoveryError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Unable to retrieve a safe OIDC signing-key set",
+        ) from exc
+    if not isinstance(jwks, dict) or not isinstance(jwks.get("keys"), list) or not jwks["keys"]:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="OIDC signing-key set is invalid or empty",
+        )
+    metadata["jwks"] = jwks
+
     response_types = metadata.get("response_types_supported", ["code"])
     if not isinstance(response_types, list) or "code" not in response_types:
         raise HTTPException(
