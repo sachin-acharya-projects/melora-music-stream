@@ -18,6 +18,9 @@ from app.services.authorization import validate_scope_grant
 
 
 class MachineClientService:
+    MIN_LIFETIME_DAYS = 1
+    MAX_LIFETIME_DAYS = 365
+
     @staticmethod
     def create(
         db: Session,
@@ -34,9 +37,9 @@ class MachineClientService:
         if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]{2,127}", service_identity):
             raise HTTPException(
                 status_code=422,
-                detail="Service identity must be a stable 3–128 character identifier",
+                detail="Service identity must be a stable 3-128 character identifier",
             )
-        if not 1 <= expires_in_days <= 365:
+        if not MachineClientService.MIN_LIFETIME_DAYS <= expires_in_days <= MachineClientService.MAX_LIFETIME_DAYS:
             raise HTTPException(
                 status_code=422,
                 detail="Machine client lifetime must be between 1 and 365 days",
