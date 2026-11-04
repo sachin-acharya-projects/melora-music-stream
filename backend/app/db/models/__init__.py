@@ -18,6 +18,10 @@ from app.db.models.external_identity import ExternalIdentityModel
 from app.db.models.listening_history import ListeningHistoryModel
 from app.db.models.notification import NotificationModel
 from app.db.models.oauth_application import OAuthApplicationModel
+from app.db.models.oauth_tokens import (
+    OAuthAuthorizationCodeModel,
+    OAuthRefreshTokenModel,
+)
 from app.db.models.oidc_login_handoff import OIDCLoginHandoffModel
 from app.db.models.oidc_provider import OIDCProviderModel
 from app.db.models.personal_access_token import PersonalAccessTokenModel
@@ -41,6 +45,8 @@ __all__ = [
     "ListeningHistoryModel",
     "NotificationModel",
     "OAuthApplicationModel",
+    "OAuthAuthorizationCodeModel",
+    "OAuthRefreshTokenModel",
     "OIDCLoginHandoffModel",
     "OIDCProviderModel",
     "PersonalAccessTokenModel",
