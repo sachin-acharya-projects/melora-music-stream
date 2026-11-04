@@ -1,18 +1,16 @@
 import time
-from typing import Any
+from typing import Annotated, Any
 from urllib.parse import urlencode
 
 from authlib.integrations.starlette_client import OAuth
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-from typing import Annotated
-
 from app.api.deps import SessionDep
 from app.api.deps.auth import require_user_or_scopes
-from app.db.models.user import UserModel
 from app.core.config import settings
 from app.core.messages import Messages
+from app.db.models.user import UserModel
 from app.schemas.auth import TokenResponse, UserResponse, UserUpdate
 from app.schemas.identity import ExternalIdentityResponse, PublicOIDCProviderResponse
 from app.services.auth import AuthService
