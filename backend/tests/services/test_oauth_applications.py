@@ -51,6 +51,8 @@ def test_oauth_app_registration_cannot_exceed_owner_permissions(db, test_user) -
         "https://user:password@app.example.com/callback",
         "https://*.example.com/callback",
         "javascript:alert(1)",
+        "https://example.com\\@evil.example/callback",
+        "https://example.com/callback\nmalicious",
     ],
 )
 def test_unsafe_oauth_redirect_uris_are_rejected(uri: str) -> None:
