@@ -12,7 +12,13 @@ from app.services.oidc_secrets import encrypt_oidc_client_secret
 
 def _validate_https_url(value: str, field: str) -> str:
     parsed = urlsplit(value)
-    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
+    if (
+        parsed.scheme != "https"
+        or not parsed.hostname
+        or parsed.username
+        or parsed.password
+        or parsed.fragment
+    ):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"{field} must be an HTTPS URL without embedded credentials",
@@ -71,9 +77,9 @@ class OIDCProviderService:
 
     @staticmethod
     def create(db: Session, data: OIDCProviderCreate) -> dict:
-        issuer = _validate_https_url(str(data.issuer), "issuer")
+        issuer = _validate_https_url(data.issuer, "issuer")
         discovery_url = (
-            _validate_https_url(str(data.discovery_url), "discovery_url")
+            _validate_https_url(data.discovery_url, "discovery_url")
             if data.discovery_url
             else None
         )
@@ -119,7 +125,9 @@ class OIDCProviderService:
         if secret is not None:
             provider.client_secret_encrypted = encrypt_oidc_client_secret(secret)
         for field, value in changes.items():
-            if value is not None or field == "button_label":
+            if field == "discovery_url" and value is not None:
+                value = _validate_https_url(value, "discovery_url")
+            if value is not None or field in {"button_label", "discovery_url"}:
                 setattr(provider, field, value)
         if provider.enabled and not provider.client_secret_encrypted:
             db.rollback()
