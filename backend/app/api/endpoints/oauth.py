@@ -1,7 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.deps.auth import CurrentUser
-from app.db.base import SessionDep
+from app.api.deps import CurrentUser, SessionDep
 from app.schemas.oauth import (
     OAuthAuthorizeRequest,
     OAuthRevokeRequest,
