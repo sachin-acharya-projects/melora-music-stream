@@ -137,9 +137,11 @@ class OIDCProviderService:
             for user in linked_users:
                 has_other_identity = (
                     db.query(ExternalIdentityModel.id)
+                    .join(OIDCProviderModel, OIDCProviderModel.id == ExternalIdentityModel.provider_id)
                     .filter(
                         ExternalIdentityModel.user_id == user.id,
                         ExternalIdentityModel.provider_id != provider.id,
+                        OIDCProviderModel.enabled.is_(True),
                     )
                     .first()
                     is not None
