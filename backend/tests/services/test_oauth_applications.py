@@ -74,7 +74,7 @@ def test_loopback_and_reverse_domain_custom_schemes_are_supported() -> None:
 
 
 def test_oauth_app_deactivation_is_owner_scoped(db, test_user, admin_user) -> None:
-    created = OAuthApplicationService.create(
+    OAuthApplicationService.create(
         db,
         test_user,
         name="Owned app",
