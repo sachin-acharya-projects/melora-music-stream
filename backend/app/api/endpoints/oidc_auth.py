@@ -140,7 +140,7 @@ async def oidc_callback(
         if not isinstance(subject, str) or not subject:
             raise ValueError("OIDC subject claim is missing")
         issuer = claims.get("iss")
-        if issuer and issuer.rstrip("/") != provider.issuer.rstrip("/"):
+        if issuer and issuer != provider.issuer:
             raise ValueError("OIDC issuer claim mismatch")
         email = claims.get("email")
         if email is not None and not isinstance(email, str):
