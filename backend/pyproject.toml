@@ -22,6 +22,7 @@ dependencies = [
     "python-jose[cryptography]==3.4.0",
     "passlib[bcrypt]==1.7.4",
     "authlib==1.6.0",
+    "cryptography==46.0.3",
     "itsdangerous==2.2.0",
     "httpx==0.28.1",
     "ytmusicapi==1.12.2",
