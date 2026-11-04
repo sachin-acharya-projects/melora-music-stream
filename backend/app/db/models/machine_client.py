@@ -17,8 +17,8 @@ class MachineClientModel(BaseModel):
         String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
     name: Mapped[str] = mapped_column(String(100), nullable=False)
-    service_identity: Mapped[str] = mapped_column(String(128), unique=True, nullable=False, index=True)
-    client_id: Mapped[str] = mapped_column(String(80), unique=True, nullable=False, index=True)
+    service_identity: Mapped[str] = mapped_column(String(128), unique=True, nullable=False)
+    client_id: Mapped[str] = mapped_column(String(80), unique=True, nullable=False)
     client_secret_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     scopes: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
