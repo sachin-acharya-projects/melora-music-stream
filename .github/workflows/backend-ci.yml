@@ -51,25 +51,33 @@ jobs:
             app/api/deps/auth.py \
             app/api/endpoints/developer.py \
             app/api/endpoints/oauth.py \
+            app/api/endpoints/playlists.py \
             app/db/models/machine_client.py \
             app/db/models/oauth_application.py \
             app/db/models/oauth_tokens.py \
             app/db/models/personal_access_token.py \
+            app/db/models/webhook.py \
             app/schemas/machine_clients.py \
             app/schemas/oauth.py \
             app/schemas/oauth_applications.py \
             app/schemas/personal_access_tokens.py \
+            app/schemas/webhooks.py \
             app/services/authorization.py \
             app/services/machine_clients.py \
             app/services/oauth_applications.py \
             app/services/oauth_tokens.py \
             app/services/personal_access_tokens.py \
+            app/services/webhooks.py \
+            app/services/webhook_secrets.py \
+            app/core/webhook_events.py \
+            app/workers/webhook_worker.py \
             tests/api/test_developer_endpoints.py \
             tests/services/test_authorization.py \
             tests/services/test_machine_clients.py \
             tests/services/test_oauth_applications.py \
             tests/services/test_oauth_tokens.py \
-            tests/services/test_personal_access_tokens.py
+            tests/services/test_personal_access_tokens.py \
+            tests/services/test_webhooks.py
       - name: Run backend tests
         run: pytest -q
 
