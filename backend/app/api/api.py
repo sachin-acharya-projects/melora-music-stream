@@ -8,6 +8,7 @@ from app.api.endpoints import (
     bug_reports,
     cache,
     discover,
+    developer,
     history,
     media,
     notifications,
@@ -34,6 +35,7 @@ api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 api_router.include_router(oidc_auth.router, prefix="/auth", tags=["OIDC Authentication"])
 api_router.include_router(cache.router, prefix="/cache", tags=["Cache"])
 api_router.include_router(discover.router, prefix="/discover", tags=["Discover"])
+api_router.include_router(developer.router, prefix="/developer", tags=["Developer API"])
 api_router.include_router(history.router, prefix="/history", tags=["History"])
 api_router.include_router(notifications.router, prefix="/notifications", tags=["Notifications"])
 api_router.include_router(radio.router, prefix="/radio", tags=["Radio"])
