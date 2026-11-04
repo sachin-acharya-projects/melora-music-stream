@@ -3,7 +3,7 @@ from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
 
 from app.api.deps.auth import require_machine_scopes
-from app.db.models.machine_client import MachineClientModel
+from app.db.models.machine_client import MachineClientModel, MachineUserGrantModel
 from app.services.auth import AuthService
 from app.services.machine_clients import MachineClientService
 
@@ -150,3 +150,31 @@ def test_deactivating_machine_client_invalidates_existing_access_tokens(
         )
 
     assert exc.value.status_code == 401
+
+
+
+def test_user_can_revoke_machine_grant_to_their_own_data(db, test_user, admin_user) -> None:
+    created = MachineClientService.create(
+        db,
+        admin_user,
+        name="Admin managed sync",
+        service_identity="urn:melora:admin-managed-sync",
+        scopes=["profile:read"],
+    )
+    client = db.query(MachineClientModel).filter_by(id=created["id"]).one()
+    grant = MachineClientService.grant_user_access(
+        db,
+        admin_user,
+        client.id,
+        test_user.id,
+        ["profile:read"],
+    )
+
+    MachineClientService.revoke_user_grant(
+        db,
+        test_user,
+        client.id,
+        grant.id,
+    )
+
+    assert db.query(MachineUserGrantModel).filter_by(id=grant.id).first() is None
