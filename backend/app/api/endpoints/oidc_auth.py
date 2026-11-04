@@ -13,6 +13,8 @@ from app.core.config import settings
 from app.db.models.oidc_provider import OIDCProviderModel
 from app.services.auth import AuthService
 from app.services.oidc_discovery import load_provider_metadata
+from app.schemas.oidc import OIDCLoginHandoffExchange
+from app.services.oidc_handoffs import OIDCLoginHandoffService
 from app.services.oidc_login import OIDCLoginService
 from app.services.oidc_secrets import (
     OIDCSecretConfigurationError,
@@ -189,5 +191,18 @@ async def oidc_callback(
         error = "account_link_required" if exc.status_code == 409 else "identity_sign_in_failed"
         return _frontend_redirect(request, error=error)
 
-    tokens = AuthService.create_tokens_for_user(user)
-    return _frontend_redirect(request, **tokens)
+    handoff_code = OIDCLoginHandoffService.create(db, user.id)
+    origin = settings.FRONTEND_URL.rstrip("/")
+    return RedirectResponse(
+        url=f"{origin}/auth/callback#{urlencode({'handoff': handoff_code})}",
+        status_code=status.HTTP_302_FOUND,
+    )
+
+
+@router.post("/oidc/exchange")
+def exchange_oidc_handoff(
+    data: OIDCLoginHandoffExchange,
+    db: SessionDep,
+) -> dict[str, str]:
+    """Exchange a short-lived, one-time browser handoff for Melora JWTs."""
+    return OIDCLoginHandoffService.exchange(db, data.handoff_code)
