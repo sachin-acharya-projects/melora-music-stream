@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from datetime import datetime  # noqa: TC003
 
 from sqlalchemy import DateTime, ForeignKey, JSON, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import BaseModel
-
-if TYPE_CHECKING:
-    from datetime import datetime
 
 class PersonalAccessTokenModel(BaseModel):
     """Hashed, user-owned personal access token with an explicit scope grant."""
