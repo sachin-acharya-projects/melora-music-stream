@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.messages import Messages
 from app.db.models.user import UserModel, UserRole
+from app.services.authorization import validate_scope_grant
 
 
 class AuthService:
@@ -122,6 +123,25 @@ class AuthService:
             "access_token": AuthService.create_access_token(data=token_data),
             "refresh_token": AuthService.create_refresh_token(data=token_data),
         }
+
+    @staticmethod
+    def create_delegated_access_token(
+        user: UserModel,
+        scopes: list[str] | tuple[str, ...] | set[str],
+    ) -> str:
+        """Create a short-lived access token with an explicit, role-bounded scope grant."""
+        validated_scopes = validate_scope_grant(user, scopes)
+        return AuthService.create_access_token(
+            data={
+                "sub": user.id,
+                "email": user.email,
+                "credential_type": "delegated",
+                "scopes": sorted(validated_scopes),
+            },
+            expires_delta=timedelta(
+                minutes=settings.DELEGATED_ACCESS_TOKEN_EXPIRE_MINUTES
+            ),
+        )
 
     @staticmethod
     def save_avatar(google_id: str, avatar_url: str) -> str | None:
