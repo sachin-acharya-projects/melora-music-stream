@@ -40,7 +40,6 @@ def upgrade() -> None:
     op.create_index("ix_oauth_authorization_codes_id", "oauth_authorization_codes", ["id"])
     op.create_index("ix_oauth_authorization_codes_application_id", "oauth_authorization_codes", ["application_id"])
     op.create_index("ix_oauth_authorization_codes_user_id", "oauth_authorization_codes", ["user_id"])
-    op.create_index("ix_oauth_authorization_codes_code_hash", "oauth_authorization_codes", ["code_hash"])
     op.create_index("ix_oauth_authorization_codes_expires_at", "oauth_authorization_codes", ["expires_at"])
 
     op.create_table(
@@ -65,13 +64,11 @@ def upgrade() -> None:
     op.create_index("ix_oauth_refresh_tokens_application_id", "oauth_refresh_tokens", ["application_id"])
     op.create_index("ix_oauth_refresh_tokens_user_id", "oauth_refresh_tokens", ["user_id"])
     op.create_index("ix_oauth_refresh_tokens_family_id", "oauth_refresh_tokens", ["family_id"])
-    op.create_index("ix_oauth_refresh_tokens_token_hash", "oauth_refresh_tokens", ["token_hash"])
     op.create_index("ix_oauth_refresh_tokens_expires_at", "oauth_refresh_tokens", ["expires_at"])
 
 
 def downgrade() -> None:
     op.drop_index("ix_oauth_refresh_tokens_expires_at", table_name="oauth_refresh_tokens")
-    op.drop_index("ix_oauth_refresh_tokens_token_hash", table_name="oauth_refresh_tokens")
     op.drop_index("ix_oauth_refresh_tokens_family_id", table_name="oauth_refresh_tokens")
     op.drop_index("ix_oauth_refresh_tokens_user_id", table_name="oauth_refresh_tokens")
     op.drop_index("ix_oauth_refresh_tokens_application_id", table_name="oauth_refresh_tokens")
@@ -79,7 +76,6 @@ def downgrade() -> None:
     op.drop_table("oauth_refresh_tokens")
 
     op.drop_index("ix_oauth_authorization_codes_expires_at", table_name="oauth_authorization_codes")
-    op.drop_index("ix_oauth_authorization_codes_code_hash", table_name="oauth_authorization_codes")
     op.drop_index("ix_oauth_authorization_codes_user_id", table_name="oauth_authorization_codes")
     op.drop_index("ix_oauth_authorization_codes_application_id", table_name="oauth_authorization_codes")
     op.drop_index("ix_oauth_authorization_codes_id", table_name="oauth_authorization_codes")
