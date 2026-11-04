@@ -3,10 +3,14 @@ from typing import Any
 from urllib.parse import urlencode
 
 from authlib.integrations.starlette_client import OAuth
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-from app.api.deps import CurrentUser, SessionDep
+from typing import Annotated
+
+from app.api.deps import SessionDep
+from app.api.deps.auth import require_user_or_scopes
+from app.db.models.user import UserModel
 from app.core.config import settings
 from app.core.messages import Messages
 from app.schemas.auth import TokenResponse, UserResponse, UserUpdate
@@ -17,6 +21,8 @@ from app.services.oidc_providers import OIDCProviderService
 from app.services.users import UserService
 
 router = APIRouter()
+ProfileReadUser = Annotated[UserModel, Depends(require_user_or_scopes("profile:read"))]
+ProfileWriteUser = Annotated[UserModel, Depends(require_user_or_scopes("profile:write"))]
 
 oauth = OAuth()
 oauth.register(
@@ -136,7 +142,7 @@ async def google_callback(request: Request, db: SessionDep) -> RedirectResponse:
 
 
 @router.get("/me")
-async def get_me(current_user: CurrentUser) -> UserResponse:
+async def get_me(current_user: ProfileReadUser) -> UserResponse:
     """Get current user profile."""
     response = UserResponse.model_validate(current_user)
     response.is_super_admin = AuthService.is_super_admin(current_user)
@@ -145,7 +151,7 @@ async def get_me(current_user: CurrentUser) -> UserResponse:
 
 @router.patch("/me")
 def update_me(
-    data: UserUpdate, db: SessionDep, current_user: CurrentUser
+    data: UserUpdate, db: SessionDep, current_user: ProfileWriteUser
 ) -> UserResponse:
     """Update the current user's profile (display name, bio, favorite genres...)."""
     updated = UserService.update_profile(db, user=current_user, data=data)
@@ -178,7 +184,7 @@ def list_login_providers(db: SessionDep) -> list[dict[str, Any]]:
 
 @router.get("/identities", response_model=list[ExternalIdentityResponse])
 def list_linked_identities(
-    db: SessionDep, current_user: CurrentUser
+    db: SessionDep, current_user: ProfileReadUser
 ) -> list[dict[str, Any]]:
     """List external identities linked to the signed-in Melora account."""
     return ExternalIdentityService.list_for_user(db, current_user)
@@ -186,7 +192,7 @@ def list_linked_identities(
 
 @router.delete("/identities/{identity_id}", status_code=204)
 def unlink_identity(
-    identity_id: str, db: SessionDep, current_user: CurrentUser
+    identity_id: str, db: SessionDep, current_user: ProfileWriteUser
 ) -> None:
     """Unlink an external identity without removing the last sign-in method."""
     ExternalIdentityService.unlink(db, current_user, identity_id)
