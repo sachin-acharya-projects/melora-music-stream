@@ -77,7 +77,7 @@ Machine-to-machine client credentials are also implemented:
 - A machine receives no automatic access to any user's private data. Its owner must create an explicit per-user grant through `/api/v1/developer/machine-clients/{id}/user-grants`. Regular users may grant only their own data; only admins may grant access to another user's data. Each user grant is checked against that user's current scope ceiling.
 - Deactivating a machine client invalidates its access tokens on the next request because the dependency rechecks client status.
 
-A dedicated browser consent screen and frontend developer-management UI remain outstanding. The playlist API is the first resource family migrated to the shared scope boundary: read and write routes now accept browser sessions, PATs, OAuth delegated tokens, and machine tokens. Machine calls must include `X-Melora-User-ID` and pass an explicit user grant. Initial endpoint coverage includes playlists, artists, albums, listening history, playback state, statistics, releases, recommendations, radio, personalized notifications, search history, user search, cache invalidation, and webhook management. The remaining route families—especially song/library operations, upload/import, user settings, and admin operations—still need a complete scope-by-scope audit and migration.
+A dedicated browser consent screen and frontend developer-management UI remain outstanding. The playlist API is the first resource family migrated to the shared scope boundary: read and write routes now accept browser sessions, PATs, OAuth delegated tokens, and machine tokens. Machine calls must include `X-Melora-User-ID` and pass an explicit user grant. Initial endpoint coverage includes playlists, artists, albums, listening history, playback state, statistics, releases, recommendations, radio, personalized notifications, search history, user search, cache invalidation, webhook management, and granular administrator operations for settings, dashboard, catalog, users, bug reports, and identity providers. Remaining route families—especially direct song/library operations and user upload/import workflows—still need a complete scope-by-scope audit and migration.
 
 Webhook subscriptions and the delivery outbox now have a backend foundation:
 
@@ -104,7 +104,7 @@ A single authorization policy must be shared by browser sessions, personal acces
 - Machine-to-machine clients use client credentials and their own explicit service identity and grants. They do not silently inherit a human user's permissions.
 - Every delegated API operation checks identity, token/client grant, requested scope, target-user boundary, resource ownership, and role policy. Browser-session compatibility is retained while routes are migrated to the same scope policy.
 - Delegated and machine JWTs are rejected by browser-only `CurrentUser` dependencies so a scoped token cannot bypass route-level scope checks by being treated as a normal browser session.
-- Admin and automation capabilities are separate high-risk scopes and are never implied by ordinary library scopes.
+- Admin and automation capabilities are separate high-risk scopes and are never implied by ordinary library scopes. Administrator operations require both the admin role and an explicit granular scope (for example `admin:catalog:write` or `admin:users:read`).
 - Access tokens are short-lived. Refresh tokens rotate and support revocation/reuse detection.
 - Webhooks are signed, retryable, and support per-event subscriptions and secret rotation.
 
@@ -114,7 +114,7 @@ Initial scope families (final names are versioned with the API):
 - player: control
 - media: upload/import
 - settings: read/update
-- admin: narrowly separated administrative operations
+- admin: narrowly separated administrative operations, including `admin:catalog:read/write`, `admin:settings:read/write`, `admin:users:read/write`, `admin:reports:read/write`, `admin:identity:read/write`, and `admin:dashboard:read`
 - automation: trigger approved user-owned workflows
 
 ## Architecture constraints
