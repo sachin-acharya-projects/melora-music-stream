@@ -23,6 +23,24 @@ export interface User {
     updated_at: string
 }
 
+export interface OIDCProvider {
+    id: string
+    name: string
+    display_name: string
+    button_label: string | null
+    sort_order: number
+}
+
+export interface ExternalIdentity {
+    id: string
+    provider_id: string
+    provider_name: string
+    email: string | null
+    email_verified: boolean
+    display_name: string | null
+    linked_at: string
+}
+
 export interface TokenResponse {
     access_token: string
     refresh_token: string
@@ -50,6 +68,29 @@ export const authService = {
     clearTokens: () => {
         localStorage.removeItem(ACCESS_TOKEN_KEY)
         localStorage.removeItem(REFRESH_TOKEN_KEY)
+    },
+
+    loginWithOIDC: (providerId: string) => {
+        window.location.href = `${API_BASE_URL}${ENDPOINTS.AUTH.OIDC_LOGIN(providerId)}`
+    },
+
+    getOIDCProviders: async (): Promise<OIDCProvider[]> => {
+        const { data } = await http.get<OIDCProvider[]>(ENDPOINTS.AUTH.OIDC_PROVIDERS)
+        return data
+    },
+
+    getLinkedIdentities: async (): Promise<ExternalIdentity[]> => {
+        const { data } = await http.get<ExternalIdentity[]>(ENDPOINTS.AUTH.OIDC_IDENTITIES)
+        return data
+    },
+
+    linkOIDCIdentity: async (providerId: string): Promise<void> => {
+        const { data } = await http.post<{ authorization_url: string }>(ENDPOINTS.AUTH.OIDC_LINK(providerId))
+        window.location.href = data.authorization_url
+    },
+
+    unlinkIdentity: async (identityId: string): Promise<void> => {
+        await http.delete(ENDPOINTS.AUTH.OIDC_UNLINK(identityId))
     },
 
     loginWithGoogle: async () => {
