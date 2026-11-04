@@ -14,6 +14,9 @@ from app.services.authorization import validate_scope_grant
 
 
 class OAuthApplicationService:
+    MAX_REDIRECT_URI_LENGTH = 2048
+    CONTROL_CHARACTER_LIMIT = 32
+
     @staticmethod
     def validate_redirect_uri(uri: str) -> str:
         """Validate an exact OAuth redirect URI without wildcards or fragments."""
@@ -28,14 +31,14 @@ class OAuthApplicationService:
             ) from exc
         if (
             not value
-            or len(value) > 2048
+            or len(value) > OAuthApplicationService.MAX_REDIRECT_URI_LENGTH
             or not parsed.scheme
             or parsed.username
             or parsed.password
             or parsed.fragment
             or "*" in value
             or "\\" in value
-            or any(ord(character) < 32 for character in value)
+            or any(ord(character) < OAuthApplicationService.CONTROL_CHARACTER_LIMIT for character in value)
         ):
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
