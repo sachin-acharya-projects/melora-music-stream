@@ -41,7 +41,7 @@ def get_current_user_optional(
     """Get current user from JWT token. Returns None if not authenticated."""
     token = credentials.credentials if credentials else None
     payload = AuthService.decode_token(token) if token else None
-    if payload and payload.get("credential_type") is not None:
+    if payload and "credential_type" in payload:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Delegated credentials must use a scope-protected endpoint",
