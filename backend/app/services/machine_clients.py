@@ -281,6 +281,10 @@ class MachineClientService:
         required_scopes: list[str] | tuple[str, ...],
     ) -> frozenset[str]:
         """Require an explicit client-to-user grant for a private user resource."""
+        if not client.is_active or MachineClientService._is_expired(
+            client.expires_at, datetime.now(UTC)
+        ):
+            raise HTTPException(status_code=401, detail="Machine client is inactive or expired")
         grant = (
             db.query(MachineUserGrantModel)
             .filter(
