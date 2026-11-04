@@ -20,6 +20,7 @@ from app.db.models.oauth_tokens import (
     OAuthRefreshTokenModel,
 )
 from app.db.models.user import UserModel
+from app.services.machine_clients import MachineClientService
 from app.schemas.oauth import (
     OAuthAuthorizeRequest,
     OAuthRevokeRequest,
@@ -90,8 +91,18 @@ class OAuthTokenService:
     def exchange(
         db: Session,
         request: OAuthTokenRequest,
-    ) -> dict[str, str | int]:
-        """Exchange an authorization code or rotate an OAuth refresh token."""
+    ) -> dict[str, str | int | None]:
+        """Exchange an authorization code, rotate a refresh token, or issue a machine token."""
+        if request.grant_type == "client_credentials":
+            if not request.client_secret:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Machine client credentials are required",
+                )
+            return MachineClientService.issue_access_token(
+                db, request.client_id, request.client_secret
+            )
+
         app = OAuthTokenService._authenticate_client(
             db, request.client_id, request.client_secret
         )
