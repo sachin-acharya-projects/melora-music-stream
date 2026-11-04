@@ -144,7 +144,12 @@ class OIDCProviderService:
                     .first()
                     is not None
                 )
-                has_legacy_google = user.oauth_provider == "google" and bool(user.oauth_id)
+                has_legacy_google = bool(
+                    user.oauth_provider == "google"
+                    and user.oauth_id
+                    and settings.GOOGLE_CLIENT_ID
+                    and settings.GOOGLE_CLIENT_SECRET
+                )
                 if not user.password_hash and not has_other_identity and not has_legacy_google:
                     db.rollback()
                     raise HTTPException(
