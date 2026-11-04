@@ -2,7 +2,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
@@ -212,3 +212,50 @@ def require_machine_scopes(*required_scopes: str) -> Callable[..., MachinePrinci
 def _machine_scope_user(client: MachineClientModel, db: Session) -> UserModel:
     """Resolve the client owner only to reapply the owner's current scope ceiling."""
     return AuthService.get_user_by_id(db, client.owner_user_id)
+
+
+
+def require_user_or_scopes(*required_scopes: str) -> Callable[..., UserModel]:
+    """Accept browser sessions, delegated tokens, PATs, or explicitly granted machines.
+
+    Machine requests must identify the target account with X-Melora-User-ID.
+    That account is returned only after a matching machine-to-user grant is checked.
+    """
+
+    def user_checker(
+        credentials: HTTPAuthorizationCredentials | None = Depends(security),
+        db: Session = Depends(get_db),
+        target_user_id: str | None = Header(default=None, alias="X-Melora-User-ID"),
+    ) -> UserModel:
+        token = credentials.credentials if credentials else None
+        payload = AuthService.decode_token(token) if token else None
+
+        if payload and payload.get("type") == "access":
+            credential_type = payload.get("credential_type")
+            if credential_type is None:
+                return AuthService.get_current_user_from_token(token, db=db)
+            if credential_type == "machine":
+                principal = require_machine_scopes(*required_scopes)(
+                    credentials=credentials,
+                    db=db,
+                )
+                if not target_user_id:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Machine requests must include X-Melora-User-ID",
+                    )
+                MachineClientService.require_user_grant(
+                    db,
+                    principal.client,
+                    target_user_id,
+                    list(required_scopes),
+                )
+                return AuthService.get_user_by_id(db, target_user_id)
+
+        principal = require_scopes(*required_scopes)(
+            credentials=credentials,
+            db=db,
+        )
+        return principal.user
+
+    return user_checker
