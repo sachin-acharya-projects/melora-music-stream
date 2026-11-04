@@ -183,15 +183,15 @@ class AuthService:
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail=Messages.ACCOUNT_DEACTIVATED,
                 )
-            user.oauth_provider = "google"
-            user.oauth_id = google_id
-            if name:
-                user.display_name = name
-            if avatar_url:
-                user.avatar_url = avatar_url
-            db.commit()
-            db.refresh(user)
-            return user
+            # An email match is not proof that the person controls the existing
+            # Melora account. Linking must happen from an authenticated session.
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    "A Melora account already uses this email. Sign in with that "
+                    "account first, then link Google from account security settings."
+                ),
+            )
 
         username = email.split("@", maxsplit=1)[0]
         if name:
