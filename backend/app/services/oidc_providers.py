@@ -10,7 +10,10 @@ from app.db.models.external_identity import ExternalIdentityModel
 from app.db.models.oidc_provider import OIDCProviderModel
 from app.db.models.user import UserModel
 from app.schemas.oidc import OIDCProviderCreate, OIDCProviderUpdate
-from app.services.oidc_secrets import encrypt_oidc_client_secret
+from app.services.oidc_secrets import (
+    OIDCSecretConfigurationError,
+    encrypt_oidc_client_secret,
+)
 
 
 def _validate_https_url(value: str, field: str) -> str:
@@ -27,6 +30,16 @@ def _validate_https_url(value: str, field: str) -> str:
             detail=f"{field} must be an HTTPS URL without embedded credentials",
         )
     return value
+
+
+def _encrypt_client_secret(secret: str) -> str:
+    try:
+        return encrypt_oidc_client_secret(secret)
+    except OIDCSecretConfigurationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="OIDC secret encryption is not configured on this server",
+        ) from exc
 
 
 def _provider_response(provider: OIDCProviderModel) -> dict[str, Any]:
@@ -97,7 +110,7 @@ class OIDCProviderService:
             discovery_url=discovery_url,
             client_id=data.client_id,
             client_secret_encrypted=(
-                encrypt_oidc_client_secret(data.client_secret) if data.client_secret else None
+                _encrypt_client_secret(data.client_secret) if data.client_secret else None
             ),
             scopes=data.scopes,
             display_name=data.display_name,
@@ -126,7 +139,7 @@ class OIDCProviderService:
         changes = data.model_dump(exclude_unset=True)
         secret = changes.pop("client_secret", None)
         if secret is not None:
-            provider.client_secret_encrypted = encrypt_oidc_client_secret(secret)
+            provider.client_secret_encrypted = _encrypt_client_secret(secret)
         if provider.enabled and changes.get("enabled") is False:
             linked_users = (
                 db.query(UserModel)
