@@ -4,8 +4,8 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.api.deps import OptionalUser, SessionDep
-from app.api.deps.auth import require_user_or_scopes
+from app.api.deps import SessionDep
+from app.api.deps.auth import optional_user_or_scopes, require_user_or_scopes
 from app.db.models.user import UserModel
 from app.schemas.song import (
     CollaboratorCreate,
@@ -23,6 +23,7 @@ from app.services.webhooks import WebhookEventService
 router = APIRouter()
 PlaylistReadUser = Annotated[UserModel, Depends(require_user_or_scopes("playlists:read"))]
 PlaylistWriteUser = Annotated[UserModel, Depends(require_user_or_scopes("playlists:write"))]
+OptionalPlaylistUser = Annotated[UserModel | None, Depends(optional_user_or_scopes("playlists:read"))]
 logger = logging.getLogger(__name__)
 
 
@@ -106,7 +107,7 @@ def revoke_share_link(
 def get_playlist(
     playlist_id: str,
     db: SessionDep,
-    user: OptionalUser,
+    user: OptionalPlaylistUser,
     q: Annotated[str | None, Query()] = None,
     sort_by: Annotated[
         str, Query(pattern="^(title|uploader|duration|created_at|position)$")
