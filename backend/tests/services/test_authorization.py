@@ -186,3 +186,31 @@ def test_personal_access_token_can_use_delegated_scope_dependency(test_user, db)
     assert principal.user.id == test_user.id
     assert principal.scopes == {"profile:read"}
     assert principal.credential_id == created["id"]
+
+from fastapi import HTTPException
+from fastapi.security import HTTPAuthorizationCredentials
+
+from app.api.deps.auth import get_current_user, get_current_user_optional
+from app.services.auth import AuthService
+
+
+def test_browser_user_dependency_rejects_delegated_access_token(test_user, db) -> None:
+    token = AuthService.create_delegated_access_token(test_user, ["profile:read"])
+    credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
+
+    with pytest.raises(HTTPException) as required:
+        get_current_user(credentials=credentials, db=db)
+    assert required.value.status_code == 401
+
+    with pytest.raises(HTTPException) as optional:
+        get_current_user_optional(credentials=credentials, db=db)
+    assert optional.value.status_code == 401
+
+
+def test_browser_user_dependency_accepts_browser_access_token(test_user, db) -> None:
+    token = AuthService.create_access_token({"sub": test_user.id, "email": test_user.email})
+    user = get_current_user(
+        credentials=HTTPAuthorizationCredentials(scheme="Bearer", credentials=token),
+        db=db,
+    )
+    assert user.id == test_user.id
