@@ -39,11 +39,9 @@ def upgrade() -> None:
     )
     op.create_index("ix_oauth_applications_id", "oauth_applications", ["id"])
     op.create_index("ix_oauth_applications_owner_user_id", "oauth_applications", ["owner_user_id"])
-    op.create_index("ix_oauth_applications_client_id", "oauth_applications", ["client_id"])
 
 
 def downgrade() -> None:
-    op.drop_index("ix_oauth_applications_client_id", table_name="oauth_applications")
     op.drop_index("ix_oauth_applications_owner_user_id", table_name="oauth_applications")
     op.drop_index("ix_oauth_applications_id", table_name="oauth_applications")
     op.drop_table("oauth_applications")
