@@ -24,6 +24,7 @@ def _validate_https_url(value: str, field: str) -> str:
         or parsed.username
         or parsed.password
         or parsed.fragment
+        or (field == "issuer" and parsed.query)
     ):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
