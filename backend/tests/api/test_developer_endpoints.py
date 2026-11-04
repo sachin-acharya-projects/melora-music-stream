@@ -91,7 +91,7 @@ def test_oauth_authorize_and_token_endpoints(client, auth_headers) -> None:
         json={
             "name": "API OAuth Client",
             "redirect_uris": ["https://api-client.example.com/callback"],
-            "allowed_scopes": ["profile:read"],
+            "allowed_scopes": ["playlists:read"],
         },
     )
     assert app_response.status_code == 201
@@ -107,7 +107,7 @@ def test_oauth_authorize_and_token_endpoints(client, auth_headers) -> None:
         json={
             "client_id": app_data["client_id"],
             "redirect_uri": "https://api-client.example.com/callback",
-            "scopes": ["profile:read"],
+            "scopes": ["playlists:read"],
             "state": "client-generated-state-value",
             "code_challenge": challenge,
             "code_challenge_method": "S256",
@@ -131,7 +131,10 @@ def test_oauth_authorize_and_token_endpoints(client, auth_headers) -> None:
     assert token_response.status_code == 200
     assert token_response.json()["access_token"]
     assert token_response.json()["refresh_token"]
-    assert token_response.json()["scope"] == "profile:read"
+    assert token_response.json()["scope"] == "playlists:read"
+    delegated_headers = {"Authorization": f"Bearer {token_response.json()['access_token']}"}
+    delegated_read = client.get("/api/v1/playlists/", headers=delegated_headers)
+    assert delegated_read.status_code == 200
 
 
 
