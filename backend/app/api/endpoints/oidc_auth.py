@@ -1,22 +1,18 @@
 """Dynamic, provider-neutral OIDC login and account-linking routes."""
 
-from typing import Any
+from typing import Annotated, Any
 from urllib.parse import urlencode
 
 from authlib.integrations.starlette_client import OAuth
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
-from typing import Annotated
-
-from fastapi import Depends
-
 from app.api.deps import SessionDep
 from app.api.deps.auth import require_user_or_scopes
-from app.db.models.user import UserModel
 from app.core.config import settings
 from app.db.models.oidc_provider import OIDCProviderModel
+from app.db.models.user import UserModel
 from app.schemas.oidc import OIDCLoginHandoffExchange
 from app.services.oidc_discovery import load_provider_metadata
 from app.services.oidc_handoffs import OIDCLoginHandoffService
