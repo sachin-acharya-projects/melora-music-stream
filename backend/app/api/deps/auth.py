@@ -316,3 +316,15 @@ def optional_user_or_scopes(
         ).user
 
     return optional_checker
+
+
+def require_admin_scopes(*required_scopes: str) -> Callable[..., UserModel]:
+    """Require both the administrator role and explicit delegated admin scopes."""
+
+    def admin_checker(
+        user: UserModel = Depends(require_user_or_scopes(*required_scopes)),
+    ) -> UserModel:
+        AuthService.require_role(user, UserRole.ADMIN)
+        return user
+
+    return admin_checker
