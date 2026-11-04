@@ -2,6 +2,10 @@ import base64
 import hashlib
 from urllib.parse import parse_qs, urlsplit
 
+from cryptography.fernet import Fernet
+
+from app.core.config import settings
+
 
 def test_scope_catalog_is_public_and_descriptive(client) -> None:
     response = client.get("/api/v1/developer/scopes")
@@ -162,8 +166,6 @@ def test_machine_client_credentials_grant(client, auth_headers) -> None:
 
 
 def test_webhook_subscription_api(client, auth_headers, monkeypatch) -> None:
-    from cryptography.fernet import Fernet
-
     monkeypatch.setattr(
         settings,
         "WEBHOOK_SECRET_ENCRYPTION_KEY",
