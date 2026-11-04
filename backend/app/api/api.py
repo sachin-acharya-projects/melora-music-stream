@@ -11,6 +11,7 @@ from app.api.endpoints import (
     history,
     media,
     notifications,
+    oidc_providers,
     playlists,
     radio,
     recommendations,
@@ -25,6 +26,7 @@ from app.core.config import settings
 
 api_router = APIRouter()
 api_router.include_router(admin.router, prefix="/admin", tags=["Admin"])
+api_router.include_router(oidc_providers.router, prefix="/admin", tags=["Identity Providers"])
 api_router.include_router(albums.router, prefix="/albums", tags=["Albums"])
 api_router.include_router(artists.router, prefix="/artists", tags=["Artists"])
 api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
