@@ -55,7 +55,7 @@ SENSITIVE_SCOPES = frozenset(
 class UnknownScopeError(ValueError):
     """Raised when an API client requests a scope Melora does not recognize."""
 
-    def __init__(self, unknown_scopes: set[str]) -> None:
+    def __init__(self, unknown_scopes: frozenset[str]) -> None:
         self.unknown_scopes = tuple(sorted(unknown_scopes))
         super().__init__(self.unknown_scopes)
 
