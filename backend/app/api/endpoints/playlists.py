@@ -1,3 +1,4 @@
+import logging
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Query
@@ -14,8 +15,21 @@ from app.schemas.song import (
 from app.services.playlist_import import PlaylistImportService
 from app.services.playlist_share import PlaylistShareService
 from app.services.playlists import PlaylistService
+from app.services.webhooks import WebhookEventService
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+
+def _emit_playlist_event(
+    db: SessionDep, user: CurrentUser, event_type: str, data: dict[str, object]
+) -> None:
+    """Keep webhook delivery enqueue failures from breaking completed user actions."""
+    try:
+        WebhookEventService.enqueue_event(db, user.id, event_type, data)
+    except Exception:
+        logger.exception("Unable to enqueue webhook event %s", event_type)
+
 
 
 @router.get("/")
@@ -155,29 +169,37 @@ def remove_collaborator(
 def create_playlist(
     data: PlaylistCreate, db: SessionDep, user: CurrentUser
 ) -> dict[str, Any]:
-    return PlaylistService.create_playlist(
+    result = PlaylistService.create_playlist(
         db,
         user=user,
         name=data.name,
         description=data.description,
         visibility=data.visibility,
     )
+    _emit_playlist_event(
+        db, user, "playlist.created", {"playlist_id": str(result.get("id", "")), "name": data.name}
+    )
+    return result
 
 
 @router.patch("/{playlist_id}")
 def update_playlist(
     playlist_id: str, data: PlaylistUpdate, db: SessionDep, user: CurrentUser
 ) -> dict[str, Any]:
-    return PlaylistService.update_playlist(
+    result = PlaylistService.update_playlist(
         db, playlist_id=playlist_id, user=user, data=data
     )
+    _emit_playlist_event(db, user, "playlist.updated", {"playlist_id": playlist_id})
+    return result
 
 
 @router.delete("/{playlist_id}")
 def delete_playlist(
     playlist_id: str, db: SessionDep, user: CurrentUser
 ) -> dict[str, str]:
-    return PlaylistService.delete_playlist(db, playlist_id=playlist_id, user=user)
+    result = PlaylistService.delete_playlist(db, playlist_id=playlist_id, user=user)
+    _emit_playlist_event(db, user, "playlist.deleted", {"playlist_id": playlist_id})
+    return result
 
 
 @router.post("/{playlist_id_or_name}/add")
@@ -187,9 +209,13 @@ def add_to_playlist(
     db: SessionDep,
     user: CurrentUser,
 ) -> dict[str, Any]:
-    return PlaylistService.add_song_to_playlist(
+    result = PlaylistService.add_song_to_playlist(
         db, playlist_id_or_name=playlist_id_or_name, song=song, user=user
     )
+    _emit_playlist_event(
+        db, user, "playlist.updated", {"playlist": playlist_id_or_name, "change": "song_added"}
+    )
+    return result
 
 
 @router.post("/{playlist_id_or_name}/add-bulk")
@@ -199,18 +225,26 @@ def add_songs_to_playlist(
     db: SessionDep,
     user: CurrentUser,
 ) -> dict[str, Any]:
-    return PlaylistService.add_songs_bulk_to_playlist(
+    result = PlaylistService.add_songs_bulk_to_playlist(
         db, playlist_id_or_name=playlist_id_or_name, songs=songs, user=user
     )
+    _emit_playlist_event(
+        db, user, "playlist.updated", {"playlist": playlist_id_or_name, "change": "songs_added"}
+    )
+    return result
 
 
 @router.delete("/{playlist_id}/songs/{song_id}")
 def remove_song_from_playlist(
     playlist_id: str, song_id: str, db: SessionDep, user: CurrentUser
 ) -> dict[str, str]:
-    return PlaylistService.remove_song_from_playlist(
+    result = PlaylistService.remove_song_from_playlist(
         db, playlist_id=playlist_id, song_id=song_id, user=user
     )
+    _emit_playlist_event(
+        db, user, "playlist.updated", {"playlist_id": playlist_id, "change": "song_removed"}
+    )
+    return result
 
 
 @router.post("/import")
