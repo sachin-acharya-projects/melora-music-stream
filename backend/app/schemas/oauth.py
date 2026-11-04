@@ -32,3 +32,10 @@ class OAuthTokenResponse(BaseModel):
     expires_in: int
     refresh_token: str
     scope: str
+
+
+
+class OAuthRevokeRequest(BaseModel):
+    client_id: str = Field(min_length=16, max_length=80)
+    client_secret: str | None = None
+    token: str = Field(min_length=32, max_length=256)
