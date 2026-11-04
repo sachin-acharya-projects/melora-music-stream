@@ -1,7 +1,8 @@
 import pytest
 from fastapi import HTTPException
 
-from app.db.models.machine_client import MachineClientModel, MachineUserGrantModel
+from app.db.models.machine_client import MachineClientModel
+from app.services.auth import AuthService
 from app.services.machine_clients import MachineClientService
 
 
@@ -32,7 +33,6 @@ def test_machine_client_credentials_issue_machine_token(db, test_user) -> None:
         str(created["client_id"]),
         str(created["client_secret"]),
     )
-    from app.services.auth import AuthService
 
     payload = AuthService.decode_token(str(tokens["access_token"]))
     assert payload is not None
@@ -42,7 +42,7 @@ def test_machine_client_credentials_issue_machine_token(db, test_user) -> None:
 
 
 def test_machine_client_requires_explicit_user_data_grant(db, test_user) -> None:
-    created = _create_machine(db, test_user)
+    _create_machine(db, test_user)
     client = db.query(MachineClientModel).one()
 
     with pytest.raises(HTTPException) as exc:
@@ -67,7 +67,7 @@ def test_machine_client_requires_explicit_user_data_grant(db, test_user) -> None
 def test_regular_user_cannot_grant_machine_access_to_another_user(
     db, test_user, admin_user
 ) -> None:
-    created = _create_machine(db, test_user)
+    _create_machine(db, test_user)
     client = db.query(MachineClientModel).one()
 
     with pytest.raises(HTTPException) as exc:
