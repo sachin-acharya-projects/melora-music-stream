@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from sqlalchemy import Boolean, ForeignKey, JSON, String, Text
+from sqlalchemy import Boolean, ForeignKey, JSON, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import BaseModel
-
 
 class OAuthApplicationModel(BaseModel):
     """User-registered OAuth client with hashed secret and bounded scope ceiling."""
