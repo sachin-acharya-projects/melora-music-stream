@@ -9,6 +9,7 @@ backend to an unrelated URL.
 import asyncio
 import ipaddress
 import socket
+from typing import Any
 from urllib.parse import urlsplit
 
 import httpx
@@ -65,7 +66,7 @@ def discovery_url_for(provider: OIDCProviderModel) -> str:
     return f"{issuer}/.well-known/openid-configuration"
 
 
-async def load_provider_metadata(provider: OIDCProviderModel) -> dict:
+async def load_provider_metadata(provider: OIDCProviderModel) -> dict[str, Any]:
     """Fetch and validate OIDC metadata for a configured provider."""
     discovery_url = discovery_url_for(provider)
     try:
