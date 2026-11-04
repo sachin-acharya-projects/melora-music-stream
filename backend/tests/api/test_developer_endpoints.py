@@ -158,3 +158,48 @@ def test_machine_client_credentials_grant(client, auth_headers) -> None:
     assert token_response.json()["access_token"]
     assert token_response.json()["refresh_token"] is None
     assert token_response.json()["scope"] == "library:read profile:read"
+
+
+
+def test_webhook_subscription_api(client, auth_headers, monkeypatch) -> None:
+    from cryptography.fernet import Fernet
+
+    monkeypatch.setattr(
+        settings,
+        "WEBHOOK_SECRET_ENCRYPTION_KEY",
+        Fernet.generate_key().decode("ascii"),
+    )
+    events = client.get("/api/v1/developer/webhook-events")
+    assert events.status_code == 200
+    assert any(event["name"] == "playlist.created" for event in events.json())
+
+    created = client.post(
+        "/api/v1/developer/webhooks",
+        headers=auth_headers,
+        json={
+            "name": "Playlist webhook",
+            "endpoint_url": "https://hooks.example.com/melora",
+            "events": ["playlist.created"],
+        },
+    )
+    assert created.status_code == 201
+    subscription = created.json()
+    assert subscription["signing_secret"].startswith("whsec_")
+
+    listed = client.get("/api/v1/developer/webhooks", headers=auth_headers)
+    assert listed.status_code == 200
+    assert len(listed.json()) == 1
+    assert "signing_secret" not in listed.text
+
+    rotated = client.post(
+        f"/api/v1/developer/webhooks/{subscription['id']}/rotate-secret",
+        headers=auth_headers,
+    )
+    assert rotated.status_code == 200
+    assert rotated.json()["signing_secret"] != subscription["signing_secret"]
+
+    deleted = client.delete(
+        f"/api/v1/developer/webhooks/{subscription['id']}",
+        headers=auth_headers,
+    )
+    assert deleted.status_code == 204
