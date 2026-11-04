@@ -252,22 +252,32 @@ def remove_song_from_playlist(
 def import_playlist(
     data: PlaylistImport, db: SessionDep, user: CurrentUser
 ) -> dict[str, Any]:
-    return PlaylistImportService.import_playlist(db, data, user)
+    result = PlaylistImportService.import_playlist(db, data, user)
+    _emit_playlist_event(
+        db, user, "playlist.created", {"playlist": str(result.get("id", "")), "source": "import"}
+    )
+    return result
 
 
 @router.post("/{playlist_id}/sync")
 def sync_playlist(
     playlist_id: str, db: SessionDep, user: CurrentUser
 ) -> dict[str, Any]:
-    return PlaylistImportService.sync_playlist(
+    result = PlaylistImportService.sync_playlist(
         db, playlist_id=playlist_id, user=user
     )
+    _emit_playlist_event(db, user, "playlist.updated", {"playlist_id": playlist_id, "source": "sync"})
+    return result
 
 
 @router.post("/{playlist_id}/reorder")
 def reorder_playlist_songs(
     playlist_id: str, data: PlaylistReorder, db: SessionDep, user: CurrentUser
 ) -> dict[str, Any]:
-    return PlaylistService.reorder_songs(
+    result = PlaylistService.reorder_songs(
         db, playlist_id=playlist_id, song_ids=data.song_ids, user=user
     )
+    _emit_playlist_event(
+        db, user, "playlist.updated", {"playlist_id": playlist_id, "change": "reordered"}
+    )
+    return result
