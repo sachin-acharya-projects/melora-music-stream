@@ -9,7 +9,7 @@ from app.db.models.oauth_tokens import (
     OAuthAuthorizationCodeModel,
     OAuthRefreshTokenModel,
 )
-from app.schemas.oauth import OAuthAuthorizeRequest, OAuthTokenRequest
+from app.schemas.oauth import OAuthAuthorizeRequest, OAuthRevokeRequest, OAuthTokenRequest
 from app.services.oauth_applications import OAuthApplicationService
 from app.services.oauth_tokens import OAuthTokenService
 
@@ -184,3 +184,39 @@ def test_confidential_client_secret_is_required(db, test_user) -> None:
         )
 
     assert exc.value.status_code == 401
+
+
+
+def test_oauth_refresh_token_revocation_invalidates_family(db, test_user) -> None:
+    app_data = _create_app(db, test_user)
+    code, verifier = _authorize(db, test_user, app_data)
+    tokens = OAuthTokenService.exchange(
+        db,
+        OAuthTokenRequest(
+            grant_type="authorization_code",
+            client_id=str(app_data["client_id"]),
+            client_secret=str(app_data["client_secret"]),
+            redirect_uri="https://client.example.com/callback",
+            code=code,
+            code_verifier=verifier,
+        ),
+    )
+    OAuthTokenService.revoke(
+        db,
+        OAuthRevokeRequest(
+            client_id=str(app_data["client_id"]),
+            client_secret=str(app_data["client_secret"]),
+            token=str(tokens["refresh_token"]),
+        ),
+    )
+
+    with pytest.raises(HTTPException):
+        OAuthTokenService.exchange(
+            db,
+            OAuthTokenRequest(
+                grant_type="refresh_token",
+                client_id=str(app_data["client_id"]),
+                client_secret=str(app_data["client_secret"]),
+                refresh_token=str(tokens["refresh_token"]),
+            ),
+        )
