@@ -248,16 +248,24 @@ class MachineClientService:
     def list_user_grants(
         db: Session, owner: UserModel, client_record_id: str
     ) -> list[MachineUserGrantModel]:
-        client = (
-            db.query(MachineClientModel)
-            .filter(
-                MachineClientModel.id == client_record_id,
-                MachineClientModel.owner_user_id == owner.id,
+        client = db.query(MachineClientModel).filter(
+            MachineClientModel.id == client_record_id
+        ).first()
+        if client is None or (
+            client.owner_user_id != owner.id
+            and owner.role != UserRole.ADMIN.value
+        ):
+            own_grant = (
+                db.query(MachineUserGrantModel)
+                .filter(
+                    MachineUserGrantModel.machine_client_id == client_record_id,
+                    MachineUserGrantModel.user_id == owner.id,
+                )
+                .all()
             )
-            .first()
-        )
-        if client is None:
-            raise HTTPException(status_code=404, detail="Machine client not found")
+            if not own_grant:
+                raise HTTPException(status_code=404, detail="Machine client not found")
+            return own_grant
         return (
             db.query(MachineUserGrantModel)
             .filter(MachineUserGrantModel.machine_client_id == client.id)
