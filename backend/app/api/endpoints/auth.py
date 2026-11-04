@@ -121,6 +121,10 @@ async def google_callback(request: Request, db: SessionDep) -> RedirectResponse:
             return RedirectResponse(
                 url=build_redirect(urlencode({"error": "account_deactivated"}))
             )
+        if exc.status_code == 409:
+            return RedirectResponse(
+                url=build_redirect(urlencode({"error": "account_link_required"}))
+            )
         raise
     tokens = AuthService.create_tokens_for_user(user)
     params = {
