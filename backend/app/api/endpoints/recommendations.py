@@ -1,8 +1,12 @@
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Query
+from typing import Annotated
 
-from app.api.deps import CurrentUser, SessionDep
+from fastapi import APIRouter, Depends, Query
+
+from app.api.deps import SessionDep
+from app.api.deps.auth import require_user_or_scopes
+from app.db.models.user import UserModel
 from app.services.recommendations import (
     RECOMMENDATIONS_DEFAULT_LIMIT,
     RECOMMENDATIONS_MAX_LIMIT,
@@ -10,12 +14,13 @@ from app.services.recommendations import (
 )
 
 router = APIRouter()
+RecommendationReadUser = Annotated[UserModel, Depends(require_user_or_scopes("library:read"))]
 
 
 @router.get("/")
 def get_recommendations(
     db: SessionDep,
-    current_user: CurrentUser,
+    current_user: RecommendationReadUser,
     limit: Annotated[int, Query(ge=1, le=RECOMMENDATIONS_MAX_LIMIT)] = (
         RECOMMENDATIONS_DEFAULT_LIMIT
     ),
