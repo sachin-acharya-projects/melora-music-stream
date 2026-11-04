@@ -17,7 +17,7 @@ class OAuthAuthorizeRequest(BaseModel):
 
 
 class OAuthTokenRequest(BaseModel):
-    grant_type: Literal["authorization_code", "refresh_token"]
+    grant_type: Literal["authorization_code", "refresh_token", "client_credentials"]
     client_id: str = Field(min_length=16, max_length=80)
     client_secret: str | None = None
     redirect_uri: str | None = Field(default=None, max_length=2048)
@@ -30,7 +30,7 @@ class OAuthTokenResponse(BaseModel):
     access_token: str
     token_type: Literal["Bearer"] = "Bearer"
     expires_in: int
-    refresh_token: str
+    refresh_token: str | None = None
     scope: str
 
 
