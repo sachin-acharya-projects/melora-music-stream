@@ -41,6 +41,16 @@ class MachineClientService:
                 status_code=422,
                 detail="Machine client lifetime must be between 1 and 365 days",
             )
+        if (
+            db.query(MachineClientModel.id)
+            .filter(MachineClientModel.service_identity == service_identity)
+            .first()
+            is not None
+        ):
+            raise HTTPException(
+                status_code=409,
+                detail="A machine client already uses this service identity",
+            )
         granted_scopes = validate_scope_grant(owner, scopes)
         client_id = "mlsvc_" + secrets.token_urlsafe(24)
         client_secret = "mlss_" + secrets.token_urlsafe(48)
