@@ -1,8 +1,10 @@
 import pytest
 from fastapi import HTTPException
+from fastapi.security import HTTPAuthorizationCredentials
 
 from app.core.scopes import ALL_SCOPES, ADMIN_SCOPES, normalize_scopes
 from app.services.auth import AuthService
+from app.api.deps.auth import require_scopes
 from app.services.authorization import (
     effective_scope_ceiling,
     require_delegated_scopes,
@@ -118,3 +120,49 @@ def test_delegated_access_token_cannot_exceed_user_role(admin_user, test_user) -
     payload = AuthService.decode_token(admin_token)
     assert payload is not None
     assert payload["scopes"] == ["admin:users:write"]
+
+
+
+def test_browser_session_token_cannot_satisfy_delegated_scope_dependency(
+    test_user, db
+) -> None:
+    browser_token = AuthService.create_access_token(
+        {"sub": test_user.id, "email": test_user.email}
+    )
+    dependency = require_scopes("profile:read")
+
+    with pytest.raises(HTTPException) as exc:
+        dependency(
+            credentials=HTTPAuthorizationCredentials(
+                scheme="Bearer",
+                credentials=browser_token,
+            ),
+            db=db,
+        )
+
+    assert exc.value.status_code == 401
+
+
+def test_delegated_scope_dependency_checks_token_grant_and_current_user(
+    test_user, db
+) -> None:
+    token = AuthService.create_delegated_access_token(test_user, ["profile:read"])
+    dependency = require_scopes("profile:read")
+    principal = dependency(
+        credentials=HTTPAuthorizationCredentials(scheme="Bearer", credentials=token),
+        db=db,
+    )
+
+    assert principal.user.id == test_user.id
+    assert principal.scopes == {"profile:read"}
+
+    with pytest.raises(HTTPException) as exc:
+        require_scopes("profile:write")(
+            credentials=HTTPAuthorizationCredentials(
+                scheme="Bearer",
+                credentials=token,
+            ),
+            db=db,
+        )
+
+    assert exc.value.status_code == 403
