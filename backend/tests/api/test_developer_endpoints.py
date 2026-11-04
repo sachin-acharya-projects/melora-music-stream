@@ -158,3 +158,33 @@ def test_machine_client_credentials_grant(client, auth_headers) -> None:
     assert token_response.json()["access_token"]
     assert token_response.json()["refresh_token"] is None
     assert token_response.json()["scope"] == "library:read profile:read"
+
+
+def test_machine_client_credentials_grant(client, auth_headers) -> None:
+    created = client.post(
+        "/api/v1/developer/machine-clients",
+        headers=auth_headers,
+        json={
+            "name": "Home Server",
+            "service_identity": "urn:melora:home-server",
+            "scopes": ["profile:read", "library:read"],
+            "expires_in_days": 60,
+        },
+    )
+    assert created.status_code == 201
+    machine = created.json()
+    assert machine["client_id"].startswith("mlsvc_")
+    assert machine["client_secret"].startswith("mlss_")
+
+    token_response = client.post(
+        "/api/v1/oauth/token",
+        json={
+            "grant_type": "client_credentials",
+            "client_id": machine["client_id"],
+            "client_secret": machine["client_secret"],
+        },
+    )
+    assert token_response.status_code == 200
+    assert token_response.json()["access_token"]
+    assert token_response.json()["refresh_token"] is None
+    assert token_response.json()["scope"] == "library:read profile:read"
