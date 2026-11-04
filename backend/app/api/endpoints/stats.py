@@ -9,6 +9,7 @@ from app.services.stats import StatsService
 
 router = APIRouter()
 StatsReadUser = Annotated[UserModel, Depends(require_user_or_scopes("history:read"))]
+StatsWriteUser = Annotated[UserModel, Depends(require_user_or_scopes("history:write"))]
 
 
 @router.get("/")
@@ -37,12 +38,12 @@ def get_top_songs(
 @router.get("/genres")
 def get_genres(
     db: SessionDep,
-    current_user: CurrentUser,
+    current_user: StatsReadUser,
     limit: Annotated[int, Query(ge=1, le=100)] = 10,
 ) -> list[dict[str, Any]]:
     return StatsService.get_genres(db, user_id=current_user.id, limit=limit)
 
 
 @router.post("/recalculate")
-def recalculate_stats(db: SessionDep, current_user: CurrentUser) -> dict[str, Any]:
+def recalculate_stats(db: SessionDep, current_user: StatsWriteUser) -> dict[str, Any]:
     return StatsService.recalculate(db, user_id=current_user.id)
