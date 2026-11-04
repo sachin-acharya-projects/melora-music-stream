@@ -36,10 +36,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const initAuth = async () => {
             // Check for tokens in URL (OAuth callback on web)
             const params = new URLSearchParams(window.location.search)
+            const handoffCode = new URLSearchParams(window.location.hash.slice(1)).get("handoff")
             const accessToken = params.get("access_token")
             const refreshToken = params.get("refresh_token")
 
-            if (accessToken && refreshToken) {
+            if (handoffCode) {
+                try {
+                    await authService.exchangeOIDCHandoff(handoffCode)
+                    window.history.replaceState({}, document.title, window.location.pathname)
+                    await refreshUser()
+                    toast.success("Logged in successfully!")
+                } catch {
+                    window.history.replaceState({}, document.title, window.location.pathname)
+                    toast.error("Unable to complete sign-in. Please try again.")
+                }
+            } else if (accessToken && refreshToken) {
                 authService.setTokens(accessToken, refreshToken)
                 // Clean up URL
                 window.history.replaceState({}, document.title, window.location.pathname)
