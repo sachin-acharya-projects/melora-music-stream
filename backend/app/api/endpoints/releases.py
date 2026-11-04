@@ -1,18 +1,23 @@
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Query
+from typing import Annotated
 
-from app.api.deps import CurrentUser, SessionDep
+from fastapi import APIRouter, Depends, Query
+
+from app.api.deps import SessionDep
+from app.api.deps.auth import require_user_or_scopes
+from app.db.models.user import UserModel
 from app.core.config import settings
 from app.services.releases import release_service
 
 router = APIRouter()
+ReleaseReadUser = Annotated[UserModel, Depends(require_user_or_scopes("artists:read"))]
 
 
 @router.get("/")
 def get_releases(
     db: SessionDep,
-    current_user: CurrentUser,
+    current_user: ReleaseReadUser,
     limit: Annotated[int, Query(ge=1, le=settings.RELEASES_PAGE_SIZE_MAX)] = (
         settings.RELEASES_PAGE_SIZE_DEFAULT
     ),
