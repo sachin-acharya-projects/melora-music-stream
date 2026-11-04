@@ -7,8 +7,10 @@ def test_scope_catalog_is_public_and_descriptive(client) -> None:
     assert "profile:read" in names
     assert "player:control" in names
     assert "admin:users:write" in names
-    assert all({"description", "category", "sensitive", "admin_only"} <= scope.keys() for scope in scopes)
-
+    assert all(
+        {"description", "category", "sensitive", "admin_only"} <= scope.keys()
+        for scope in scopes
+    )
 
 
 def test_pat_create_list_and_revoke_api(client, auth_headers) -> None:
