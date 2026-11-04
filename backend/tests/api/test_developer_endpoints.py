@@ -234,6 +234,18 @@ def test_pat_scope_controls_playlist_read_and_write(client, auth_headers) -> Non
     readable = client.get("/api/v1/playlists/", headers=pat_headers)
     assert readable.status_code == 200
 
+    browser_created = client.post(
+        "/api/v1/playlists/",
+        headers=auth_headers,
+        json={"name": "Scoped read target", "visibility": "private"},
+    )
+    assert browser_created.status_code == 200
+    individual_read = client.get(
+        f"/api/v1/playlists/{browser_created.json()['id']}",
+        headers=pat_headers,
+    )
+    assert individual_read.status_code == 200
+
     denied = client.post(
         "/api/v1/playlists/",
         headers=pat_headers,
