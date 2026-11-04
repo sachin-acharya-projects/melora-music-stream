@@ -21,7 +21,7 @@ async def run_worker() -> None:
                 result = await WebhookDeliveryService.deliver_pending(db)
             if result["delivered"] or result["retried"] or result["failed"]:
                 logger.info("Webhook delivery batch: %s", result)
-        except Exception:
+        except Exception:  # noqa: BLE001
             logger.exception("Webhook delivery worker iteration failed")
         await asyncio.sleep(POLL_INTERVAL_SECONDS)
 
