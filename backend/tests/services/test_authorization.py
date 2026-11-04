@@ -213,3 +213,10 @@ def test_browser_user_dependency_accepts_browser_access_token(test_user, db) -> 
         db=db,
     )
     assert user.id == test_user.id
+
+
+def test_every_administrator_scope_is_denied_to_regular_users(test_user) -> None:
+    for scope in ADMIN_SCOPES:
+        with pytest.raises(HTTPException) as exc:
+            validate_scope_grant(test_user, [scope])
+        assert exc.value.status_code == 403
