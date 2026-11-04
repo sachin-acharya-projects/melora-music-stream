@@ -11,7 +11,7 @@ from app.db.models.oauth_tokens import (
     OAuthAuthorizationCodeModel,
     OAuthRefreshTokenModel,
 )
-from app.schemas.oauth import (\n    OAuthAuthorizeRequest,\n    OAuthRevokeRequest,\n    OAuthTokenRequest,\n)
+from app.schemas.oauth import OAuthAuthorizeRequest, OAuthRevokeRequest, OAuthTokenRequest
 from app.services.oauth_applications import OAuthApplicationService
 from app.services.oauth_tokens import OAuthTokenService
 
