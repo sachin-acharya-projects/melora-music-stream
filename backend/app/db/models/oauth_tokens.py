@@ -19,7 +19,7 @@ class OAuthAuthorizationCodeModel(BaseModel):
     user_id: Mapped[str] = mapped_column(
         String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    code_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
+    code_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
     redirect_uri: Mapped[str] = mapped_column(String(2048), nullable=False)
     scopes: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
     code_challenge: Mapped[str] = mapped_column(String(128), nullable=False)
