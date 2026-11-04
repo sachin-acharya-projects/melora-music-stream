@@ -68,6 +68,17 @@ OAuth application registration is now implemented:
 
 The authorization-code flow is now available through `POST /api/v1/oauth/authorize` (authenticated Melora user) and `POST /api/v1/oauth/token`. It requires PKCE S256 for confidential and public clients, validates the exact registered redirect URI, issues a five-minute single-use authorization code stored only as a hash, and returns 15-minute scoped access tokens plus hashed 30-day refresh tokens. Refresh tokens rotate on use; reuse revokes the entire token family. `POST /api/v1/oauth/revoke` revokes a refresh-token family. The authorization endpoint is currently API-first and requires the user to be authenticated; a dedicated browser consent screen and frontend integration remain outstanding. Existing music endpoints have not yet all been migrated to delegated scope enforcement.
 
+Machine-to-machine client credentials are also implemented:
+
+- `POST /api/v1/developer/machine-clients` creates a named service identity with its own client ID, one-time client secret, expiry, and explicit scope grant. The secret is stored only as a SHA-256 hash.
+- `GET /api/v1/developer/machine-clients` lists metadata; `DELETE /api/v1/developer/machine-clients/{id}` deactivates a client.
+- `POST /api/v1/oauth/token` supports the OAuth `client_credentials` grant. Machine tokens last 15 minutes and do not receive refresh tokens.
+- Machine tokens use `credential_type=machine` and a service-identity subject, not a human user subject. `require_machine_scopes(...)` is a separate endpoint dependency and checks that the client remains active and within its grant.
+- A machine receives no automatic access to any user's private data. Its owner must create an explicit per-user grant through `/api/v1/developer/machine-clients/{id}/user-grants`. Regular users may grant only their own data; only admins may grant access to another user's data. Each user grant is checked against that user's current scope ceiling.
+- Deactivating a machine client invalidates its access tokens on the next request because the dependency rechecks client status.
+
+A dedicated browser consent screen and frontend developer-management UI remain outstanding. Existing music endpoints have not yet all been migrated to delegated or machine scope enforcement.
+
 A single authorization policy must be shared by browser sessions, personal access tokens, OAuth applications, and machine clients.
 
 A single authorization policy must be shared by browser sessions, personal access tokens, OAuth applications, and machine clients.
