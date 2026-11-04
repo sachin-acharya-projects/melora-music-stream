@@ -71,7 +71,7 @@ export const authService = {
     },
 
     exchangeOIDCHandoff: async (handoffCode: string): Promise<TokenResponse> => {
-        const { data } = await http.post<TokenResponse>(ENDPOINTS.AUTH.OIDC_EXCHANGE, {
+        const { data } = await refreshHttp.post<TokenResponse>(ENDPOINTS.AUTH.OIDC_EXCHANGE, {
             handoff_code: handoffCode,
         })
         authService.setTokens(data.access_token, data.refresh_token)
