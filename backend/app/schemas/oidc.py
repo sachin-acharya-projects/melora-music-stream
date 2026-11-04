@@ -1,10 +1,10 @@
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class OIDCProviderCreate(BaseModel):
     name: str = Field(min_length=2, max_length=120, pattern=r"^[a-zA-Z0-9][a-zA-Z0-9._-]*$")
-    issuer: HttpUrl
-    discovery_url: HttpUrl | None = None
+    issuer: str = Field(min_length=8, max_length=2048)
+    discovery_url: str | None = Field(default=None, max_length=2048)
     client_id: str = Field(min_length=1, max_length=1024)
     client_secret: str | None = Field(default=None, min_length=1, max_length=4096)
     scopes: list[str] = Field(default_factory=lambda: ["openid", "email", "profile"], min_length=1, max_length=30)
@@ -27,6 +27,7 @@ class OIDCProviderCreate(BaseModel):
 
 class OIDCProviderUpdate(BaseModel):
     client_id: str | None = Field(default=None, min_length=1, max_length=1024)
+    discovery_url: str | None = Field(default=None, max_length=2048)
     client_secret: str | None = Field(default=None, min_length=1, max_length=4096)
     scopes: list[str] | None = Field(default=None, min_length=1, max_length=30)
     display_name: str | None = Field(default=None, min_length=1, max_length=120)
