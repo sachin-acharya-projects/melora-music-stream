@@ -66,7 +66,7 @@ OAuth application registration is now implemented:
 - Confidential client secrets are generated once and stored only as SHA-256 hashes. Public clients can be registered without a secret and will require PKCE in the authorization flow.
 - Redirect URIs reject wildcards, fragments, user-info, malformed authorities, and non-HTTPS web callbacks. HTTP is permitted only for loopback development callbacks; reverse-domain custom schemes are accepted for native clients.
 
-OAuth authorization/consent, code exchange, refresh-token rotation, and client authentication are the next part of this implementation. Existing music endpoints have not yet all been migrated to delegated scope enforcement.
+The authorization-code flow is now available through `POST /api/v1/oauth/authorize` (authenticated Melora user) and `POST /api/v1/oauth/token`. It requires PKCE S256 for confidential and public clients, validates the exact registered redirect URI, issues a five-minute single-use authorization code stored only as a hash, and returns 15-minute scoped access tokens plus hashed 30-day refresh tokens. Refresh tokens rotate on use; reuse revokes the entire token family. `POST /api/v1/oauth/revoke` revokes a refresh-token family. The authorization endpoint is currently API-first and requires the user to be authenticated; a dedicated browser consent screen and frontend integration remain outstanding. Existing music endpoints have not yet all been migrated to delegated scope enforcement.
 
 A single authorization policy must be shared by browser sessions, personal access tokens, OAuth applications, and machine clients.
 
