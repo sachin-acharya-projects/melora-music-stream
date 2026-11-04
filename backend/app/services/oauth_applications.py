@@ -34,6 +34,8 @@ class OAuthApplicationService:
             or parsed.password
             or parsed.fragment
             or "*" in value
+            or "\\" in value
+            or any(ord(character) < 32 for character in value)
         ):
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
