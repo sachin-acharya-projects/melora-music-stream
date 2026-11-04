@@ -2,9 +2,8 @@ from typing import Any
 
 from fastapi import APIRouter, Response, status
 
-from app.api.deps.auth import CurrentUser
+from app.api.deps import CurrentUser, SessionDep
 from app.core.scopes import serialize_scope_catalog
-from app.db.base import SessionDep
 from app.schemas.machine_clients import (
     MachineClientCreate,
     MachineClientCreated,
