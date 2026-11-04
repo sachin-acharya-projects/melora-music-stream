@@ -71,3 +71,58 @@ def test_oauth_application_registration_and_management(client, auth_headers) -> 
         headers=auth_headers,
     )
     assert deactivated.status_code == 204
+
+
+
+def test_oauth_authorize_and_token_endpoints(client, auth_headers) -> None:
+    import base64
+    import hashlib
+    from urllib.parse import parse_qs, urlsplit
+
+    app_response = client.post(
+        "/api/v1/developer/applications",
+        headers=auth_headers,
+        json={
+            "name": "API OAuth Client",
+            "redirect_uris": ["https://api-client.example.com/callback"],
+            "allowed_scopes": ["profile:read"],
+        },
+    )
+    assert app_response.status_code == 201
+    app_data = app_response.json()
+
+    verifier = "v" * 43
+    challenge = base64.urlsafe_b64encode(
+        hashlib.sha256(verifier.encode("ascii")).digest()
+    ).rstrip(b"=").decode("ascii")
+    authorized = client.post(
+        "/api/v1/oauth/authorize",
+        headers=auth_headers,
+        json={
+            "client_id": app_data["client_id"],
+            "redirect_uri": "https://api-client.example.com/callback",
+            "scopes": ["profile:read"],
+            "state": "client-generated-state-value",
+            "code_challenge": challenge,
+            "code_challenge_method": "S256",
+        },
+    )
+    assert authorized.status_code == 200
+    redirect_url = authorized.json()["redirect_url"]
+    query = parse_qs(urlsplit(redirect_url).query)
+
+    token_response = client.post(
+        "/api/v1/oauth/token",
+        json={
+            "grant_type": "authorization_code",
+            "client_id": app_data["client_id"],
+            "client_secret": app_data["client_secret"],
+            "redirect_uri": "https://api-client.example.com/callback",
+            "code": query["code"][0],
+            "code_verifier": verifier,
+        },
+    )
+    assert token_response.status_code == 200
+    assert token_response.json()["access_token"]
+    assert token_response.json()["refresh_token"]
+    assert token_response.json()["scope"] == "profile:read"
