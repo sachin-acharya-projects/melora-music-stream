@@ -4,6 +4,7 @@ from fastapi import APIRouter, Response, status
 
 from app.api.deps import CurrentUser, SessionDep
 from app.core.scopes import serialize_scope_catalog
+from app.core.webhook_events import serialize_webhook_events
 from app.schemas.machine_clients import (
     MachineClientCreate,
     MachineClientCreated,
@@ -15,6 +16,12 @@ from app.schemas.oauth_applications import (
     OAuthApplicationCreate,
     OAuthApplicationResponse,
 )
+from app.schemas.webhooks import (
+    WebhookSecretResponse,
+    WebhookSubscriptionCreate,
+    WebhookSubscriptionCreated,
+    WebhookSubscriptionResponse,
+)
 from app.schemas.personal_access_tokens import (
     PersonalAccessTokenCreate,
     PersonalAccessTokenCreated,
@@ -23,6 +30,7 @@ from app.schemas.personal_access_tokens import (
 from app.services.machine_clients import MachineClientService
 from app.services.oauth_applications import OAuthApplicationService
 from app.services.personal_access_tokens import PersonalAccessTokenService
+from app.services.webhooks import WebhookSubscriptionService
 
 router = APIRouter()
 
@@ -212,4 +220,70 @@ def revoke_machine_user_grant(
     MachineClientService.revoke_user_grant(
         db, user, client_record_id, grant_id
     )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+
+@router.get("/webhook-events")
+def list_webhook_events() -> list[dict[str, str]]:
+    """Return the supported webhook event types and their descriptions."""
+    return serialize_webhook_events()
+
+
+@router.post(
+    "/webhooks",
+    response_model=WebhookSubscriptionCreated,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_webhook_subscription(
+    data: WebhookSubscriptionCreate,
+    user: CurrentUser,
+    db: SessionDep,
+) -> dict[str, Any]:
+    """Create a webhook subscription and return its signing secret once."""
+    return WebhookSubscriptionService.create(
+        db,
+        user,
+        name=data.name,
+        endpoint_url=data.endpoint_url,
+        events=data.events,
+    )
+
+
+@router.get("/webhooks")
+def list_webhook_subscriptions(
+    user: CurrentUser,
+    db: SessionDep,
+) -> list[WebhookSubscriptionResponse]:
+    """List the caller's webhook subscriptions without their signing secrets."""
+    return [
+        WebhookSubscriptionResponse.model_validate(subscription)
+        for subscription in WebhookSubscriptionService.list_for_user(db, user)
+    ]
+
+
+@router.post(
+    "/webhooks/{subscription_id}/rotate-secret",
+    response_model=WebhookSecretResponse,
+)
+def rotate_webhook_secret(
+    subscription_id: str,
+    user: CurrentUser,
+    db: SessionDep,
+) -> dict[str, str]:
+    """Rotate a signing secret; the new value is returned exactly once."""
+    return {
+        "signing_secret": WebhookSubscriptionService.rotate_secret(
+            db, user, subscription_id
+        )
+    }
+
+
+@router.delete("/webhooks/{subscription_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_webhook_subscription(
+    subscription_id: str,
+    user: CurrentUser,
+    db: SessionDep,
+) -> Response:
+    WebhookSubscriptionService.delete(db, user, subscription_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
