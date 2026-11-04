@@ -6,6 +6,8 @@ import { toast } from "react-toastify"
 import { MESSAGES } from "@/utils/messages"
 
 const DEACTIVATED_ERROR_PARAM = "account_deactivated"
+const ACCOUNT_LINK_REQUIRED_PARAM = "account_link_required"
+const IDENTITY_FAILED_PARAM = "identity_provider_authentication_failed"
 
 export default function AuthCallback() {
     const { isAuthenticated, isLoading } = useAuth()
@@ -15,9 +17,28 @@ export default function AuthCallback() {
         if (isLoading) return
 
         const errorParam = new URLSearchParams(window.location.search).get("error")
+        if (errorParam === ACCOUNT_LINK_REQUIRED_PARAM) {
+            toast.error("An account already uses this email. Sign in to that account, then connect this provider from your profile.")
+            navigate("/login")
+            return
+        }
+
+        if (errorParam === IDENTITY_FAILED_PARAM) {
+            toast.error("The identity provider could not authenticate this sign-in. Please try again.")
+            navigate("/login")
+            return
+        }
+
         if (errorParam === DEACTIVATED_ERROR_PARAM) {
             toast.error(MESSAGES.ACCOUNT_DEACTIVATED)
             navigate("/login")
+            return
+        }
+
+        const identityLinked = new URLSearchParams(window.location.search).get("identity") === "linked"
+        if (identityLinked && isAuthenticated) {
+            toast.success("Sign-in method connected successfully")
+            navigate("/profile")
             return
         }
 
