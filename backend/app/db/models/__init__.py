@@ -14,12 +14,12 @@ from app.db.models.bug_report import (
     BugReportSeverity,
     BugReportStatus,
 )
-from app.db.models.listening_history import ListeningHistoryModel
 from app.db.models.external_identity import ExternalIdentityModel
-from app.db.models.oidc_provider import OIDCProviderModel
-from app.db.models.oidc_login_handoff import OIDCLoginHandoffModel
-from app.db.models.personal_access_token import PersonalAccessTokenModel
+from app.db.models.listening_history import ListeningHistoryModel
 from app.db.models.notification import NotificationModel
+from app.db.models.oidc_login_handoff import OIDCLoginHandoffModel
+from app.db.models.oidc_provider import OIDCProviderModel
+from app.db.models.personal_access_token import PersonalAccessTokenModel
 from app.db.models.playback_state import PlaybackStateModel
 from app.db.models.playlist import PlaylistModel
 from app.db.models.playlist_share import PlaylistShareModel
@@ -36,12 +36,12 @@ __all__ = [
     "BugReportModel",
     "BugReportSeverity",
     "BugReportStatus",
-    "ListeningHistoryModel",
     "ExternalIdentityModel",
-    "OIDCProviderModel",
-    "OIDCLoginHandoffModel",
-    "PersonalAccessTokenModel",
+    "ListeningHistoryModel",
     "NotificationModel",
+    "OIDCLoginHandoffModel",
+    "OIDCProviderModel",
+    "PersonalAccessTokenModel",
     "PlaybackStateModel",
     "PlaylistModel",
     "PlaylistShareModel",
