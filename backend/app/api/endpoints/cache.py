@@ -1,13 +1,17 @@
 import re
 
-from fastapi import APIRouter, HTTPException
+from typing import Annotated
 
-from app.api.deps import CurrentUser
+from fastapi import APIRouter, Depends, HTTPException
+
+from app.api.deps.auth import require_user_or_scopes
+from app.db.models.user import UserModel
 from app.core.cache import invalidate_cache, rate_limiter
 from app.core.config import settings
 from app.schemas.cache import CacheInvalidateRequest
 
 router = APIRouter()
+CacheInvalidateUser = Annotated[UserModel, Depends(require_user_or_scopes("automation:run"))]
 
 
 def _normalize_key(scope: str, key: str) -> str:
@@ -20,7 +24,7 @@ def _normalize_key(scope: str, key: str) -> str:
 @router.post("/invalidate")
 def invalidate(
     data: CacheInvalidateRequest,
-    current_user: CurrentUser,
+    current_user: CacheInvalidateUser,
 ) -> dict[str, str]:
     """Evict a single cached search/stream entry.
 
