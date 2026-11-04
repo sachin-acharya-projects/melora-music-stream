@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, ForeignKey, JSON, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import BaseModel
 
+if TYPE_CHECKING:
+    from datetime import datetime
 
 class OAuthAuthorizationCodeModel(BaseModel):
     """Short-lived, hashed, single-use OAuth authorization code."""
