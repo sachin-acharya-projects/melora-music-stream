@@ -13,7 +13,7 @@ from app.services.authorization import validate_scope_grant
 
 
 class PersonalAccessTokenService:
-    TOKEN_PREFIX = "mlpat_"
+    TOKEN_PREFIX = "mlpat_"  # noqa: S105
 
     @staticmethod
     def create(
