@@ -87,7 +87,6 @@ def test_pat_scopes_cannot_exceed_current_user_role(db, test_user) -> None:
     assert exc.value.status_code == 403
 
 
-
 def test_expired_pat_is_rejected(db, test_user) -> None:
     created = PersonalAccessTokenService.create(
         db,
