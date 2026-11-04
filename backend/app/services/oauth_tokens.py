@@ -4,6 +4,7 @@ import base64
 import hashlib
 import hmac
 import secrets
+import re
 from datetime import UTC, datetime, timedelta
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
@@ -144,9 +145,7 @@ class OAuthTokenService:
         code_verifier: str,
     ) -> tuple[UserModel, frozenset[str]]:
         """Validate PKCE and atomically consume a one-time authorization code."""
-        if not 43 <= len(code_verifier) <= 128 or not all(
-            char.isalnum() or char in "-._~" for char in code_verifier
-        ):
+        if not re.fullmatch(r"[A-Za-z0-9._~-]{43,128}", code_verifier):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid PKCE code_verifier",
