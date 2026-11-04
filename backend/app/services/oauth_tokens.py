@@ -3,8 +3,8 @@
 import base64
 import hashlib
 import hmac
-import secrets
 import re
+import secrets
 from datetime import UTC, datetime, timedelta
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
@@ -20,7 +20,11 @@ from app.db.models.oauth_tokens import (
     OAuthRefreshTokenModel,
 )
 from app.db.models.user import UserModel
-from app.schemas.oauth import OAuthAuthorizeRequest, OAuthRevokeRequest, OAuthTokenRequest
+from app.schemas.oauth import (
+    OAuthAuthorizeRequest,
+    OAuthRevokeRequest,
+    OAuthTokenRequest,
+)
 from app.services.auth import AuthService
 from app.services.authorization import validate_scope_grant
 from app.services.oauth_applications import OAuthApplicationService
@@ -37,7 +41,9 @@ class OAuthTokenService:
     ) -> str:
         """Validate consent request and return the registered redirect with code/state."""
         app = OAuthTokenService._get_application(db, request.client_id)
-        redirect_uri = OAuthApplicationService.validate_redirect_uri(request.redirect_uri)
+        redirect_uri = OAuthApplicationService.validate_redirect_uri(
+            request.redirect_uri
+        )
         if redirect_uri not in app.redirect_uris:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -135,31 +141,6 @@ class OAuthTokenService:
             "refresh_token": refresh_token,
             "scope": " ".join(sorted(scopes)),
         }
-
-    @staticmethod
-    def revoke(db: Session, request: OAuthRevokeRequest) -> None:
-        """Revoke a refresh token belonging to an authenticated OAuth client."""
-        app = OAuthTokenService._authenticate_client(
-            db, request.client_id, request.client_secret
-        )
-        digest = hashlib.sha256(request.token.encode("utf-8")).hexdigest()
-        record = (
-            db.query(OAuthRefreshTokenModel)
-            .filter(
-                OAuthRefreshTokenModel.token_hash == digest,
-                OAuthRefreshTokenModel.application_id == app.id,
-            )
-            .first()
-        )
-        if record is not None and record.revoked_at is None:
-            now = datetime.now(UTC)
-            db.query(OAuthRefreshTokenModel).filter(
-                OAuthRefreshTokenModel.family_id == record.family_id
-            ).update(
-                {OAuthRefreshTokenModel.revoked_at: now},
-                synchronize_session=False,
-            )
-            db.commit()
 
     @staticmethod
     def revoke(db: Session, request: OAuthRevokeRequest) -> None:
