@@ -5,12 +5,12 @@ from fastapi.security import HTTPAuthorizationCredentials
 from app.api.deps.auth import require_scopes
 from app.core.scopes import ALL_SCOPES, ADMIN_SCOPES, normalize_scopes
 from app.services.auth import AuthService
-from app.services.personal_access_tokens import PersonalAccessTokenService
 from app.services.authorization import (
     effective_scope_ceiling,
     require_delegated_scopes,
     validate_scope_grant,
 )
+from app.services.personal_access_tokens import PersonalAccessTokenService
 
 
 def test_scope_catalog_contains_expected_families() -> None:
@@ -165,7 +165,6 @@ def test_delegated_scope_dependency_checks_token_grant_and_current_user(
         )
 
     assert exc.value.status_code == 403
-
 
 
 def test_personal_access_token_can_use_delegated_scope_dependency(test_user, db) -> None:
