@@ -51,7 +51,6 @@ require_admin = require_role(UserRole.ADMIN)
 require_user = require_role(UserRole.ADMIN, UserRole.USER)
 
 
-
 @dataclass(frozen=True, slots=True)
 class DelegatedPrincipal:
     """Authenticated user plus the explicit scopes carried by a delegated token."""
@@ -77,7 +76,11 @@ def require_scopes(*required_scopes: str) -> Callable[..., DelegatedPrincipal]:
             )
 
         payload = AuthService.decode_token(token)
-        if payload and payload.get("type") == "access" and payload.get("credential_type") == "delegated":
+        if (
+            payload
+            and payload.get("type") == "access"
+            and payload.get("credential_type") == "delegated"
+        ):
             user_id = payload.get("sub")
             raw_scopes = payload.get("scopes")
             if not isinstance(user_id, str) or not isinstance(raw_scopes, list) or not all(
