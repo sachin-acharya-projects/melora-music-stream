@@ -227,6 +227,7 @@ class OAuthTokenService:
                 OAuthAuthorizationCodeModel.expires_at > now,
             )
             .values(consumed_at=now)
+            .execution_options(synchronize_session=False)
         )
         if result.rowcount != 1:
             db.rollback()
