@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.api.deps import SessionDep
 from app.api.deps.auth import optional_user_or_scopes, require_user_or_scopes
+from app.db.models.album import AlbumModel
 from app.db.models.user import UserModel
 from app.schemas.album import AlbumFavoriteCreate
 from app.services.albums import album_service
