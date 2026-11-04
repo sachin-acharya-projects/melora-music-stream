@@ -14,6 +14,7 @@ from app.api.endpoints import (
     notifications,
     oidc_auth,
     oidc_providers,
+    oauth,
     playlists,
     radio,
     recommendations,
@@ -33,6 +34,7 @@ api_router.include_router(albums.router, prefix="/albums", tags=["Albums"])
 api_router.include_router(artists.router, prefix="/artists", tags=["Artists"])
 api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 api_router.include_router(oidc_auth.router, prefix="/auth", tags=["OIDC Authentication"])
+api_router.include_router(oauth.router, prefix="/oauth", tags=["OAuth 2.0"])
 api_router.include_router(cache.router, prefix="/cache", tags=["Cache"])
 api_router.include_router(discover.router, prefix="/discover", tags=["Discover"])
 api_router.include_router(developer.router, prefix="/developer", tags=["Developer API"])
