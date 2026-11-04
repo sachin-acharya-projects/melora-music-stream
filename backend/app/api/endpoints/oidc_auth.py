@@ -1,5 +1,6 @@
 """Dynamic, provider-neutral OIDC login and account-linking routes."""
 
+from typing import Any
 from urllib.parse import urlencode
 
 from authlib.integrations.starlette_client import OAuth
@@ -35,7 +36,7 @@ def _provider(db: Session, provider_id: str) -> OIDCProviderModel:
     return provider
 
 
-def _client(provider: OIDCProviderModel) -> object:
+def _client(provider: OIDCProviderModel) -> Any:
     if not provider.client_secret_encrypted:
         raise HTTPException(status_code=503, detail="Identity provider is not fully configured")
     try:
@@ -109,14 +110,15 @@ async def oidc_link(
     request: Request,
     db: SessionDep,
     current_user: CurrentUser,
-) -> RedirectResponse:
-    """Begin linking an external identity to the currently authenticated user."""
-    return await _start_flow(
+) -> dict[str, str]:
+    """Return the authorization URL for the authenticated browser to navigate to."""
+    response = await _start_flow(
         request,
         db,
         provider_id,
         link_user_id=current_user.id,
     )
+    return {"authorization_url": response.headers["location"]}
 
 
 @router.get("/providers/{provider_id}/callback", name="oidc_callback")
