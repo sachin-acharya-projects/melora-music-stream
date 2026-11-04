@@ -1,12 +1,21 @@
 from __future__ import annotations
 
-from datetime import datetime
+from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, JSON, String, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    ForeignKey,
+    JSON,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import BaseModel
 
+if TYPE_CHECKING:
+    from datetime import datetime
 
 class MachineClientModel(BaseModel):
     """Independent machine identity with its own credentials and scope ceiling."""
