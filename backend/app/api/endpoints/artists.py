@@ -1,23 +1,28 @@
 from typing import Annotated, Any
 
-from fastapi import APIRouter, BackgroundTasks, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Query
 
 from app.api.deps import (
     CurrentUser,
     OptionalUser,
     SessionDep,
 )
+from app.api.deps.auth import optional_user_or_scopes, require_user_or_scopes
+from app.db.models.user import UserModel
 from app.schemas.artist import YouTubeArtistImport
 from app.services.artist import ArtistService
 from app.services.youtube_artist import YouTubeArtistService
 
 router = APIRouter()
+ArtistReadUser = Annotated[UserModel, Depends(require_user_or_scopes("artists:read"))]
+ArtistWriteUser = Annotated[UserModel, Depends(require_user_or_scopes("artists:write"))]
+OptionalArtistUser = Annotated[UserModel | None, Depends(optional_user_or_scopes("artists:read"))]
 
 
 @router.get("/")
 def get_artists(
     db: SessionDep,
-    user: CurrentUser,
+    user: ArtistReadUser,
     search: Annotated[str | None, Query(max_length=100)] = None,
     sort_by: Annotated[
         str,
@@ -41,14 +46,14 @@ def get_artists(
 
 
 @router.get("/featured")
-def get_featured_artists(db: SessionDep, user: CurrentUser) -> dict[str, Any]:
+def get_featured_artists(db: SessionDep, user: ArtistReadUser) -> dict[str, Any]:
     return ArtistService.get_featured_artists(db, user)
 
 
 @router.get("/suggested")
 def get_suggested_artists(
     db: SessionDep,
-    user: CurrentUser,
+    user: ArtistWriteUser,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> dict[str, Any]:
@@ -70,7 +75,7 @@ def get_following_artists(
 @router.get("/youtube/search")
 def search_youtube_artists(
     db: SessionDep,
-    _: CurrentUser,
+    _: ArtistReadUser,
     q: Annotated[str, Query(min_length=1, max_length=100)],
     limit: Annotated[int, Query(ge=1, le=20)] = 6,
 ) -> dict[str, Any]:
@@ -81,7 +86,7 @@ def search_youtube_artists(
 def import_youtube_artist(
     data: YouTubeArtistImport,
     db: SessionDep,
-    _: CurrentUser,
+    _: ArtistWriteUser,
 ) -> dict[str, Any]:
     return YouTubeArtistService.import_artist(db, data)
 
@@ -89,7 +94,7 @@ def import_youtube_artist(
 @router.get("/{slug}")
 def get_artist(
     db: SessionDep,
-    user: OptionalUser,
+    user: OptionalArtistUser,
     slug: str,
     background_tasks: BackgroundTasks,
 ) -> dict[str, Any]:
