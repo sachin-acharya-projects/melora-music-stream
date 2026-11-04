@@ -135,6 +135,13 @@ async def oidc_callback(
     """Validate the OIDC response and sign in or link the verified subject."""
     provider = _provider(db, provider_id)
     try:
+        state = request.query_params.get("state")
+        state_data = request.session.get(f"_state_melora_oidc_{state}") if state else None
+        state_payload = state_data.get("data") if isinstance(state_data, dict) else None
+        expected_nonce = state_payload.get("nonce") if isinstance(state_payload, dict) else None
+        if not isinstance(expected_nonce, str) or not expected_nonce:
+            raise ValueError("OIDC nonce is missing from the authorization session")
+
         metadata = await load_provider_metadata(provider)
         client = _client(provider, metadata)
         token = await client.authorize_access_token(request)
@@ -142,11 +149,13 @@ async def oidc_callback(
         if not claims or not isinstance(claims, dict):
             raise ValueError("Validated OIDC user claims are missing")
         subject = claims.get("sub")
-        if not isinstance(subject, str) or not subject:
-            raise ValueError("OIDC subject claim is missing")
+        if not isinstance(subject, str) or not subject or len(subject) > 512:
+            raise ValueError("OIDC subject claim is missing or invalid")
         issuer = claims.get("iss")
-        if issuer and issuer != provider.issuer:
+        if issuer != provider.issuer:
             raise ValueError("OIDC issuer claim mismatch")
+        if claims.get("nonce") != expected_nonce:
+            raise ValueError("OIDC nonce claim mismatch")
         email = claims.get("email")
         if email is not None and not isinstance(email, str):
             email = None
@@ -154,6 +163,8 @@ async def oidc_callback(
         display_name = claims.get("name")
         if not isinstance(display_name, str):
             display_name = None
+        else:
+            display_name = display_name[:255]
     except Exception:
         # Authlib validates state, PKCE, ID-token signature, issuer, audience,
         # expiry and nonce. Do not leak provider responses or token details.
