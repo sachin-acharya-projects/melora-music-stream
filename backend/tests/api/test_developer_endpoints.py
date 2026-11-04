@@ -5,6 +5,7 @@ from urllib.parse import parse_qs, urlsplit
 from cryptography.fernet import Fernet
 
 from app.core.config import settings
+from app.db.models.webhook import WebhookDeliveryModel
 
 
 def test_scope_catalog_is_public_and_descriptive(client) -> None:
@@ -165,7 +166,7 @@ def test_machine_client_credentials_grant(client, auth_headers) -> None:
 
 
 
-def test_webhook_subscription_api(client, auth_headers, monkeypatch) -> None:
+def test_webhook_subscription_api(client, db, auth_headers, monkeypatch) -> None:
     monkeypatch.setattr(
         settings,
         "WEBHOOK_SECRET_ENCRYPTION_KEY",
@@ -192,6 +193,19 @@ def test_webhook_subscription_api(client, auth_headers, monkeypatch) -> None:
     assert listed.status_code == 200
     assert len(listed.json()) == 1
     assert "signing_secret" not in listed.text
+
+    playlist = client.post(
+        "/api/v1/playlists/",
+        headers=auth_headers,
+        json={"name": "Webhook test playlist", "visibility": "private"},
+    )
+    assert playlist.status_code == 200
+    delivery = (
+        db.query(WebhookDeliveryModel)
+        .filter_by(event_type="playlist.created")
+        .one()
+    )
+    assert delivery.payload["data"]["name"] == "Webhook test playlist"
 
     rotated = client.post(
         f"/api/v1/developer/webhooks/{subscription['id']}/rotate-secret",
