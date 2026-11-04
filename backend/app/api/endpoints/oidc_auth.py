@@ -84,8 +84,9 @@ async def _start_flow(
     # the OAuth client. The callback uses Authlib's state, nonce and PKCE checks.
     await load_provider_metadata(provider)
     client = _client(provider)
-    redirect_uri = str(
-        request.url_for("oidc_callback", provider_id=provider.id)
+    redirect_uri = (
+        f"{settings.BACKEND_URL.rstrip('/')}{settings.API_V1_STR}"
+        f"/auth/providers/{provider.id}/callback"
     )
     if link_user_id:
         request.session[f"oidc_link_user:{provider.id}"] = link_user_id
