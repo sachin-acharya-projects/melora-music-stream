@@ -11,23 +11,23 @@ export default function Profile() {
     const [providers, setProviders] = useState<OIDCProvider[]>([])
     const [identityLoading, setIdentityLoading] = useState(true)
 
-    const loadIdentities = async () => {
-        try {
-            const [linked, available] = await Promise.all([
-                authService.getLinkedIdentities(),
-                authService.getOIDCProviders(),
-            ])
-            setIdentities(linked)
-            setProviders(available)
-        } catch {
-            toast.error("Unable to load connected sign-in methods")
-        } finally {
-            setIdentityLoading(false)
-        }
-    }
-
     useEffect(() => {
-        void loadIdentities()
+        let active = true
+        Promise.all([authService.getLinkedIdentities(), authService.getOIDCProviders()])
+            .then(([linked, available]) => {
+                if (!active) return
+                setIdentities(linked)
+                setProviders(available)
+            })
+            .catch(() => {
+                if (active) toast.error("Unable to load connected sign-in methods")
+            })
+            .finally(() => {
+                if (active) setIdentityLoading(false)
+            })
+        return () => {
+            active = false
+        }
     }, [])
 
     const unlinkIdentity = async (identity: ExternalIdentity) => {
