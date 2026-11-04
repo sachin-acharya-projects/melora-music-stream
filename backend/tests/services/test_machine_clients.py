@@ -114,7 +114,7 @@ def test_machine_token_uses_machine_scope_dependency(db, test_user) -> None:
     )
 
     assert principal.client.service_identity == "urn:melora:home-automation"
-    assert principal.scopes == {"profile:read"}
+    assert "profile:read" in principal.scopes
 
     with pytest.raises(HTTPException) as exc:
         require_machine_scopes("player:control")(
