@@ -65,7 +65,7 @@ class OIDCProviderService:
     """Admin operations for configured external OIDC identity providers."""
 
     @staticmethod
-    def list(db: Session, *, enabled_only: bool = False) -> list[dict[str, Any]]:
+    def list_providers(db: Session, *, enabled_only: bool = False) -> list[dict[str, Any]]:
         query = db.query(OIDCProviderModel)
         if enabled_only:
             query = query.filter(OIDCProviderModel.enabled.is_(True))
