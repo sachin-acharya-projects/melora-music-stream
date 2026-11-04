@@ -27,6 +27,7 @@ The first provider-neutral OIDC slice is implemented on `refactor`:
 - Authenticated account linking: `POST /api/v1/auth/providers/{id}/link`; the response contains an authorization URL for the browser to navigate to.
 - Callback: the provider administration response includes the exact `redirect_uri` to register at the identity provider.
 - Linked identity management: `GET /api/v1/auth/identities` and `DELETE /api/v1/auth/identities/{identity_id}`.
+- One-time token exchange: `POST /api/v1/auth/oidc/exchange`.
 
 Provider setup sequence:
 
@@ -36,7 +37,7 @@ Provider setup sequence:
 4. PATCH the provider with its real client ID and client secret, then enable it.
 5. Confirm that the public provider list shows it before testing sign-in.
 
-The client secret is encrypted at rest with Fernet and is never returned by provider APIs. The OIDC flow uses Authlib's authorization-code integration with S256 PKCE, session-bound state and nonce, and ID-token validation. Auto-provisioning requires a verified email; a matching email never links an existing account automatically. The current web UI exposes enabled providers on login and linked-identity controls in the profile page.
+The client secret is encrypted at rest with Fernet and is never returned by provider APIs. The OIDC flow uses Authlib's authorization-code integration with S256 PKCE, session-bound state and nonce, and ID-token validation. JWTs are not placed in the callback URL: the callback places a 60-second, single-use handoff code in the URL fragment; only its SHA-256 digest is stored, and the frontend exchanges it for Melora tokens. Auto-provisioning requires a verified email; a matching email never links an existing account automatically. Provider disable/delete operations are blocked when they would remove a user's only usable sign-in method. The current web UI exposes enabled providers on login and linked-identity controls in the profile page.
 
 This is an implementation slice, not a production-readiness claim: run the test suite and security review, exercise the flow against a real test OIDC provider, and validate deployment callback URLs before enabling a provider in production. Existing Google sign-in remains on its legacy route until its provider record and existing identities are migrated safely.
 
