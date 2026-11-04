@@ -47,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     await refreshUser()
                     toast.success("Logged in successfully!")
                 } catch {
+                    authService.clearTokens()
                     window.history.replaceState({}, document.title, window.location.pathname)
                     toast.error("Unable to complete sign-in. Please try again.")
                 }
