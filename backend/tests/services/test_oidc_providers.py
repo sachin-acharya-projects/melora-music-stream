@@ -3,6 +3,7 @@ import pytest
 from fastapi import HTTPException
 
 from app.core.config import settings
+from app.db.models.oidc_provider import OIDCProviderModel
 from app.schemas.oidc import OIDCProviderCreate, OIDCProviderUpdate
 from app.services.oidc_providers import OIDCProviderService
 from app.services.oidc_secrets import decrypt_oidc_client_secret
@@ -26,7 +27,7 @@ def test_create_provider_encrypts_secret_and_never_returns_it(
 
     assert "client_secret" not in response
     assert secret not in str(response)
-    provider = db.query(__import__("app.db.models.oidc_provider", fromlist=["OIDCProviderModel"]).OIDCProviderModel).one()
+    provider = db.query(OIDCProviderModel).one()
     assert provider.client_secret_encrypted != secret
     assert decrypt_oidc_client_secret(provider.client_secret_encrypted) == secret
     assert response["has_client_secret"] is True
