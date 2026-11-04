@@ -21,7 +21,6 @@ def list_api_scopes() -> list[dict[str, str | bool]]:
     return serialize_scope_catalog()
 
 
-
 @router.post(
     "/tokens",
     response_model=PersonalAccessTokenCreated,
