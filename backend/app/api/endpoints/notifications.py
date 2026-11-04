@@ -1,18 +1,24 @@
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Query
+from typing import Annotated
 
-from app.api.deps import CurrentUser, SessionDep
+from fastapi import APIRouter, Depends, Query
+
+from app.api.deps import SessionDep
+from app.api.deps.auth import require_user_or_scopes
+from app.db.models.user import UserModel
 from app.db.models.notification import NotificationModel
 from app.services.notifications import notification_service
 
 router = APIRouter()
+NotificationReadUser = Annotated[UserModel, Depends(require_user_or_scopes("settings:read"))]
+NotificationWriteUser = Annotated[UserModel, Depends(require_user_or_scopes("settings:write"))]
 
 
 @router.get("/")
 def list_notifications(
     db: SessionDep,
-    current_user: CurrentUser,
+    current_user: NotificationReadUser,
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> dict[str, Any]:
@@ -45,7 +51,7 @@ def list_notifications(
 
 
 @router.get("/unread-count")
-def get_unread_count(db: SessionDep, current_user: CurrentUser) -> dict[str, int]:
+def get_unread_count(db: SessionDep, current_user: NotificationWriteUser) -> dict[str, int]:
     """Return how many in-app notifications are unread."""
     return {
         "unread_count": notification_service.unread_count(
@@ -58,7 +64,7 @@ def get_unread_count(db: SessionDep, current_user: CurrentUser) -> dict[str, int
 def mark_notification_read(
     notification_id: str,
     db: SessionDep,
-    current_user: CurrentUser,
+    current_user: NotificationReadUser,
 ) -> dict[str, Any]:
     notification = notification_service.mark_read(
         db, user_id=current_user.id, notification_id=notification_id
@@ -71,7 +77,7 @@ def mark_notification_read(
 @router.post("/read-all")
 def mark_all_notifications_read(
     db: SessionDep,
-    current_user: CurrentUser,
+    current_user: NotificationWriteUser,
 ) -> dict[str, Any]:
     count = notification_service.mark_all_read(db, user_id=current_user.id)
     return {"updated": count}
