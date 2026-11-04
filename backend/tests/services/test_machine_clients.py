@@ -2,8 +2,10 @@ import pytest
 from fastapi import HTTPException
 
 from app.db.models.machine_client import MachineClientModel
+from app.api.deps.auth import require_machine_scopes
 from app.services.auth import AuthService
 from app.services.machine_clients import MachineClientService
+from fastapi.security import HTTPAuthorizationCredentials
 
 
 def _create_machine(db, owner):
@@ -93,3 +95,34 @@ def test_machine_client_deactivation_invalidates_credentials(db, test_user) -> N
             str(created["client_secret"]),
         )
     assert exc.value.status_code == 401
+
+
+
+def test_machine_token_uses_machine_scope_dependency(db, test_user) -> None:
+    created = _create_machine(db, test_user)
+    tokens = MachineClientService.issue_access_token(
+        db,
+        str(created["client_id"]),
+        str(created["client_secret"]),
+    )
+    dependency = require_machine_scopes("profile:read")
+    principal = dependency(
+        credentials=HTTPAuthorizationCredentials(
+            scheme="Bearer",
+            credentials=str(tokens["access_token"]),
+        ),
+        db=db,
+    )
+
+    assert principal.client.service_identity == "urn:melora:home-automation"
+    assert principal.scopes == {"profile:read"}
+
+    with pytest.raises(HTTPException) as exc:
+        require_machine_scopes("player:control")(
+            credentials=HTTPAuthorizationCredentials(
+                scheme="Bearer",
+                credentials=str(tokens["access_token"]),
+            ),
+            db=db,
+        )
+    assert exc.value.status_code == 403
