@@ -29,6 +29,7 @@ def upgrade() -> None:
         sa.UniqueConstraint("client_id"),
     )
     op.create_index("ix_machine_clients_id", "machine_clients", ["id"])
+    op.create_index("ix_machine_clients_id", "machine_clients", ["id"])
     op.create_index("ix_machine_clients_owner_user_id", "machine_clients", ["owner_user_id"])
     op.create_index("ix_machine_clients_service_identity", "machine_clients", ["service_identity"])
     op.create_index("ix_machine_clients_client_id", "machine_clients", ["client_id"])
@@ -47,6 +48,7 @@ def upgrade() -> None:
         sa.UniqueConstraint("machine_client_id", "user_id", name="uq_machine_user_grant_client_user"),
     )
     op.create_index("ix_machine_user_grants_id", "machine_user_grants", ["id"])
+    op.create_index("ix_machine_user_grants_id", "machine_user_grants", ["id"])
     op.create_index("ix_machine_user_grants_machine_client_id", "machine_user_grants", ["machine_client_id"])
     op.create_index("ix_machine_user_grants_user_id", "machine_user_grants", ["user_id"])
 
@@ -55,7 +57,15 @@ def downgrade() -> None:
     op.drop_index("ix_machine_user_grants_user_id", table_name="machine_user_grants")
     op.drop_index("ix_machine_user_grants_machine_client_id", table_name="machine_user_grants")
     op.drop_index("ix_machine_user_grants_id", table_name="machine_user_grants")
+    op.drop_index("ix_machine_user_grants_user_id", table_name="machine_user_grants")
+    op.drop_index("ix_machine_user_grants_machine_client_id", table_name="machine_user_grants")
+    op.drop_index("ix_machine_user_grants_id", table_name="machine_user_grants")
     op.drop_table("machine_user_grants")
+    op.drop_index("ix_machine_clients_expires_at", table_name="machine_clients")
+    op.drop_index("ix_machine_clients_client_id", table_name="machine_clients")
+    op.drop_index("ix_machine_clients_service_identity", table_name="machine_clients")
+    op.drop_index("ix_machine_clients_owner_user_id", table_name="machine_clients")
+    op.drop_index("ix_machine_clients_id", table_name="machine_clients")
     op.drop_index("ix_machine_clients_expires_at", table_name="machine_clients")
     op.drop_index("ix_machine_clients_client_id", table_name="machine_clients")
     op.drop_index("ix_machine_clients_service_identity", table_name="machine_clients")
