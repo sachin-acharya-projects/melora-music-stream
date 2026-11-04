@@ -3,6 +3,7 @@ import pytest
 from fastapi import HTTPException
 
 from app.core.config import settings
+from app.db.models.external_identity import ExternalIdentityModel
 from app.db.models.oidc_provider import OIDCProviderModel
 from app.schemas.oidc import OIDCProviderCreate, OIDCProviderUpdate
 from app.services.oidc_providers import OIDCProviderService
@@ -70,3 +71,60 @@ def test_enabled_provider_requires_secret(db) -> None:
         OIDCProviderService.create(db, data)
 
     assert exc.value.status_code == 422
+
+
+
+def test_provider_cannot_be_disabled_when_it_is_the_only_login_method(db, test_user) -> None:
+    provider = OIDCProviderModel(
+        name="only-login",
+        issuer="https://only-login.example.com",
+        client_id="client",
+        client_secret_encrypted="encrypted",
+        display_name="Only Login",
+        enabled=True,
+    )
+    db.add(provider)
+    db.flush()
+    db.add(
+        ExternalIdentityModel(
+            user_id=test_user.id,
+            provider_id=provider.id,
+            issuer=provider.issuer,
+            subject="only-subject",
+        )
+    )
+    db.commit()
+
+    with pytest.raises(HTTPException) as exc:
+        OIDCProviderService.update(db, provider.id, OIDCProviderUpdate(enabled=False))
+
+    assert exc.value.status_code == 409
+    db.refresh(provider)
+    assert provider.enabled is True
+
+
+def test_provider_cannot_be_deleted_while_identities_are_linked(db, test_user) -> None:
+    provider = OIDCProviderModel(
+        name="linked-provider",
+        issuer="https://linked.example.com",
+        client_id="client",
+        display_name="Linked Provider",
+        enabled=False,
+    )
+    db.add(provider)
+    db.flush()
+    db.add(
+        ExternalIdentityModel(
+            user_id=test_user.id,
+            provider_id=provider.id,
+            issuer=provider.issuer,
+            subject="linked-subject",
+        )
+    )
+    db.commit()
+
+    with pytest.raises(HTTPException) as exc:
+        OIDCProviderService.delete(db, provider.id)
+
+    assert exc.value.status_code == 409
+    assert db.query(OIDCProviderModel).filter_by(id=provider.id).first() is not None
