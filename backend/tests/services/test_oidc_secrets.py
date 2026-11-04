@@ -1,5 +1,5 @@
-from cryptography.fernet import Fernet
 import pytest
+from cryptography.fernet import Fernet
 
 from app.core.config import settings
 from app.services.oidc_secrets import (
