@@ -20,7 +20,7 @@ from app.db.models.oauth_tokens import (
     OAuthRefreshTokenModel,
 )
 from app.db.models.user import UserModel
-from app.schemas.oauth import OAuthAuthorizeRequest, OAuthTokenRequest
+from app.schemas.oauth import OAuthAuthorizeRequest, OAuthRevokeRequest, OAuthTokenRequest
 from app.services.auth import AuthService
 from app.services.authorization import validate_scope_grant
 from app.services.oauth_applications import OAuthApplicationService
@@ -135,6 +135,31 @@ class OAuthTokenService:
             "refresh_token": refresh_token,
             "scope": " ".join(sorted(scopes)),
         }
+
+    @staticmethod
+    def revoke(db: Session, request: OAuthRevokeRequest) -> None:
+        """Revoke a refresh token belonging to an authenticated OAuth client."""
+        app = OAuthTokenService._authenticate_client(
+            db, request.client_id, request.client_secret
+        )
+        digest = hashlib.sha256(request.token.encode("utf-8")).hexdigest()
+        record = (
+            db.query(OAuthRefreshTokenModel)
+            .filter(
+                OAuthRefreshTokenModel.token_hash == digest,
+                OAuthRefreshTokenModel.application_id == app.id,
+            )
+            .first()
+        )
+        if record is not None and record.revoked_at is None:
+            now = datetime.now(UTC)
+            db.query(OAuthRefreshTokenModel).filter(
+                OAuthRefreshTokenModel.family_id == record.family_id
+            ).update(
+                {OAuthRefreshTokenModel.revoked_at: now},
+                synchronize_session=False,
+            )
+            db.commit()
 
     @staticmethod
     def _consume_authorization_code(
