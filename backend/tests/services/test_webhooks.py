@@ -14,6 +14,7 @@ from app.db.models.webhook import WebhookDeliveryModel, WebhookSubscriptionModel
 from app.services.webhook_secrets import decrypt_webhook_secret
 from app.services.webhooks import (
     WebhookDeliveryService,
+    WebhookEndpointRejected,
     WebhookEventService,
     WebhookSubscriptionService,
 )
@@ -234,3 +235,25 @@ def test_webhook_delete_is_owner_scoped(db, test_user, admin_user, monkeypatch) 
 
     WebhookSubscriptionService.delete(db, test_user, record.id)
     assert db.query(WebhookSubscriptionModel).filter_by(id=record.id).first() is None
+
+
+
+def test_delivery_rejects_private_ip_destinations(monkeypatch) -> None:
+    async def private_dns_result(*args, **kwargs):
+        return [
+            (
+                2,
+                1,
+                6,
+                "",
+                ("127.0.0.1", 443),
+            )
+        ]
+
+    monkeypatch.setattr(asyncio, "to_thread", private_dns_result)
+    with pytest.raises(WebhookEndpointRejected):
+        asyncio.run(
+            WebhookDeliveryService._validate_public_endpoint(
+                "https://hooks.example.com/callback"
+            )
+        )
