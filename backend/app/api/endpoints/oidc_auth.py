@@ -8,7 +8,13 @@ from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
-from app.api.deps import CurrentUser, SessionDep
+from typing import Annotated
+
+from fastapi import Depends
+
+from app.api.deps import SessionDep
+from app.api.deps.auth import require_user_or_scopes
+from app.db.models.user import UserModel
 from app.core.config import settings
 from app.db.models.oidc_provider import OIDCProviderModel
 from app.schemas.oidc import OIDCLoginHandoffExchange
@@ -21,6 +27,7 @@ from app.services.oidc_secrets import (
 )
 
 router = APIRouter()
+ProfileWriteUser = Annotated[UserModel, Depends(require_user_or_scopes("profile:write"))]
 
 
 def _provider(db: Session, provider_id: str) -> OIDCProviderModel:
@@ -114,7 +121,7 @@ async def oidc_link(
     provider_id: str,
     request: Request,
     db: SessionDep,
-    current_user: CurrentUser,
+    current_user: ProfileWriteUser,
 ) -> dict[str, str]:
     """Return the authorization URL for the authenticated browser to navigate to."""
     response = await _start_flow(
