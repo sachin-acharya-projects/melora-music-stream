@@ -2,12 +2,15 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Response, status
 
-from app.api.deps import SessionDep, require_admin
+from app.api.deps import SessionDep
+from app.api.deps.auth import require_admin_scopes
 from app.db.models.user import UserModel
 from app.schemas.oidc import OIDCProviderCreate, OIDCProviderResponse, OIDCProviderUpdate
 from app.services.oidc_providers import OIDCProviderService
 
 router = APIRouter()
+OIDCProviderReadAdmin = Annotated[UserModel, Depends(require_admin_scopes("admin:identity:read"))]
+OIDCProviderWriteAdmin = Annotated[UserModel, Depends(require_admin_scopes("admin:identity:write"))]
 
 
 @router.get(
@@ -16,7 +19,7 @@ router = APIRouter()
 )
 def list_oidc_providers(
     db: SessionDep,
-    _: Annotated[UserModel, Depends(require_admin)],
+    _: OIDCProviderReadAdmin,
 ) -> list[dict[str, Any]]:
     """List configured OIDC providers. Client secrets are never returned."""
     return OIDCProviderService.list_providers(db)
@@ -30,7 +33,7 @@ def list_oidc_providers(
 def create_oidc_provider(
     data: OIDCProviderCreate,
     db: SessionDep,
-    _: Annotated[UserModel, Depends(require_admin)],
+    _: OIDCProviderWriteAdmin,
 ) -> dict[str, Any]:
     """Register an external OIDC provider."""
     return OIDCProviderService.create(db, data)
