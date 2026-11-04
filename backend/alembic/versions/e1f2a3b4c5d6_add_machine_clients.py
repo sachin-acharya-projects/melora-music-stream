@@ -32,8 +32,6 @@ def upgrade() -> None:
     )
     op.create_index("ix_machine_clients_id", "machine_clients", ["id"])
     op.create_index("ix_machine_clients_owner_user_id", "machine_clients", ["owner_user_id"])
-    op.create_index("ix_machine_clients_service_identity", "machine_clients", ["service_identity"])
-    op.create_index("ix_machine_clients_client_id", "machine_clients", ["client_id"])
     op.create_index("ix_machine_clients_expires_at", "machine_clients", ["expires_at"])
 
     op.create_table(
@@ -61,8 +59,6 @@ def downgrade() -> None:
     op.drop_table("machine_user_grants")
 
     op.drop_index("ix_machine_clients_expires_at", table_name="machine_clients")
-    op.drop_index("ix_machine_clients_client_id", table_name="machine_clients")
-    op.drop_index("ix_machine_clients_service_identity", table_name="machine_clients")
     op.drop_index("ix_machine_clients_owner_user_id", table_name="machine_clients")
     op.drop_index("ix_machine_clients_id", table_name="machine_clients")
     op.drop_table("machine_clients")
