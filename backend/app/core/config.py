@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     # OIDC client-secret encryption. Generate with Fernet.generate_key() and keep
     # stable across restarts; never reuse the JWT signing key for this purpose.
     OIDC_SECRET_ENCRYPTION_KEY: str = ""
+    WEBHOOK_SECRET_ENCRYPTION_KEY: str = ""
 
     # Auth - JWT
     JWT_SECRET_KEY: str = "change-me-in-production-use-a-random-secret"  # noqa: S105
