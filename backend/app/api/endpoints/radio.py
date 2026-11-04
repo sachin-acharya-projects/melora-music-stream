@@ -50,6 +50,6 @@ def get_moods() -> list[dict[str, Any]]:
 
 
 @router.get("/seeds")
-def get_seeds(db: SessionDep, current_user: CurrentUser) -> dict[str, Any]:
+def get_seeds(db: SessionDep, current_user: RadioUser) -> dict[str, Any]:
     """Return the user's personal radio seeds (genres + top artists)."""
     return RecommendationsService.get_user_seeds(db, current_user)
