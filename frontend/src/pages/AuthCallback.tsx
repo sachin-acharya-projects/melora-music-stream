@@ -8,6 +8,7 @@ import { MESSAGES } from "@/utils/messages"
 const DEACTIVATED_ERROR_PARAM = "account_deactivated"
 const ACCOUNT_LINK_REQUIRED_PARAM = "account_link_required"
 const IDENTITY_FAILED_PARAM = "identity_provider_authentication_failed"
+const IDENTITY_SIGN_IN_FAILED_PARAM = "identity_sign_in_failed"
 
 export default function AuthCallback() {
     const { isAuthenticated, isLoading } = useAuth()
@@ -25,6 +26,12 @@ export default function AuthCallback() {
 
         if (errorParam === IDENTITY_FAILED_PARAM) {
             toast.error("The identity provider could not authenticate this sign-in. Please try again.")
+            navigate("/login")
+            return
+        }
+
+        if (errorParam === IDENTITY_SIGN_IN_FAILED_PARAM) {
+            toast.error("This identity provider could not sign you in. Check your account eligibility or contact the Melora administrator.")
             navigate("/login")
             return
         }
