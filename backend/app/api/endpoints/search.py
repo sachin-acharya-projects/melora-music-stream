@@ -1,13 +1,18 @@
 from typing import Annotated, Any
 
-from fastapi import APIRouter, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
-from app.api.deps import CurrentUser, OptionalUser, SessionDep
+from app.api.deps import SessionDep
+from app.api.deps.auth import optional_user_or_scopes, require_user_or_scopes
+from app.db.models.user import UserModel
 from app.services.search_history import search_history_service
 from app.services.youtube import youtube_service
 from app.services.ytmusic import ytmusic_service
 
 router = APIRouter()
+OptionalSearchUser = Annotated[UserModel | None, Depends(optional_user_or_scopes("history:write"))]
+SearchHistoryReadUser = Annotated[UserModel, Depends(require_user_or_scopes("history:read"))]
+SearchHistoryWriteUser = Annotated[UserModel, Depends(require_user_or_scopes("history:write"))]
 
 _GROUP_KEYS = ("artists", "songs", "albums", "playlists", "videos")
 
@@ -16,7 +21,7 @@ _GROUP_KEYS = ("artists", "songs", "albums", "playlists", "videos")
 def search(
     q: Annotated[str, Query(min_length=1, max_length=200)],
     response: Response,
-    current_user: OptionalUser = None,
+    current_user: OptionalSearchUser = None,
     db: SessionDep = None,
 ) -> dict[str, Any]:
     """Grouped search results from YTMusic, falling back to plain YouTube."""
@@ -84,7 +89,7 @@ def _fallback_search(q: str) -> dict[str, Any]:
 
 @router.get("/history")
 def search_history(
-    db: SessionDep, current_user: CurrentUser, limit: Annotated[int, Query(ge=1, le=50)] = 10
+    db: SessionDep, current_user: SearchHistoryReadUser, limit: Annotated[int, Query(ge=1, le=50)] = 10
 ) -> list[dict[str, Any]]:
     """Recent, de-duplicated searches for the current user."""
     rows = search_history_service.list_recent(db, user_id=current_user.id, limit=limit)
@@ -99,7 +104,7 @@ def search_history(
 
 
 @router.delete("/history")
-def clear_search_history(db: SessionDep, current_user: CurrentUser) -> dict[str, Any]:
+def clear_search_history(db: SessionDep, current_user: SearchHistoryWriteUser) -> dict[str, Any]:
     """Remove every search from the current user's history."""
     deleted = search_history_service.clear(db, user_id=current_user.id)
     return {"deleted": deleted}
