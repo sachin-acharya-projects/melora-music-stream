@@ -112,7 +112,7 @@ def clear_search_history(db: SessionDep, current_user: SearchHistoryWriteUser) -
 
 @router.delete("/history/{entry_id}")
 def delete_search_history_entry(
-    entry_id: str, db: SessionDep, current_user: CurrentUser
+    entry_id: str, db: SessionDep, current_user: SearchHistoryWriteUser
 ) -> dict[str, Any]:
     """Remove a single search entry."""
     removed = search_history_service.delete_entry(
