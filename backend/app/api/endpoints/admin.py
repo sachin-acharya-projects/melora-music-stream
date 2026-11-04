@@ -2,7 +2,9 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Query
 
-from app.api.deps import CurrentUser, SessionDep, require_admin
+from app.api.deps import SessionDep
+from app.api.deps.auth import require_admin_scopes
+from app.db.models.user import UserModel
 from app.schemas.admin import (
     AdminDashboardResponse,
     AdminSettingsResponse,
@@ -18,12 +20,19 @@ from app.services.admin import AdminService
 from app.services.admin_settings import AdminSettingsService
 
 router = APIRouter()
+AdminSettingsRead = Annotated[UserModel, Depends(require_admin_scopes("admin:settings:read"))]
+AdminSettingsWrite = Annotated[UserModel, Depends(require_admin_scopes("admin:settings:write"))]
+AdminDashboardRead = Annotated[UserModel, Depends(require_admin_scopes("admin:dashboard:read"))]
+AdminCatalogRead = Annotated[UserModel, Depends(require_admin_scopes("admin:catalog:read"))]
+AdminCatalogWrite = Annotated[UserModel, Depends(require_admin_scopes("admin:catalog:write"))]
+AdminUsersRead = Annotated[UserModel, Depends(require_admin_scopes("admin:users:read"))]
+AdminUsersWrite = Annotated[UserModel, Depends(require_admin_scopes("admin:users:write"))]
 
 
 @router.get("/settings")
 async def get_admin_settings(
     db: SessionDep,
-    _: Annotated[None, Depends(require_admin)],
+    _: AdminSettingsRead,
 ) -> AdminSettingsResponse:
     """Get current application settings."""
     return AdminSettingsService.get_settings(db)
@@ -33,7 +42,7 @@ async def get_admin_settings(
 async def update_admin_settings(
     update: AdminSettingsUpdate,
     db: SessionDep,
-    _: Annotated[None, Depends(require_admin)],
+    _: AdminSettingsWrite,
 ) -> AdminSettingsResponse:
     """Update application settings."""
     return AdminSettingsService.update_settings(db, update)
@@ -42,7 +51,7 @@ async def update_admin_settings(
 @router.get("/dashboard")
 async def get_dashboard(
     db: SessionDep,
-    _: Annotated[None, Depends(require_admin)],
+    _: AdminDashboardRead,
 ) -> AdminDashboardResponse:
     """Global catalog and activity metrics for the admin dashboard."""
     return AdminDashboardResponse(**AdminService.dashboard(db))
@@ -54,7 +63,7 @@ async def get_dashboard(
 @router.get("/artists")
 def list_artists(
     db: SessionDep,
-    _: Annotated[None, Depends(require_admin)],
+    _: AdminCatalogRead,
     search: Annotated[str | None, Query(max_length=100)] = None,
     sort_by: Annotated[
         str,
@@ -86,7 +95,7 @@ def update_artist(
     artist_id: str,
     update: ArtistUpdate,
     db: SessionDep,
-    _: Annotated[None, Depends(require_admin)],
+    _: AdminCatalogWrite,
 ) -> dict[str, Any]:
     """Edit artist metadata."""
     return AdminService.update_artist(db, artist_id, update)
@@ -96,7 +105,7 @@ def update_artist(
 def feature_artist(
     artist_id: str,
     db: SessionDep,
-    _: Annotated[None, Depends(require_admin)],
+    _: AdminCatalogWrite,
 ) -> dict[str, Any]:
     """Mark an artist as featured."""
     return AdminService.set_artist_featured(db, artist_id, featured=True)
@@ -106,7 +115,7 @@ def feature_artist(
 def unfeature_artist(
     artist_id: str,
     db: SessionDep,
-    _: Annotated[None, Depends(require_admin)],
+    _: AdminCatalogWrite,
 ) -> dict[str, Any]:
     """Remove the featured mark from an artist."""
     return AdminService.set_artist_featured(db, artist_id, featured=False)
@@ -116,7 +125,7 @@ def unfeature_artist(
 def publish_artist(
     artist_id: str,
     db: SessionDep,
-    _: Annotated[None, Depends(require_admin)],
+    _: AdminCatalogWrite,
 ) -> dict[str, Any]:
     """Publish an artist to the user-facing catalog."""
     return AdminService.set_artist_published(db, artist_id, published=True)
@@ -126,7 +135,7 @@ def publish_artist(
 def hide_artist(
     artist_id: str,
     db: SessionDep,
-    _: Annotated[None, Depends(require_admin)],
+    _: AdminCatalogWrite,
 ) -> dict[str, Any]:
     """Hide an artist from the user-facing catalog."""
     return AdminService.set_artist_published(db, artist_id, published=False)
@@ -136,7 +145,7 @@ def hide_artist(
 def delete_artist(
     artist_id: str,
     db: SessionDep,
-    _: Annotated[None, Depends(require_admin)],
+    _: AdminCatalogWrite,
 ) -> dict[str, Any]:
     """Delete an artist and its releases/relations."""
     return AdminService.delete_artist(db, artist_id)
@@ -145,7 +154,7 @@ def delete_artist(
 @router.post("/artists/batch-import")
 def batch_import_artists(
     data: BatchArtistImportRequest,
-    _: Annotated[None, Depends(require_admin)],
+    _: AdminCatalogWrite,
 ) -> dict[str, Any]:
     """Import several artists at once from names, channel ids, or URLs."""
     results = AdminService.batch_import_artists(data.items, thumbnail=data.thumbnail)
@@ -164,7 +173,7 @@ def batch_import_artists(
 @router.get("/songs")
 def list_songs(
     db: SessionDep,
-    _: Annotated[None, Depends(require_admin)],
+    _: AdminCatalogRead,
     search: Annotated[str | None, Query(max_length=100)] = None,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=500)] = 50,
@@ -180,7 +189,7 @@ def list_songs(
 def import_song(
     data: SongImportRequest,
     db: SessionDep,
-    _: Annotated[None, Depends(require_admin)],
+    _: AdminCatalogWrite,
 ) -> dict[str, Any]:
     """Import a song into the catalog from a YouTube id or URL."""
     return AdminService.import_song(db, data)
@@ -191,7 +200,7 @@ def update_song(
     song_id: str,
     update: SongUpdate,
     db: SessionDep,
-    _: Annotated[None, Depends(require_admin)],
+    _: AdminCatalogWrite,
 ) -> dict[str, Any]:
     """Edit song metadata."""
     return AdminService.update_song(db, song_id, update)
@@ -201,7 +210,7 @@ def update_song(
 def feature_song(
     song_id: str,
     db: SessionDep,
-    _: Annotated[None, Depends(require_admin)],
+    _: AdminCatalogWrite,
 ) -> dict[str, Any]:
     """Mark a song as featured."""
     return AdminService.set_song_featured(db, song_id, featured=True)
@@ -211,7 +220,7 @@ def feature_song(
 def unfeature_song(
     song_id: str,
     db: SessionDep,
-    _: Annotated[None, Depends(require_admin)],
+    _: AdminCatalogWrite,
 ) -> dict[str, Any]:
     """Remove the featured mark from a song."""
     return AdminService.set_song_featured(db, song_id, featured=False)
@@ -221,7 +230,7 @@ def unfeature_song(
 def publish_song(
     song_id: str,
     db: SessionDep,
-    _: Annotated[None, Depends(require_admin)],
+    _: AdminCatalogWrite,
 ) -> dict[str, Any]:
     """Publish a song to the user-facing catalog."""
     return AdminService.set_song_published(db, song_id, published=True)
@@ -231,7 +240,7 @@ def publish_song(
 def hide_song(
     song_id: str,
     db: SessionDep,
-    _: Annotated[None, Depends(require_admin)],
+    _: AdminCatalogWrite,
 ) -> dict[str, Any]:
     """Hide a song from the user-facing catalog."""
     return AdminService.set_song_published(db, song_id, published=False)
@@ -241,7 +250,7 @@ def hide_song(
 def delete_song(
     song_id: str,
     db: SessionDep,
-    _: Annotated[None, Depends(require_admin)],
+    _: AdminCatalogWrite,
 ) -> dict[str, Any]:
     """Delete a song from the catalog."""
     return AdminService.delete_song(db, song_id)
@@ -254,7 +263,7 @@ def delete_song(
 def import_playlist(
     data: PlaylistImportRequest,
     db: SessionDep,
-    _: Annotated[None, Depends(require_admin)],
+    _: AdminCatalogWrite,
 ) -> dict[str, Any]:
     """Import every song from a YouTube playlist into the catalog."""
     return AdminService.import_playlist(db, data)
@@ -266,7 +275,7 @@ def import_playlist(
 @router.get("/users")
 def list_users(
     db: SessionDep,
-    _: Annotated[None, Depends(require_admin)],
+    _: AdminUsersRead,
     search: Annotated[str | None, Query(max_length=100)] = None,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=500)] = 50,
@@ -282,8 +291,7 @@ def update_user(
     user_id: str,
     update: UserAdminUpdate,
     db: SessionDep,
-    acting_user: CurrentUser,
-    _: Annotated[None, Depends(require_admin)],
+    acting_user: AdminUsersWrite,
 ) -> dict[str, Any]:
     """Update a user's role or active state."""
     return AdminService.update_user(
