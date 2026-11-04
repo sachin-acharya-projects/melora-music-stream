@@ -17,6 +17,7 @@ from app.db.models.bug_report import (
 from app.db.models.listening_history import ListeningHistoryModel
 from app.db.models.external_identity import ExternalIdentityModel
 from app.db.models.oidc_provider import OIDCProviderModel
+from app.db.models.oidc_login_handoff import OIDCLoginHandoffModel
 from app.db.models.notification import NotificationModel
 from app.db.models.playback_state import PlaybackStateModel
 from app.db.models.playlist import PlaylistModel
@@ -37,6 +38,7 @@ __all__ = [
     "ListeningHistoryModel",
     "ExternalIdentityModel",
     "OIDCProviderModel",
+    "OIDCLoginHandoffModel",
     "NotificationModel",
     "PlaybackStateModel",
     "PlaylistModel",
