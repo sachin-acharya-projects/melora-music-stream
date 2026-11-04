@@ -1,17 +1,21 @@
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
-from app.api.deps import CurrentUser, SessionDep
+from app.api.deps import SessionDep
+from app.api.deps.auth import require_user_or_scopes
+from app.db.models.user import UserModel
 from app.schemas.history import HistoryRecordCreate, HistoryUpdate
 from app.services.history import HistoryService
 
 router = APIRouter()
+HistoryReadUser = Annotated[UserModel, Depends(require_user_or_scopes("history:read"))]
+HistoryWriteUser = Annotated[UserModel, Depends(require_user_or_scopes("history:write"))]
 
 
 @router.post("/")
 def record_listen(
-    data: HistoryRecordCreate, db: SessionDep, current_user: CurrentUser
+    data: HistoryRecordCreate, db: SessionDep, current_user: HistoryWriteUser
 ) -> dict[str, Any]:
     return HistoryService.record_listen(db, user_id=current_user.id, data=data)
 
@@ -19,7 +23,7 @@ def record_listen(
 @router.get("/")
 def get_history(
     db: SessionDep,
-    current_user: CurrentUser,
+    current_user: HistoryReadUser,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=500)] = 50,
 ) -> dict[str, Any]:
@@ -30,7 +34,7 @@ def get_history(
 
 @router.patch("/{entry_id}")
 def update_history_entry(
-    entry_id: str, data: HistoryUpdate, db: SessionDep, current_user: CurrentUser
+    entry_id: str, data: HistoryUpdate, db: SessionDep, current_user: HistoryWriteUser
 ) -> dict[str, Any]:
     return HistoryService.update_play_duration(
         db,
@@ -43,7 +47,7 @@ def update_history_entry(
 @router.get("/recent")
 def get_recent_history(
     db: SessionDep,
-    current_user: CurrentUser,
+    current_user: HistoryReadUser,
     limit: Annotated[int, Query(ge=1, le=500)] = 50,
 ) -> list[dict[str, Any]]:
     return HistoryService.get_recent(db, user_id=current_user.id, limit=limit)
@@ -52,7 +56,7 @@ def get_recent_history(
 @router.get("/recently-played")
 def get_recently_played(
     db: SessionDep,
-    current_user: CurrentUser,
+    current_user: HistoryReadUser,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=500)] = 50,
 ) -> dict[str, Any]:
@@ -62,5 +66,5 @@ def get_recently_played(
 
 
 @router.get("/stats")
-def get_history_stats(db: SessionDep, current_user: CurrentUser) -> dict[str, Any]:
+def get_history_stats(db: SessionDep, current_user: HistoryReadUser) -> dict[str, Any]:
     return HistoryService.get_stats(db, user_id=current_user.id)
