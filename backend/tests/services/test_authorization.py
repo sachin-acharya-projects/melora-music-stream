@@ -2,7 +2,11 @@ import pytest
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
 
-from app.api.deps.auth import require_scopes
+from app.api.deps.auth import (
+    get_current_user,
+    get_current_user_optional,
+    require_scopes,
+)
 from app.core.scopes import ADMIN_SCOPES, ALL_SCOPES, normalize_scopes
 from app.services.auth import AuthService
 from app.services.authorization import (
@@ -187,11 +191,6 @@ def test_personal_access_token_can_use_delegated_scope_dependency(test_user, db)
     assert principal.scopes == {"profile:read"}
     assert principal.credential_id == created["id"]
 
-from fastapi import HTTPException
-from fastapi.security import HTTPAuthorizationCredentials
-
-from app.api.deps.auth import get_current_user, get_current_user_optional
-from app.services.auth import AuthService
 
 
 def test_browser_user_dependency_rejects_delegated_access_token(test_user, db) -> None:
