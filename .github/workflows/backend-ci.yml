@@ -44,8 +44,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
-      - name: Verify Alembic migrations on a clean database
-        run: alembic upgrade head
       - name: Run focused Ruff correctness checks
         run: |
           ruff check --select E,F --ignore E501 \
@@ -74,3 +72,42 @@ jobs:
             tests/services/test_personal_access_tokens.py
       - name: Run backend tests
         run: pytest -q
+
+  migrations:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: melora
+          POSTGRES_PASSWORD: melora-ci-password
+          POSTGRES_DB: melora_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U melora -d melora_ci"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: postgresql+psycopg://melora:melora-ci-password@localhost:5432/melora_ci
+      JWT_SECRET_KEY: ci-only-secret-not-for-production
+      DEBUG: "true"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+      - name: Apply all Alembic migrations
+        run: alembic upgrade head
