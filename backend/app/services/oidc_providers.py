@@ -6,7 +6,9 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.db.models.external_identity import ExternalIdentityModel
 from app.db.models.oidc_provider import OIDCProviderModel
+from app.db.models.user import UserModel
 from app.schemas.oidc import OIDCProviderCreate, OIDCProviderUpdate
 from app.services.oidc_secrets import encrypt_oidc_client_secret
 
@@ -125,6 +127,33 @@ class OIDCProviderService:
         secret = changes.pop("client_secret", None)
         if secret is not None:
             provider.client_secret_encrypted = encrypt_oidc_client_secret(secret)
+        if provider.enabled and changes.get("enabled") is False:
+            linked_users = (
+                db.query(UserModel)
+                .join(ExternalIdentityModel, ExternalIdentityModel.user_id == UserModel.id)
+                .filter(ExternalIdentityModel.provider_id == provider.id)
+                .all()
+            )
+            for user in linked_users:
+                has_other_identity = (
+                    db.query(ExternalIdentityModel.id)
+                    .filter(
+                        ExternalIdentityModel.user_id == user.id,
+                        ExternalIdentityModel.provider_id != provider.id,
+                    )
+                    .first()
+                    is not None
+                )
+                has_legacy_google = user.oauth_provider == "google" and bool(user.oauth_id)
+                if not user.password_hash and not has_other_identity and not has_legacy_google:
+                    db.rollback()
+                    raise HTTPException(
+                        status_code=409,
+                        detail=(
+                            "This provider is the only sign-in method for at least one account. "
+                            "Users must add another sign-in method before it can be disabled."
+                        ),
+                    )
         for field, value in changes.items():
             if field == "discovery_url" and value is not None:
                 value = _validate_https_url(value, "discovery_url")
@@ -149,5 +178,16 @@ class OIDCProviderService:
         provider = db.query(OIDCProviderModel).filter(OIDCProviderModel.id == provider_id).first()
         if provider is None:
             raise HTTPException(status_code=404, detail="OIDC provider not found")
+        linked_identity_exists = (
+            db.query(ExternalIdentityModel.id)
+            .filter(ExternalIdentityModel.provider_id == provider.id)
+            .first()
+            is not None
+        )
+        if linked_identity_exists:
+            raise HTTPException(
+                status_code=409,
+                detail="Unlink all identities from this provider before deleting it. Disable it to stop new sign-ins.",
+            )
         db.delete(provider)
         db.commit()
