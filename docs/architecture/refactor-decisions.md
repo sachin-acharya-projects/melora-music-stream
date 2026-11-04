@@ -77,7 +77,7 @@ Machine-to-machine client credentials are also implemented:
 - A machine receives no automatic access to any user's private data. Its owner must create an explicit per-user grant through `/api/v1/developer/machine-clients/{id}/user-grants`. Regular users may grant only their own data; only admins may grant access to another user's data. Each user grant is checked against that user's current scope ceiling.
 - Deactivating a machine client invalidates its access tokens on the next request because the dependency rechecks client status.
 
-A dedicated browser consent screen and frontend developer-management UI remain outstanding. Existing music endpoints have not yet all been migrated to delegated or machine scope enforcement.
+A dedicated browser consent screen and frontend developer-management UI remain outstanding. The playlist API is the first resource family migrated to the shared scope boundary: read and write routes now accept browser sessions, PATs, OAuth delegated tokens, and machine tokens. Machine calls must include `X-Melora-User-ID` and pass an explicit user grant. The remaining music, playback, settings, upload, and admin route families still need the same migration.
 
 Webhook subscriptions and the delivery outbox now have a backend foundation:
 
