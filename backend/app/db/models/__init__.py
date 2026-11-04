@@ -34,6 +34,7 @@ from app.db.models.search_history import SearchHistoryModel
 from app.db.models.song import SongModel
 from app.db.models.user import UserModel, UserRole
 from app.db.models.user_stats import UserStatsModel
+from app.db.models.webhook import WebhookDeliveryModel, WebhookSubscriptionModel
 
 __all__ = [
     "AdminSettingsModel",
@@ -62,6 +63,8 @@ __all__ = [
     "UserModel",
     "UserRole",
     "UserStatsModel",
+    "WebhookDeliveryModel",
+    "WebhookSubscriptionModel",
     "album_favorites",
     "playlist_follows",
     "playlist_song",
