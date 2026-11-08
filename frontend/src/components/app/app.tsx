@@ -42,7 +42,7 @@ import { ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import AudioPlayer from "../audio-player/audio-player"
 import Background from "../background/background"
-import Navbar from "../navbar/navbar"
+import MeloraShell from "../melora-shell/melora-shell"
 import { Loader2 } from "lucide-react"
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
