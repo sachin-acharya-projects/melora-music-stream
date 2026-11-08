@@ -2,7 +2,7 @@ import { useMediaSession } from "@/hooks/useMediaSession"
 import { usePlayerStore } from "@/hooks/usePlayer"
 import { useStreaming } from "@/hooks/useStreaming"
 import { useRecordListen, useUpdatePlayDuration } from "@/hooks/useHistory"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef } from "react"
 
 // A listen only counts as "recently played" once the user has listened past a
 // threshold: 30 seconds or half the track, whichever is reached first.
@@ -31,7 +31,6 @@ export default function AudioPlayer() {
     } = usePlayerStore()
 
     const audioRef = useRef<HTMLAudioElement>(null)
-    const [isBuffering, setIsBuffering] = useState(false)
     const recordListen = useRecordListen()
     const updatePlayDuration = useUpdatePlayDuration()
 
@@ -58,7 +57,7 @@ export default function AudioPlayer() {
     } | null>(null)
 
 
-    const { data: streamData, isLoading: isFetchingUrl } = useStreaming(currentSong?.id)
+    const { data: streamData } = useStreaming(currentSong?.id)
 
     const streamUrl = streamData?.url || null
 
@@ -164,13 +163,6 @@ export default function AudioPlayer() {
         void usePlayerStore.getState().syncWithBackend()
     }, [setDuration])
 
-    const handleSeek = (time: number) => {
-        if (audioRef.current) {
-            audioRef.current.currentTime = time
-            setProgress(time)
-        }
-    }
-
     const handleEnded = useCallback(() => {
         if (currentSong) {
             const pending = pendingListenRef.current
@@ -225,8 +217,6 @@ export default function AudioPlayer() {
                 onTimeUpdate={handleTimeUpdate}
                 onLoadedMetadata={handleLoadedMetadata}
                 onEnded={handleEnded}
-                onWaiting={() => setIsBuffering(true)}
-                onCanPlay={() => setIsBuffering(false)}
                 onPlay={() => setPlaying(true)}
                 onPause={() => setPlaying(false)}
             />
