@@ -1,7 +1,7 @@
-import { type PlaylistItem, usePlayerStore } from "@/hooks/usePlayer"
+import { usePlayerStore } from "@/hooks/usePlayer"
 import { cn, slugify } from "@/lib/utils"
 import {
-    Loader2, Pause, Play, Repeat, Repeat1, SkipBack, SkipForward,
+    Pause, Play, Repeat, Repeat1, SkipBack, SkipForward,
     Volume2, VolumeX,
 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
