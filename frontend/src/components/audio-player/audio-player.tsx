@@ -1,11 +1,8 @@
-import { MiniPlayer } from "@/components/audio-player/mini-player"
 import { useMediaSession } from "@/hooks/useMediaSession"
 import { usePlayerStore } from "@/hooks/usePlayer"
 import { useStreaming } from "@/hooks/useStreaming"
 import { useRecordListen, useUpdatePlayDuration } from "@/hooks/useHistory"
-import { AnimatePresence } from "framer-motion"
-import { useCallback, useEffect, useRef, useState } from "react"
-import { useLocation } from "react-router-dom"
+import { useCallback, useEffect, useRef } from "react"
 
 // A listen only counts as "recently played" once the user has listened past a
 // threshold: 30 seconds or half the track, whichever is reached first.
@@ -23,23 +20,17 @@ export default function AudioPlayer() {
     const {
         currentSong,
         isPlaying,
-        togglePlay,
-        playNext,
-        playPrevious,
         repeatMode,
-        setRepeatMode,
+        playNext,
         progress,
         setProgress,
-        duration,
         setDuration,
         setPlaying,
         seekTime,
         volume,
     } = usePlayerStore()
 
-    const location = useLocation()
     const audioRef = useRef<HTMLAudioElement>(null)
-    const [isBuffering, setIsBuffering] = useState(false)
     const recordListen = useRecordListen()
     const updatePlayDuration = useUpdatePlayDuration()
 
@@ -65,9 +56,8 @@ export default function AudioPlayer() {
         failed: boolean
     } | null>(null)
 
-    const isNowPlayingPage = location.pathname === "/now-playing"
 
-    const { data: streamData, isLoading: isFetchingUrl } = useStreaming(currentSong?.id)
+    const { data: streamData } = useStreaming(currentSong?.id)
 
     const streamUrl = streamData?.url || null
 
@@ -173,13 +163,6 @@ export default function AudioPlayer() {
         void usePlayerStore.getState().syncWithBackend()
     }, [setDuration])
 
-    const handleSeek = (time: number) => {
-        if (audioRef.current) {
-            audioRef.current.currentTime = time
-            setProgress(time)
-        }
-    }
-
     const handleEnded = useCallback(() => {
         if (currentSong) {
             const pending = pendingListenRef.current
@@ -222,14 +205,6 @@ export default function AudioPlayer() {
         }
     }, [currentSong, progress, updatePlayDuration])
 
-    const cycleRepeat = () => {
-        if (repeatMode === "none") setRepeatMode("all")
-        else if (repeatMode === "all") setRepeatMode("one")
-        else setRepeatMode("none")
-    }
-
-    const isLoading = isFetchingUrl || isBuffering
-
     if (!currentSong) return null
 
     return (
@@ -240,30 +215,11 @@ export default function AudioPlayer() {
                 onTimeUpdate={handleTimeUpdate}
                 onLoadedMetadata={handleLoadedMetadata}
                 onEnded={handleEnded}
-                onWaiting={() => setIsBuffering(true)}
-                onCanPlay={() => setIsBuffering(false)}
                 onPlay={() => setPlaying(true)}
                 onPause={() => setPlaying(false)}
             />
 
-            <AnimatePresence>
-                {!isNowPlayingPage && (
-                    <MiniPlayer
-                        currentSong={currentSong}
-                        isPlaying={isPlaying}
-                        isLoading={isLoading}
-                        repeatMode={repeatMode}
-                        progress={progress}
-                        duration={duration}
-                        onTogglePlay={togglePlay}
-                        onPrevious={playPrevious}
-                        onNext={playNext}
-                        onCycleRepeat={cycleRepeat}
-                        onSeek={handleSeek}
-                        onClose={() => usePlayerStore.setState({ currentSong: null })}
-                    />
-                )}
-            </AnimatePresence>
+
         </>
     )
 }
