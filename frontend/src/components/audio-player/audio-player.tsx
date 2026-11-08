@@ -20,10 +20,10 @@ export default function AudioPlayer() {
     const {
         currentSong,
         isPlaying,
+        repeatMode,
         playNext,
         progress,
         setProgress,
-        duration,
         setDuration,
         setPlaying,
         seekTime,
@@ -204,8 +204,6 @@ export default function AudioPlayer() {
                 : null
         }
     }, [currentSong, progress, updatePlayDuration])
-
-    const isLoading = isFetchingUrl || isBuffering
 
     if (!currentSong) return null
 
