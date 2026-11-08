@@ -41,8 +41,9 @@ function NavigationLink({ to, label, icon: Icon, end }: {
     )
 }
 
-export default function MeloraShell({ children, enabled = true }: Props) {\n    if (!enabled) return <>{children}</>
+export default function MeloraShell({ children, enabled = true }: Props) {
     const location = useLocation()
+    if (!enabled) return <>{children}</>
     const title = location.pathname === "/" ? "Discover" :
         location.pathname.startsWith("/artists") ? "Artists" :
         location.pathname.startsWith("/albums") ? "Albums" :
