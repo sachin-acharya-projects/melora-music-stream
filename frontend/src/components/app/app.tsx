@@ -1,8 +1,6 @@
 import { AuthProvider } from "@/contexts/AuthContext"
 import { useAuth } from "@/hooks/useAuth"
 import { usePlayerStore } from "@/hooks/usePlayer"
-import MobileTabBar from "@/components/mobile-nav/mobile-tab-bar"
-import MobileHeader from "@/components/mobile-nav/mobile-header"
 import Home from "@/pages/Home"
 import Login from "@/pages/Login"
 import AuthCallback from "@/pages/AuthCallback"
@@ -102,10 +100,8 @@ function AppContent() {
 
     return (
             <section>
-                {isAuthenticated && <Navbar />}
-                {isAuthenticated && <MobileHeader />}
-                {isAuthenticated && <MobileTabBar />}
                 <Background />
+                <MeloraShell enabled={isAuthenticated}>
                 <main
                     className={
                         isAuthenticated
@@ -333,6 +329,7 @@ function AppContent() {
                     <Route path='*' element={<Navigate to='/' replace />} />
                 </Routes>
             </main>
+                </MeloraShell>
             {isAuthenticated && <AudioPlayer />}
             {isAuthenticated && BUG_REPORTER_ENABLED && (
                 <BugReporter
