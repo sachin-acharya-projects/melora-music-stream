@@ -5,7 +5,7 @@ import {
     ListMusic, Mic2, Radio, Search, Settings2, Sparkles, Users,
 } from "lucide-react"
 
-type Props = { children: ReactNode }
+type Props = { children: ReactNode; enabled?: boolean }
 
 const primaryLinks = [
     { to: "/", label: "Home", icon: Home, end: true },
@@ -41,7 +41,7 @@ function NavigationLink({ to, label, icon: Icon, end }: {
     )
 }
 
-export default function MeloraShell({ children }: Props) {
+export default function MeloraShell({ children, enabled = true }: Props) {\n    if (!enabled) return <>{children}</>
     const location = useLocation()
     const title = location.pathname === "/" ? "Discover" :
         location.pathname.startsWith("/artists") ? "Artists" :
