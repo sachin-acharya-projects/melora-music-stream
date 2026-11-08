@@ -103,6 +103,9 @@ export default function MeloraShell({ children, enabled = true }: Props) {\n    
                 <main className="melora-content mx-auto w-full max-w-[1480px] px-5 pb-36 pt-7 md:px-10 md:pt-9">
                     {children}
                 </main>
+                <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-[#eceef1] bg-white/95 px-2 py-2 backdrop-blur lg:hidden">
+                    {[{to:"/",label:"Home",icon:Home,end:true},{to:"/artists",label:"Artists",icon:Mic2},{to:"/albums",label:"Albums",icon:Disc3},{to:"/playlists",label:"Playlists",icon:ListMusic},{to:"/queue",label:"Queue",icon:Library}].map(({to,label,icon:Icon,end}) => <NavLink key={to} to={to} end={end} className={({isActive}) => `flex flex-col items-center gap-1 rounded-xl py-1.5 text-[10px] font-semibold ${isActive ? "text-[#111827]" : "text-[#9ca3af]"}`}><Icon className="h-[19px] w-[19px]" strokeWidth={1.8}/>{label}</NavLink>)}
+                </nav>
             </div>
         </div>
     )
