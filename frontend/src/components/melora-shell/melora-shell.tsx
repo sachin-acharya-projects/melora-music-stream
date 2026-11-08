@@ -2,7 +2,7 @@ import type { ReactNode } from "react"
 import { NavLink, useLocation } from "react-router-dom"
 import {
     AudioLines, Compass, Disc3, Heart, History, Home, Library,
-    ListMusic, Mic2, Radio, Search, Settings2, Sparkles, Users,
+    ListMusic, Mic2, Radio, Search, Settings2, Sparkles,
 } from "lucide-react"
 
 type Props = { children: ReactNode; enabled?: boolean }

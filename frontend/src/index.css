@@ -6,6 +6,17 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+    /* Melora UI palette — mapped from the current Figma library */
+    --melora-ink: #111827;
+    --melora-text: #1f2937;
+    --melora-muted: #6b7280;
+    --melora-subtle: #9ca3af;
+    --melora-surface: #f9fafb;
+    --melora-surface-raised: #f3f4f6;
+    --melora-border: #f0f1f3;
+    --melora-accent: #f0f3ff;
+    --melora-accent-strong: #e8edff;
+
     --primary: oklch(0.205 0 0);
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
@@ -76,6 +87,15 @@
 
 @theme inline {
     --bg-primary: var(--primary);
+    --color-melora-ink: var(--melora-ink);
+    --color-melora-text: var(--melora-text);
+    --color-melora-muted: var(--melora-muted);
+    --color-melora-subtle: var(--melora-subtle);
+    --color-melora-surface: var(--melora-surface);
+    --color-melora-surface-raised: var(--melora-surface-raised);
+    --color-melora-border: var(--melora-border);
+    --color-melora-accent: var(--melora-accent);
+    --color-melora-accent-strong: var(--melora-accent-strong);
     --font-sans: "Geist Variable", sans-serif;
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
