@@ -294,10 +294,10 @@ export default function Home() {
     const isPlaylistActionLoading = isAddingBulk || isCreating
 
     return (
-        <div className='flex flex-col items-center gap-6 md:gap-12 max-w-375 mx-auto w-full'>
+        <div className='mx-auto flex w-full max-w-375 flex-col items-center gap-8 md:gap-10'>
             {/* Header */}
-            <div className='flex flex-col items-center gap-5 px-4 pt-2 md:pt-32 w-full'>
-                <h1 className='text-center text-4xl font-bold text-shadow-md dark:text-white md:text-5xl'>
+            <div className='flex w-full flex-col items-center gap-4 px-4 pt-2 md:pt-20'>
+                <h1 className='text-center text-3xl font-bold text-shadow-md dark:text-white md:text-4xl'>
                     <span className='text-red-500'>Melora</span> Music
                 </h1>
 
@@ -317,25 +317,6 @@ export default function Home() {
                     recentSearches={recentSearchesData?.map((e) => e.query) ?? []}
                 />
 
-                {/* <div className='mt-4 grid w-full max-w-4xl grid-cols-2 gap-4 md:grid-cols-5'>
-                    {quickActions.map((action) => (
-                        <Link
-                            key={action.to}
-                            to={action.to}
-                            className='group dark:bg-card flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-gray-200 bg-white p-5 text-center transition-all hover:-translate-y-1 hover:border-red-300 hover:shadow-md dark:border-white/10 dark:hover:border-red-800'
-                        >
-                            <span className='flex h-11 w-11 items-center justify-center rounded-full bg-red-100 text-red-600 transition-colors group-hover:bg-red-600 group-hover:text-white dark:bg-red-950 dark:text-red-400'>
-                                <action.icon className='h-5 w-5' />
-                            </span>
-                            <span className='text-sm font-semibold dark:text-white'>
-                                {action.label}
-                            </span>
-                            <span className='text-xs text-gray-500 dark:text-gray-400'>
-                                {action.description}
-                            </span>
-                        </Link>
-                    ))}
-                </div>Sea */}
             </div>
 
             {/* Content Section */}
@@ -381,7 +362,12 @@ export default function Home() {
                 )}
 
                 {!isSearchLoading && !searchQuery && !isError && (
-                    <div className='-mt-4'>
+                    <div className='space-y-2'>
+                        <section>
+                            <div className='mb-5'>
+                                <h2 className='text-xl font-semibold dark:text-white'>Your music</h2>
+                                <p className='mt-1 text-sm text-gray-500 dark:text-gray-400'>Pick up where you left off or explore your listening habits</p>
+                            </div>
                         <SongSection
                             title='Recently played'
                             subtitle='Jump back into your latest listens'
@@ -423,6 +409,12 @@ export default function Home() {
                                 )
                             }
                         />
+                        </section>
+                        <section>
+                            <div className='mb-5'>
+                                <h2 className='text-xl font-semibold dark:text-white'>Discover</h2>
+                                <p className='mt-1 text-sm text-gray-500 dark:text-gray-400'>Find something new to listen to</p>
+                            </div>
                         <SongSection
                             title='Trending now'
                             subtitle='What the world is listening to'
@@ -462,6 +454,7 @@ export default function Home() {
                                 )
                             }
                         />
+                        </section>
                         {recentSongs.length === 0 &&
                             recommendedSongs.length === 0 &&
                             topSongsList.length === 0 &&
