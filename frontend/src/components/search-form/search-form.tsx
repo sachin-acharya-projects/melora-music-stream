@@ -45,7 +45,7 @@ export default function SearchForm({
                     <div className='relative'>
                         <input
                             type='text'
-                            className='w-full rounded-lg border bg-white p-4 dark:bg-black'
+                            className='w-full rounded-lg border bg-white px-4 py-3 dark:bg-black'
                             placeholder='Search music, artists, albums...'
                             value={value}
                             onChange={(e) => onValueChange(e.target.value)}
@@ -79,7 +79,7 @@ export default function SearchForm({
                     <button
                         type='submit'
                         disabled={isLoading}
-                        className='bg-secondary text-primary cursor-pointer rounded-lg border p-4 disabled:opacity-50'
+                        className='bg-secondary text-primary cursor-pointer rounded-lg border p-3 disabled:opacity-50'
                         title='Search'
                     >
                         <Search />
