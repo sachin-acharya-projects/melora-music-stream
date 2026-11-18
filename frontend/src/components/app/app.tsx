@@ -110,8 +110,8 @@ function AppContent() {
                     className={
                         isAuthenticated
                             ? currentSong
-                                ? "pt-safe-overlay pb-44 md:pt-20 md:pb-0"
-                                : "pt-safe-overlay pb-24 md:pt-20 md:pb-0"
+                                ? "pt-safe-overlay px-3 pb-44 md:px-6 lg:px-8 md:pt-20 md:pb-0"
+                                : "pt-safe-overlay px-3 pb-24 md:px-6 lg:px-8 md:pt-20 md:pb-0"
                             : ""
                     }
                 >

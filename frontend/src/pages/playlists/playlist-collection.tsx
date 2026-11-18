@@ -333,7 +333,7 @@ export function PlaylistCollection({
                     )}
                 </div>
             ) : (
-                <div className='grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'>
+                <div className='grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8'>
                     {playlists.map((playlist) => {
                         const totalDuration = playlist.total_duration ?? 0
                         const songCount = playlist.song_count ?? playlist.songs?.length ?? 0
