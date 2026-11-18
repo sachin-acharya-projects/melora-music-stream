@@ -48,85 +48,44 @@ export default function Navbar() {
 
     return (
         <div className='fixed z-1000 hidden min-h-20 w-full flex-nowrap items-center justify-between gap-3 p-3 px-4 shadow-xs backdrop-blur-sm md:flex md:gap-4 md:px-6 dark:border-b dark:border-white/5'>
-            <div className='flex min-w-0 flex-1 items-center gap-1.5 whitespace-nowrap'>
-                <Link
-                    to='/playlists'
-                    className={`hidden cursor-pointer items-center gap-2 rounded-full px-3 py-2 transition-colors md:flex ${
-                        location.pathname === "/playlists"
-                            ? "bg-red-500 text-white"
-                            : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"
-                    }`}
-                >
-                    <ListMusic className='h-4 w-4' />
-                    <span className='font-medium'>Playlists</span>
-                </Link>
-                <Link
-                    to='/artists'
-                    className={`hidden cursor-pointer items-center gap-2 rounded-full px-3 py-2 transition-colors md:flex ${
-                        location.pathname.startsWith("/artists")
-                            ? "bg-red-500 text-white"
-                            : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"
-                    }`}
-                >
-                    <Mic2 className='h-4 w-4' />
-                    <span className='font-medium'>Artists</span>
-                </Link>
-                <Link
-                    to='/history'
-                    className={`flex cursor-pointer items-center gap-2 rounded-full px-3 py-2 transition-colors ${
-                        location.pathname === "/history"
-                            ? "bg-red-500 text-white"
-                            : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"
-                    }`}
-                >
-                    <History className='h-4 w-4' />
-                    <span className='font-medium'>History</span>
-                </Link>
-                <Link
-                    to='/stats'
-                    className={`flex cursor-pointer items-center gap-2 rounded-full px-3 py-2 transition-colors ${
-                        location.pathname === "/stats"
-                            ? "bg-red-500 text-white"
-                            : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"
-                    }`}
-                >
-                    <BarChart3 className='h-4 w-4' />
-                    <span className='font-medium'>Stats</span>
-                </Link>
-                <Link
-                    to='/radio'
-                    className={`hidden cursor-pointer items-center gap-2 rounded-full px-3 py-2 transition-colors md:flex ${
-                        location.pathname === "/radio"
-                            ? "bg-red-500 text-white"
-                            : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"
-                    }`}
-                >
-                    <RadioIcon className='h-4 w-4' />
-                    <span className='font-medium'>Radio</span>
-                </Link>
-                <Link
-                    to='/albums'
-                    className={`hidden cursor-pointer items-center gap-2 rounded-full px-3 py-2 transition-colors md:flex ${
-                        location.pathname.startsWith("/albums")
-                            ? "bg-red-500 text-white"
-                            : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"
-                    }`}
-                >
-                    <Disc3 className='h-4 w-4' />
-                    <span className='font-medium'>My Albums</span>
-                </Link>
-                <Link
-                    to='/now-playing'
-                    className={`hidden cursor-pointer items-center gap-2 rounded-full px-3 py-2 transition-colors md:flex ${
-                        location.pathname === "/now-playing"
-                            ? "bg-red-500 text-white"
-                            : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"
-                    }`}
-                >
-                    <Music2 className='h-4 w-4' />
-                    <span className='font-medium'>Now Playing</span>
-                </Link>
-            </div>
+            <nav aria-label='Main navigation' className='flex min-w-0 flex-1 items-center gap-1.5 whitespace-nowrap'>
+                <div className='flex items-center gap-1'>
+                    <Link to='/playlists' className={`flex cursor-pointer items-center gap-2 rounded-full px-3 py-2 transition-colors ${location.pathname === "/playlists" ? "bg-red-500 text-white" : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"}`}>
+                        <ListMusic className='h-4 w-4' />
+                        <span className='font-medium'>Playlists</span>
+                    </Link>
+                    <Link to='/artists' className={`flex cursor-pointer items-center gap-2 rounded-full px-3 py-2 transition-colors ${location.pathname.startsWith("/artists") ? "bg-red-500 text-white" : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"}`}>
+                        <Mic2 className='h-4 w-4' />
+                        <span className='font-medium'>Artists</span>
+                    </Link>
+                    <Link to='/albums' className={`flex cursor-pointer items-center gap-2 rounded-full px-3 py-2 transition-colors ${location.pathname.startsWith("/albums") ? "bg-red-500 text-white" : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"}`}>
+                        <Disc3 className='h-4 w-4' />
+                        <span className='font-medium'>Albums</span>
+                    </Link>
+                </div>
+                <span aria-hidden='true' className='h-7 w-px shrink-0 bg-black/10 dark:bg-white/10' />
+                <div className='flex items-center gap-1'>
+                    <Link to='/radio' className={`flex cursor-pointer items-center gap-2 rounded-full px-3 py-2 transition-colors ${location.pathname === "/radio" ? "bg-red-500 text-white" : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"}`}>
+                        <RadioIcon className='h-4 w-4' />
+                        <span className='font-medium'>Radio</span>
+                    </Link>
+                    <Link to='/now-playing' className={`flex cursor-pointer items-center gap-2 rounded-full px-3 py-2 transition-colors ${location.pathname === "/now-playing" ? "bg-red-500 text-white" : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"}`}>
+                        <Music2 className='h-4 w-4' />
+                        <span className='font-medium'>Now Playing</span>
+                    </Link>
+                </div>
+                <span aria-hidden='true' className='h-7 w-px shrink-0 bg-black/10 dark:bg-white/10' />
+                <div className='flex items-center gap-1'>
+                    <Link to='/history' className={`flex cursor-pointer items-center gap-2 rounded-full px-3 py-2 transition-colors ${location.pathname.startsWith("/history") || location.pathname.startsWith("/recently-played") ? "bg-red-500 text-white" : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"}`}>
+                        <History className='h-4 w-4' />
+                        <span className='font-medium'>History</span>
+                    </Link>
+                    <Link to='/stats' className={`flex cursor-pointer items-center gap-2 rounded-full px-3 py-2 transition-colors ${location.pathname === "/stats" ? "bg-red-500 text-white" : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"}`}>
+                        <BarChart3 className='h-4 w-4' />
+                        <span className='font-medium'>Stats</span>
+                    </Link>
+                </div>
+            </nav>
 
             <div className='flex shrink-0 justify-center px-2'>
                 <Link
