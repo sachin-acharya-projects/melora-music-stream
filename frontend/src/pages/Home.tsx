@@ -294,7 +294,7 @@ export default function Home() {
     const isPlaylistActionLoading = isAddingBulk || isCreating
 
     return (
-        <div className='mx-auto flex w-full max-w-375 flex-col items-center gap-8 md:gap-10'>
+        <div className='mx-auto flex w-full max-w-none flex-col items-center gap-8 md:gap-10'>
             {/* Header */}
             <div className='flex w-full flex-col items-center gap-4 px-4 pt-2 md:pt-20'>
                 <h1 className='text-center text-3xl font-bold text-shadow-md dark:text-white md:text-4xl'>
