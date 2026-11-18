@@ -9,7 +9,7 @@ export default function MyAlbums() {
     const unfavoriteAlbum = useUnfavoriteAlbum()
 
     return (
-        <div className='mx-auto w-full max-w-375 px-4 pt-4 pb-40'>
+        <div className='mx-auto w-full max-w-none px-4 pt-4 pb-40'>
             <div className='mb-6'>
                 <h1 className='text-3xl font-bold dark:text-white'>
                     My <span className='text-red-500'>Albums</span>
