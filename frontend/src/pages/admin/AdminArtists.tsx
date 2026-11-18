@@ -2,6 +2,7 @@ import AdminLayout from "@/components/admin/admin-layout"
 import AdminModal from "@/components/admin/admin-modal"
 import AdminThumb from "@/components/admin/admin-thumb"
 import ConfirmationDialog from "@/components/ui/confirmation-dialog/confirmation-dialog"
+import SortSelect from "@/components/ui/sort-select/sort-select"
 import { useAdminArtistActions, useAdminArtists, useBatchImportArtists } from "@/hooks/useAdmin"
 import { useImportYouTubeArtist, useYouTubeArtists } from "@/hooks/useArtists"
 import {
@@ -99,7 +100,7 @@ export default function AdminArtists() {
                         Import, curate and edit the artist catalog
                     </p>
                 </div>
-                <div className='flex items-center gap-2'>
+                <div className='flex flex-wrap items-center gap-2'>
                     <button
                         onClick={() => setImportOpen(true)}
                         className='flex cursor-pointer items-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-red-700'
@@ -167,20 +168,7 @@ export default function AdminArtists() {
                         </button>
                     ))}
                 </div>
-                <select
-                    value={sort}
-                    onChange={(e) => {
-                        setSort(e.target.value)
-                        setPage(1)
-                    }}
-                    className='dark:bg-card h-11 cursor-pointer rounded-xl border border-gray-200 bg-white px-3 text-sm shadow-sm focus:border-red-500 focus:outline-none dark:border-white/10 dark:text-white'
-                >
-                    {SORT_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                            {option.label}
-                        </option>
-                    ))}
-                </select>
+                <SortSelect value={sort} onChange={(value) => { setSort(value); setPage(1) }} options={SORT_OPTIONS} />
             </div>
 
             {artists.isLoading ? (

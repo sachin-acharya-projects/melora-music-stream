@@ -364,10 +364,6 @@ export default function Home() {
                 {!isSearchLoading && !searchQuery && !isError && (
                     <div className='space-y-2'>
                         <section>
-                            <div className='mb-5'>
-                                <h2 className='text-xl font-semibold dark:text-white'>Your music</h2>
-                                <p className='mt-1 text-sm text-gray-500 dark:text-gray-400'>Pick up where you left off or explore your listening habits</p>
-                            </div>
                         <SongSection
                             title='Recently played'
                             subtitle='Jump back into your latest listens'
