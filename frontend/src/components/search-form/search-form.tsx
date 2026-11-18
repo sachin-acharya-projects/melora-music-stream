@@ -34,45 +34,87 @@ export default function SearchForm({
         setFocused(false)
     }
 
+    const uniqueRecentSearches = [...new Set(recentSearches ?? [])]
     const showSuggestions = focused && !!value.trim() && (suggestions?.length ?? 0) > 0
-    const showRecent =
-        !value.trim() && !showSuggestions && (recentSearches?.length ?? 0) > 0
+    const showRecent = focused && !value.trim() && uniqueRecentSearches.length > 0
+
+    const selectSearch = (query: string) => {
+        onValueChange(query)
+        onSearch(query)
+        setFocused(false)
+    }
 
     return (
         <form className='mx-auto flex w-full max-w-2xl flex-col gap-3' onSubmit={handleSubmit}>
             <div className='flex w-full min-w-0 gap-2'>
-                <div className='min-w-0 flex-1'>
-                    <div className='relative'>
-                        <input
-                            type='text'
-                            className='h-13 w-full rounded-lg border bg-white px-4 text-sm dark:bg-black'
-                            placeholder='Search music, artists, albums...'
-                            value={value}
-                            onChange={(e) => onValueChange(e.target.value)}
-                            onFocus={() => setFocused(true)}
-                            onBlur={() => setTimeout(() => setFocused(false), 150)}
-                        />
-                        {showSuggestions && (
-                            <ul className='dark:bg-card absolute top-full right-0 left-0 z-20 mt-1 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-white/10'>
-                                {suggestions!.map((suggestion) => (
-                                    <li key={suggestion}>
-                                        <button
-                                            type='button'
-                                            onMouseDown={(e) => {
-                                                e.preventDefault()
-                                                onValueChange(suggestion)
-                                                onSearch(suggestion)
-                                            }}
-                                            className='flex w-full cursor-pointer items-center gap-2 px-4 py-2.5 text-left text-sm transition-colors hover:bg-red-50 dark:text-white dark:hover:bg-red-950'
-                                        >
-                                            <Search className='h-4 w-4 shrink-0 text-gray-400' />
-                                            <span className='truncate'>{suggestion}</span>
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </div>
+                <div className='relative min-w-0 flex-1'>
+                    <input
+                        type='text'
+                        className='h-13 w-full rounded-lg border bg-white px-4 text-sm dark:bg-black'
+                        placeholder='Search music, artists, albums...'
+                        value={value}
+                        onChange={(e) => onValueChange(e.target.value)}
+                        onFocus={() => setFocused(true)}
+                        onBlur={() => setFocused(false)}
+                        onKeyDown={(e) => {
+                            if (e.key === "Escape") {
+                                setFocused(false)
+                                e.currentTarget.blur()
+                            }
+                        }}
+                        aria-expanded={showSuggestions || showRecent}
+                        aria-controls='search-history-panel'
+                        aria-autocomplete='list'
+                    />
+
+                    {(showSuggestions || showRecent) && (
+                        <div
+                            id='search-history-panel'
+                            className='dark:bg-card absolute top-full right-0 left-0 z-50 mt-2 overflow-hidden rounded-xl border border-gray-200 bg-white text-left shadow-xl dark:border-white/10'
+                        >
+                            {showRecent && (
+                                <>
+                                    <div className='flex items-center gap-2 border-b border-gray-100 px-4 py-3 text-xs font-semibold text-gray-500 dark:border-white/10 dark:text-gray-400'>
+                                        <History className='h-4 w-4' />
+                                        Recent searches
+                                    </div>
+                                    <ul className='max-h-80 overflow-y-auto py-1'>
+                                        {uniqueRecentSearches.map((query) => (
+                                            <li key={query}>
+                                                <button
+                                                    type='button'
+                                                    onMouseDown={(e) => e.preventDefault()}
+                                                    onClick={() => selectSearch(query)}
+                                                    className='flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left text-sm text-gray-800 transition-colors hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-white/10'
+                                                >
+                                                    <History className='h-5 w-5 shrink-0 text-gray-400' />
+                                                    <span className='min-w-0 flex-1 truncate'>{query}</span>
+                                                </button>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </>
+                            )}
+
+                            {showSuggestions && (
+                                <ul className='max-h-80 overflow-y-auto py-1'>
+                                    {suggestions!.map((suggestion) => (
+                                        <li key={suggestion}>
+                                            <button
+                                                type='button'
+                                                onMouseDown={(e) => e.preventDefault()}
+                                                onClick={() => selectSearch(suggestion)}
+                                                className='flex w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left text-sm text-gray-800 transition-colors hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-white/10'
+                                            >
+                                                <Search className='h-4 w-4 shrink-0 text-gray-400' />
+                                                <span className='min-w-0 flex-1 truncate'>{suggestion}</span>
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 <div className='shrink-0'>
@@ -100,29 +142,6 @@ export default function SearchForm({
                     </div>
                 )}
             </div>
-
-            {showRecent && (
-                <div className='flex flex-col gap-2'>
-                    <div className='flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400'>
-                        <History className='h-3.5 w-3.5' />
-                        Recent searches
-                    </div>
-                    <div className='flex flex-wrap gap-2'>
-                    {[...new Set(recentSearches)].map((q) => (
-                        <button
-                            key={q}
-                            type='button'
-                            onClick={() => onSearch(q)}
-                            className='flex max-w-full items-center gap-2 rounded-md border border-gray-200/80 bg-white/70 px-2.5 py-1.5 text-xs text-gray-600 transition-colors hover:border-red-200 hover:bg-red-50 dark:border-white/10 dark:bg-white/5 dark:text-gray-300 dark:hover:bg-red-950'
-                        >
-                            <Search className='h-3 w-3 shrink-0 text-gray-400' />
-                            <span className='max-w-48 truncate'>{q}</span>
-                        </button>
-                    ))}
-                    </div>
-                </div>
-            )}
         </form>
     )
 }
-
