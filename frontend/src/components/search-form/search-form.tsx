@@ -39,13 +39,13 @@ export default function SearchForm({
         !value.trim() && !showSuggestions && (recentSearches?.length ?? 0) > 0
 
     return (
-        <form className='flex flex-col gap-3' onSubmit={handleSubmit}>
-            <div className='flex gap-2'>
-                <div className='w-full md:w-140'>
+        <form className='mx-auto flex w-full max-w-2xl flex-col gap-3' onSubmit={handleSubmit}>
+            <div className='flex w-full min-w-0 gap-2'>
+                <div className='min-w-0 flex-1'>
                     <div className='relative'>
                         <input
                             type='text'
-                            className='w-full rounded-lg border bg-white p-4 dark:bg-black'
+                            className='h-13 w-full rounded-lg border bg-white px-4 text-sm dark:bg-black'
                             placeholder='Search music, artists, albums...'
                             value={value}
                             onChange={(e) => onValueChange(e.target.value)}
@@ -75,11 +75,11 @@ export default function SearchForm({
                     </div>
                 </div>
 
-                <div>
+                <div className='shrink-0'>
                     <button
                         type='submit'
                         disabled={isLoading}
-                        className='bg-secondary text-primary cursor-pointer rounded-lg border p-4 disabled:opacity-50'
+                        className='bg-secondary text-primary flex h-13 w-13 cursor-pointer items-center justify-center rounded-lg border disabled:opacity-50'
                         title='Search'
                     >
                         <Search />
@@ -102,18 +102,24 @@ export default function SearchForm({
             </div>
 
             {showRecent && (
-                <div className='flex flex-wrap gap-2'>
-                    {recentSearches!.map((q) => (
+                <div className='flex flex-col gap-2'>
+                    <div className='flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400'>
+                        <History className='h-3.5 w-3.5' />
+                        Recent searches
+                    </div>
+                    <div className='flex flex-wrap gap-2'>
+                    {[...new Set(recentSearches)].map((q) => (
                         <button
                             key={q}
                             type='button'
                             onClick={() => onSearch(q)}
-                            className='flex items-center gap-1.5 rounded-full border bg-white px-3 py-1.5 text-sm text-gray-700 transition-colors hover:bg-red-50 dark:border-white/10 dark:bg-white/5 dark:text-gray-200 dark:hover:bg-red-950'
+                            className='flex max-w-full items-center gap-2 rounded-md border border-gray-200/80 bg-white/70 px-2.5 py-1.5 text-xs text-gray-600 transition-colors hover:border-red-200 hover:bg-red-50 dark:border-white/10 dark:bg-white/5 dark:text-gray-300 dark:hover:bg-red-950'
                         >
-                            <History className='h-3.5 w-3.5 text-gray-400' />
+                            <Search className='h-3 w-3 shrink-0 text-gray-400' />
                             <span className='max-w-48 truncate'>{q}</span>
                         </button>
                     ))}
+                    </div>
                 </div>
             )}
         </form>
