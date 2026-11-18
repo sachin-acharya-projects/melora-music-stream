@@ -47,11 +47,11 @@ export default function Navbar() {
     }, [mode])
 
     return (
-        <div className='fixed z-1000 hidden min-h-20 w-full flex-wrap items-center justify-between gap-2 p-3 px-3 shadow-xs backdrop-blur-sm md:flex md:gap-4 md:px-6 dark:border-b dark:border-white/5'>
-            <div className='flex flex-1 items-center gap-2'>
+        <div className='fixed z-1000 hidden min-h-20 w-full flex-nowrap items-center justify-between gap-3 p-3 px-4 shadow-xs backdrop-blur-sm md:flex md:gap-4 md:px-6 dark:border-b dark:border-white/5'>
+            <div className='flex min-w-0 flex-1 items-center gap-1.5 whitespace-nowrap'>
                 <Link
                     to='/playlists'
-                    className={`hidden cursor-pointer items-center gap-2 rounded-full px-4 py-2 transition-colors md:flex ${
+                    className={`hidden cursor-pointer items-center gap-2 rounded-full px-3 py-2 transition-colors md:flex ${
                         location.pathname === "/playlists"
                             ? "bg-red-500 text-white"
                             : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"
@@ -62,7 +62,7 @@ export default function Navbar() {
                 </Link>
                 <Link
                     to='/artists'
-                    className={`hidden cursor-pointer items-center gap-2 rounded-full px-4 py-2 transition-colors md:flex ${
+                    className={`hidden cursor-pointer items-center gap-2 rounded-full px-3 py-2 transition-colors md:flex ${
                         location.pathname.startsWith("/artists")
                             ? "bg-red-500 text-white"
                             : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"
@@ -73,7 +73,7 @@ export default function Navbar() {
                 </Link>
                 <Link
                     to='/history'
-                    className={`flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 transition-colors ${
+                    className={`flex cursor-pointer items-center gap-2 rounded-full px-3 py-2 transition-colors ${
                         location.pathname === "/history"
                             ? "bg-red-500 text-white"
                             : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"
@@ -84,7 +84,7 @@ export default function Navbar() {
                 </Link>
                 <Link
                     to='/stats'
-                    className={`flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 transition-colors ${
+                    className={`flex cursor-pointer items-center gap-2 rounded-full px-3 py-2 transition-colors ${
                         location.pathname === "/stats"
                             ? "bg-red-500 text-white"
                             : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"
@@ -95,7 +95,7 @@ export default function Navbar() {
                 </Link>
                 <Link
                     to='/radio'
-                    className={`hidden cursor-pointer items-center gap-2 rounded-full px-4 py-2 transition-colors md:flex ${
+                    className={`hidden cursor-pointer items-center gap-2 rounded-full px-3 py-2 transition-colors md:flex ${
                         location.pathname === "/radio"
                             ? "bg-red-500 text-white"
                             : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"
@@ -106,7 +106,7 @@ export default function Navbar() {
                 </Link>
                 <Link
                     to='/albums'
-                    className={`hidden cursor-pointer items-center gap-2 rounded-full px-4 py-2 transition-colors md:flex ${
+                    className={`hidden cursor-pointer items-center gap-2 rounded-full px-3 py-2 transition-colors md:flex ${
                         location.pathname.startsWith("/albums")
                             ? "bg-red-500 text-white"
                             : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"
@@ -117,7 +117,7 @@ export default function Navbar() {
                 </Link>
                 <Link
                     to='/now-playing'
-                    className={`hidden cursor-pointer items-center gap-2 rounded-full px-4 py-2 transition-colors md:flex ${
+                    className={`hidden cursor-pointer items-center gap-2 rounded-full px-3 py-2 transition-colors md:flex ${
                         location.pathname === "/now-playing"
                             ? "bg-red-500 text-white"
                             : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"
@@ -128,7 +128,7 @@ export default function Navbar() {
                 </Link>
             </div>
 
-            <div className='flex flex-1 justify-center'>
+            <div className='flex shrink-0 justify-center px-2'>
                 <Link
                     to='/'
                     className={`flex h-12 w-12 cursor-pointer items-center justify-center rounded-full transition-all hover:scale-110 ${
@@ -142,7 +142,7 @@ export default function Navbar() {
                 </Link>
             </div>
 
-            <div className='flex flex-1 items-center justify-end gap-4'>
+            <div className='flex min-w-0 flex-1 items-center justify-end gap-3'>
                 <Link
                     to='/queue'
                     className={`flex h-13 w-18 cursor-pointer items-center justify-center gap-1 rounded-full bg-black/5 transition-colors hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/20 ${
