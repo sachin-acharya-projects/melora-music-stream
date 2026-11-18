@@ -27,8 +27,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     useTitle(`Admin${location.pathname === "/admin" ? "" : ` · ${location.pathname.split("/")[2]}`}`)
 
     return (
-        <div className='mx-auto flex w-full max-w-375 gap-8 px-4 pt-10 pb-40'>
-            <aside className='hidden w-56 shrink-0 flex-col gap-1 md:flex'>
+        <div className='mx-auto flex w-full max-w-none items-start gap-8 px-4 pt-10 pb-40 md:px-6 lg:px-8'>
+            <aside className='sticky top-20 hidden h-[calc(100dvh-6rem)] w-56 shrink-0 flex-col gap-1 md:flex'>
                 <div className='mb-4 flex items-center gap-2 px-2'>
                     <Shield className='h-5 w-5 text-red-500' />
                     <h2 className='text-lg font-bold dark:text-white'>Admin</h2>
