@@ -13,9 +13,10 @@ interface SortSelectProps {
     onChange: (value: string) => void
     options: SortSelectOption[]
     className?: string
+    disabled?: boolean
 }
 
-export default function SortSelect({ value, onChange, options, className }: SortSelectProps) {
+export default function SortSelect({ value, onChange, options, className, disabled = false }: SortSelectProps) {
     const [isOpen, setIsOpen] = useState(false)
     const [openUpward, setOpenUpward] = useState(false)
     const [rect, setRect] = useState<DOMRect | null>(null)
@@ -54,11 +55,12 @@ export default function SortSelect({ value, onChange, options, className }: Sort
             <motion.button
                 type='button'
                 onClick={toggleOpen}
+                disabled={disabled}
                 aria-haspopup='listbox'
                 aria-expanded={isOpen}
                 layout
                 transition={{ layout: { duration: 0.2, ease: "easeOut" } }}
-                className='dark:bg-card flex h-11 cursor-pointer items-center gap-2 rounded-xl border bg-white px-3 text-sm font-medium shadow-sm transition-colors hover:border-red-200 dark:border-white/10 dark:text-white'
+                className='dark:bg-card flex h-11 cursor-pointer items-center gap-2 rounded-xl border bg-white px-3 text-sm font-medium shadow-sm transition-colors hover:border-red-200 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:text-white'
             >
                 <span className='truncate'>
                     <AnimatePresence mode='popLayout' initial={false}>
