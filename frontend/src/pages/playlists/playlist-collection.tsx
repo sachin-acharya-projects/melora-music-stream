@@ -211,7 +211,7 @@ export function PlaylistCollection({
 
     return (
         <div className='mx-auto w-full max-w-375 px-4 pt-4 pb-40'>
-            <div className='mb-8 flex flex-wrap items-end justify-between gap-4'>
+            <div className='mb-6 flex flex-wrap items-end justify-between gap-4'>
                 <div>
                     <h1 className='text-3xl font-bold dark:text-white'>
                         {TAB_LABELS[view].title.split(" ")[0]}{" "}
@@ -221,9 +221,9 @@ export function PlaylistCollection({
                         {TAB_LABELS[view].subtitle}
                     </p>
                 </div>
-                <div className='flex items-center gap-3'>
+                <div className='flex flex-wrap items-center justify-end gap-2'>
                     {onSearchChange && (
-                        <div className='relative'>
+                        <div className='relative w-full sm:w-auto'>
                             <Search className='absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400' />
                             <input
                                 type='text'
@@ -236,7 +236,7 @@ export function PlaylistCollection({
                                           ? "Search followed playlists..."
                                           : "Search your playlists..."
                                 }
-                                className='dark:bg-card h-11 w-56 rounded-xl border bg-white pr-4 pl-10 text-sm shadow-sm transition-all focus:border-red-500 focus:outline-none dark:border-white/10 dark:text-white'
+                                className='dark:bg-card h-11 w-full rounded-xl sm:w-56 border bg-white pr-4 pl-10 text-sm shadow-sm transition-all focus:border-red-500 focus:outline-none dark:border-white/10 dark:text-white'
                             />
                         </div>
                     )}
