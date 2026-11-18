@@ -1,4 +1,5 @@
 import AdminLayout from "@/components/admin/admin-layout"
+import SortSelect from "@/components/ui/sort-select/sort-select"
 import { BugSeverityBadge, BugStatusBadge } from "@/components/bug-reporter/badges"
 import { bugReportsService } from "@/services/bug-reports.service"
 import type { BugReport, BugReportSeverity, BugReportStatus } from "@sachin-acharya-projects/bug-reporter"
@@ -21,8 +22,6 @@ interface FailedNetworkRequest {
 }
 
 const SEVERITY_FILTERS: (BugReportSeverity | "")[] = ["", "low", "medium", "high", "critical"]
-
-const STATUS_FLOW: BugReportStatus[] = ["pending", "in_progress", "resolved"]
 
 const STATUS_OPTIONS: { value: BugReportStatus; label: string }[] = [
     { value: "pending", label: "Pending" },
@@ -89,36 +88,8 @@ export default function AdminBugs() {
             </div>
 
             <div className='mb-4 flex flex-wrap items-center gap-3'>
-                <select
-                    value={statusFilter}
-                    onChange={(e) => {
-                        setStatusFilter(e.target.value as BugReportStatus | "")
-                        setPage(1)
-                    }}
-                    className='dark:bg-card h-11 cursor-pointer rounded-xl border bg-white px-3 text-sm shadow-sm transition-all focus:border-red-500 focus:outline-none dark:border-white/10 dark:text-white'
-                >
-                    <option value=''>All statuses</option>
-                    {STATUS_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                            {option.label}
-                        </option>
-                    ))}
-                </select>
-                <select
-                    value={severityFilter}
-                    onChange={(e) => {
-                        setSeverityFilter(e.target.value as BugReportSeverity | "")
-                        setPage(1)
-                    }}
-                    className='dark:bg-card h-11 cursor-pointer rounded-xl border bg-white px-3 text-sm shadow-sm transition-all focus:border-red-500 focus:outline-none dark:border-white/10 dark:text-white'
-                >
-                    <option value=''>All severities</option>
-                    {SEVERITY_FILTERS.filter((value) => value !== "").map((value) => (
-                        <option key={value} value={value}>
-                            {value.charAt(0).toUpperCase() + value.slice(1)}
-                        </option>
-                    ))}
-                </select>
+                <SortSelect value={statusFilter} onChange={(value) => { setStatusFilter(value as BugReportStatus | ""); setPage(1) }} options={[{ value: "", label: "All statuses" }, ...STATUS_OPTIONS]} />
+                <SortSelect value={severityFilter} onChange={(value) => { setSeverityFilter(value as BugReportSeverity | ""); setPage(1) }} options={[{ value: "", label: "All severities" }, ...SEVERITY_FILTERS.filter((value) => value !== "").map((value) => ({ value, label: value.charAt(0).toUpperCase() + value.slice(1) }))]} />
                 <span className='text-sm text-gray-500 dark:text-gray-400'>
                     {bugs.data?.total ?? 0} report{(bugs.data?.total ?? 0) === 1 ? "" : "s"}
                 </span>
@@ -312,25 +283,7 @@ export default function AdminBugs() {
                         </div>
 
                         <div className='mt-4 flex flex-wrap items-center justify-between gap-3'>
-                            <select
-                                value={detail.status}
-                                onChange={(e) => {
-                                    const status = e.target.value as BugReportStatus
-                                    const index = STATUS_FLOW.indexOf(status)
-                                    void updateStatus.mutateAsync({
-                                        id: detail.id,
-                                        status: STATUS_FLOW[index],
-                                    })
-                                }}
-                                disabled={updateStatus.isPending}
-                                className='dark:bg-card h-11 cursor-pointer rounded-xl border bg-white px-3 text-sm shadow-sm transition-all focus:border-red-500 focus:outline-none dark:border-white/10 dark:text-white'
-                            >
-                                {STATUS_OPTIONS.map((option) => (
-                                    <option key={option.value} value={option.value}>
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </select>
+                            <SortSelect value={detail.status} onChange={(value) => { void updateStatus.mutateAsync({ id: detail.id, status: value as BugReportStatus }) }} options={STATUS_OPTIONS} disabled={updateStatus.isPending} />
                             <button
                                 onClick={() => void remove.mutateAsync(detail.id)}
                                 disabled={remove.isPending}
