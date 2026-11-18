@@ -47,83 +47,81 @@ export default function Navbar() {
     }, [mode])
 
     return (
-        <div className='fixed z-1000 hidden min-h-20 w-full flex-nowrap items-center justify-between gap-3 p-3 px-4 shadow-xs backdrop-blur-sm md:flex md:gap-4 md:px-6 dark:border-b dark:border-white/5'>
-            <nav aria-label='Main navigation' className='flex min-w-0 flex-1 items-center gap-1.5 whitespace-nowrap'>
+        <div className='fixed z-1000 hidden min-h-16 w-full flex-nowrap items-center justify-between gap-2 px-4 py-2 shadow-xs backdrop-blur-sm md:flex md:gap-3 md:px-5 dark:border-b dark:border-white/5'>
+            <nav aria-label='Main navigation' className='flex min-w-0 flex-1 items-center gap-0.5 whitespace-nowrap text-sm'>
                 <div className='flex items-center gap-1'>
-                    <Link to='/playlists' className={`flex cursor-pointer items-center gap-2 rounded-full px-3 py-2 transition-colors ${location.pathname === "/playlists" ? "bg-red-500 text-white" : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"}`}>
-                        <ListMusic className='h-4 w-4' />
+                    <Link to='/playlists' className={`flex cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm transition-colors ${location.pathname === "/playlists" ? "bg-red-500 text-white" : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"}`}>
+                        <ListMusic className='h-3.5 w-3.5' />
                         <span className='font-medium'>Playlists</span>
                     </Link>
-                    <Link to='/artists' className={`flex cursor-pointer items-center gap-2 rounded-full px-3 py-2 transition-colors ${location.pathname.startsWith("/artists") ? "bg-red-500 text-white" : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"}`}>
-                        <Mic2 className='h-4 w-4' />
+                    <Link to='/artists' className={`flex cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm transition-colors ${location.pathname.startsWith("/artists") ? "bg-red-500 text-white" : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"}`}>
+                        <Mic2 className='h-3.5 w-3.5' />
                         <span className='font-medium'>Artists</span>
                     </Link>
-                    <Link to='/albums' className={`flex cursor-pointer items-center gap-2 rounded-full px-3 py-2 transition-colors ${location.pathname.startsWith("/albums") ? "bg-red-500 text-white" : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"}`}>
-                        <Disc3 className='h-4 w-4' />
+                    <Link to='/albums' className={`flex cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm transition-colors ${location.pathname.startsWith("/albums") ? "bg-red-500 text-white" : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"}`}>
+                        <Disc3 className='h-3.5 w-3.5' />
                         <span className='font-medium'>Albums</span>
                     </Link>
                 </div>
-                <span aria-hidden='true' className='h-7 w-px shrink-0 bg-black/10 dark:bg-white/10' />
                 <div className='flex items-center gap-1'>
-                    <Link to='/radio' className={`flex cursor-pointer items-center gap-2 rounded-full px-3 py-2 transition-colors ${location.pathname === "/radio" ? "bg-red-500 text-white" : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"}`}>
-                        <RadioIcon className='h-4 w-4' />
+                    <Link to='/radio' className={`flex cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm transition-colors ${location.pathname === "/radio" ? "bg-red-500 text-white" : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"}`}>
+                        <RadioIcon className='h-3.5 w-3.5' />
                         <span className='font-medium'>Radio</span>
                     </Link>
-                    <Link to='/now-playing' className={`flex cursor-pointer items-center gap-2 rounded-full px-3 py-2 transition-colors ${location.pathname === "/now-playing" ? "bg-red-500 text-white" : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"}`}>
-                        <Music2 className='h-4 w-4' />
+                    <Link to='/now-playing' className={`flex cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm transition-colors ${location.pathname === "/now-playing" ? "bg-red-500 text-white" : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"}`}>
+                        <Music2 className='h-3.5 w-3.5' />
                         <span className='font-medium'>Now Playing</span>
                     </Link>
                 </div>
-                <span aria-hidden='true' className='h-7 w-px shrink-0 bg-black/10 dark:bg-white/10' />
                 <div className='flex items-center gap-1'>
-                    <Link to='/history' className={`flex cursor-pointer items-center gap-2 rounded-full px-3 py-2 transition-colors ${location.pathname.startsWith("/history") || location.pathname.startsWith("/recently-played") ? "bg-red-500 text-white" : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"}`}>
-                        <History className='h-4 w-4' />
+                    <Link to='/history' className={`flex cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm transition-colors ${location.pathname.startsWith("/history") || location.pathname.startsWith("/recently-played") ? "bg-red-500 text-white" : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"}`}>
+                        <History className='h-3.5 w-3.5' />
                         <span className='font-medium'>History</span>
                     </Link>
-                    <Link to='/stats' className={`flex cursor-pointer items-center gap-2 rounded-full px-3 py-2 transition-colors ${location.pathname === "/stats" ? "bg-red-500 text-white" : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"}`}>
-                        <BarChart3 className='h-4 w-4' />
+                    <Link to='/stats' className={`flex cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm transition-colors ${location.pathname === "/stats" ? "bg-red-500 text-white" : "hover:bg-black/5 dark:text-white dark:hover:bg-white/10"}`}>
+                        <BarChart3 className='h-3.5 w-3.5' />
                         <span className='font-medium'>Stats</span>
                     </Link>
                 </div>
             </nav>
 
-            <div className='flex shrink-0 justify-center px-2'>
+            <div className='flex shrink-0 justify-center px-1'>
                 <Link
                     to='/'
-                    className={`flex h-12 w-12 cursor-pointer items-center justify-center rounded-full transition-all hover:scale-110 ${
+                    className={`flex h-10 w-10 cursor-pointer items-center justify-center rounded-full transition-all hover:scale-110 ${
                         location.pathname === "/"
                             ? "bg-red-500 text-white shadow-lg"
                             : "bg-black/5 dark:bg-white/10 dark:text-white"
                     }`}
                     title='Search & Add'
                 >
-                    <Home className='h-6 w-6' />
+                    <Home className='h-5 w-5' />
                 </Link>
             </div>
 
-            <div className='flex min-w-0 flex-1 items-center justify-end gap-3'>
+            <div className='flex min-w-0 flex-1 items-center justify-end gap-2'>
                 <Link
                     to='/queue'
-                    className={`flex h-13 w-18 cursor-pointer items-center justify-center gap-1 rounded-full bg-black/5 transition-colors hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/20 ${
+                    className={`flex h-10 w-14 cursor-pointer items-center justify-center gap-1 rounded-full bg-black/5 transition-colors hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/20 ${
                         location.pathname === "/queue" ? "ring-2 ring-red-400" : ""
                     }`}
                     title='Queue videos'
                 >
-                    <ListEnd className='dark:text-white' />
+                    <ListEnd className='h-4 w-4 dark:text-white' />
                     <span className='-mt-3 flex h-full items-end font-bold text-red-500'>
                         {queue.length}
                     </span>
                 </Link>
                 <Link
                     to='/notifications'
-                    className={`relative flex h-13 w-13 cursor-pointer items-center justify-center rounded-full border bg-black/5 transition-colors hover:bg-black/10 dark:border-white/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/20 ${
+                    className={`relative flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border bg-black/5 transition-colors hover:bg-black/10 dark:border-white/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/20 ${
                         location.pathname.startsWith("/notifications")
                             ? "ring-2 ring-red-400"
                             : ""
                     }`}
                     title='Notifications'
                 >
-                    <Bell />
+                    <Bell className='h-4 w-4' />
                     {unreadCount > 0 && (
                         <span className='absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white'>
                             {unreadCount > 99 ? "99+" : unreadCount}
@@ -132,18 +130,18 @@ export default function Navbar() {
                 </Link>
                 <button
                     onClick={() => toggleTheme()}
-                    className='flex h-13 w-13 cursor-pointer items-center justify-center rounded-full border bg-black/5 transition-colors hover:bg-black/10 dark:border-white/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/20'
+                    className='flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border bg-black/5 transition-colors hover:bg-black/10 dark:border-white/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/20'
                     title={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}
                 >
-                    {mode === "dark" ? <Sun /> : <Moon />}
+                    {mode === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                 </button>
                 {canInstall && (
                     <button
                         onClick={() => promptInstall()}
-                        className='flex h-13 w-13 cursor-pointer items-center justify-center rounded-full border bg-black/5 transition-colors hover:bg-black/10 dark:border-white/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/20'
+                        className='flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border bg-black/5 transition-colors hover:bg-black/10 dark:border-white/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/20'
                         title='Install Melora'
                     >
-                        <Download className='h-5 w-5' />
+                        <Download className='h-4 w-4' />
                     </button>
                 )}
 
@@ -151,13 +149,13 @@ export default function Navbar() {
                 <div className='relative'>
                     <button
                         onClick={() => setShowUserMenu(!showUserMenu)}
-                        className='flex h-10 w-10 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-700'
+                        className='flex h-9 w-9 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-700'
                         title='User menu'
                     >
                         <Avatar
                             src={user?.avatar_url}
                             name={user?.display_name || user?.username}
-                            size={40}
+                            size={36}
                         />
                     </button>
 
