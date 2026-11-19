@@ -11,6 +11,14 @@ class AppShell extends ConsumerStatefulWidget {
 }
 class _AppShellState extends ConsumerState<AppShell> {
   int _index = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(audioHandlerProvider).restoreQueue();
+    });
+  }
   static const _labels = ['Home', 'Search', 'Library', 'Profile'];
   static const _icons = [Icons.home_outlined, Icons.search_rounded, Icons.library_music_outlined, Icons.person_outline_rounded];
 
