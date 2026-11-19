@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/auth/auth_controller.dart';
@@ -16,7 +17,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(audioHandlerProvider).restoreQueue();
+      unawaited(ref.read(audioHandlerProvider).restoreQueue());
     });
   }
   static const _labels = ['Home', 'Search', 'Library', 'Profile'];
