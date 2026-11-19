@@ -93,5 +93,5 @@ class AuthRepository {
         options: Options(headers: {'Authorization': 'Bearer $token'}));
     } finally { await clearTokens(); }
   }
-  Future<void> dispose() async => _subscription?.cancel();
+  Future<void> dispose() async { await _subscription?.cancel(); }
 }
