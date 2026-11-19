@@ -9,6 +9,9 @@ class MeloraAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler
   MeloraAudioHandler({required Dio dio}) : _dio = dio {
     _player.playbackEventStream.listen((_) => _publishState());
     _player.playerStateStream.listen((_) => _publishState());
+    _player.processingStateStream.listen((state) {
+      if (state == ProcessingState.completed) unawaited(_handleCompleted());
+    });
     unawaited(_configureSession());
   }
   final Dio _dio;
@@ -16,6 +19,8 @@ class MeloraAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler
   int _queueIndex = 0;
   String? _loadedId;
   bool _resumeAfterInterruption = false;
+  AudioServiceRepeatMode _repeatMode = AudioServiceRepeatMode.none;
+  bool _handlingCompletion = false;
 
   Future<void> _configureSession() async {
     final session = await AudioSession.instance;
@@ -37,6 +42,7 @@ class MeloraAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler
     queue.add(items);
     _queueIndex = startIndex.clamp(0, items.length - 1);
     await _loadAndPlay(items[_queueIndex]);
+    unawaited(_syncState());
   }
   Future<void> _loadAndPlay(MediaItem item) async {
     mediaItem.add(item);
@@ -84,14 +90,12 @@ class MeloraAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler
     if (items.isEmpty) { _queueIndex = 0; await _player.stop(); mediaItem.add(null); }
     else if (_queueIndex >= items.length) _queueIndex = items.length - 1;
     _publishState();
+    unawaited(_syncState());
   }
   @override
   Future<void> setRepeatMode(AudioServiceRepeatMode mode) async {
-    await _player.setLoopMode(switch (mode) {
-      AudioServiceRepeatMode.one => LoopMode.one,
-      AudioServiceRepeatMode.all => LoopMode.all,
-      _ => LoopMode.off,
-    });
+    _repeatMode = mode;
+    await _player.setLoopMode(mode == AudioServiceRepeatMode.one ? LoopMode.one : LoopMode.off);
     await super.setRepeatMode(mode);
   }
   @override
@@ -99,6 +103,73 @@ class MeloraAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler
     await _player.setShuffleModeEnabled(mode == AudioServiceShuffleMode.all);
     await super.setShuffleMode(mode);
   }
+  Future<void> _handleCompleted() async {
+    if (_handlingCompletion) return;
+    _handlingCompletion = true;
+    try {
+      final items = queue.value;
+      if (_queueIndex + 1 < items.length) {
+        _queueIndex++;
+        await _loadAndPlay(items[_queueIndex]);
+      } else if (_repeatMode == AudioServiceRepeatMode.all && items.isNotEmpty) {
+        _queueIndex = 0;
+        await _loadAndPlay(items.first);
+      } else {
+        playbackState.add(playbackState.value.copyWith(
+          playing: false,
+          processingState: AudioProcessingState.completed,
+        ));
+      }
+    } finally {
+      _handlingCompletion = false;
+    }
+  }
+
+  Future<void> restoreQueue() async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>('/state/');
+      final data = response.data ?? const <String, dynamic>{};
+      final songs = (data['current_queue'] as List<dynamic>? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(Song.fromJson)
+          .toList(growable: false);
+      if (songs.isEmpty) return;
+      final items = songs.map(_item).toList(growable: false);
+      queue.add(items);
+      final lastId = data['last_song_id'] as String?;
+      final index = songs.indexWhere((song) => song.id == lastId);
+      _queueIndex = index < 0 ? 0 : index;
+      mediaItem.add(items[_queueIndex]);
+      playbackState.add(playbackState.value.copyWith(
+        queueIndex: _queueIndex,
+        playing: false,
+        processingState: AudioProcessingState.idle,
+      ));
+    } on DioException {
+      // Playback restoration is best-effort; the library remains usable offline.
+    }
+  }
+
+  Future<void> _syncState() async {
+    final items = queue.value;
+    try {
+      await _dio.post<void>('/state/', data: {
+        'last_song_id': mediaItem.value?.id,
+        'current_queue': items.map((item) => {
+          'id': item.id,
+          'title': item.title,
+          'uploader': item.artist ?? 'Unknown artist',
+          'thumbnail': item.artUri?.toString() ?? '',
+          'duration': item.duration?.inSeconds ?? 0,
+        }).toList(),
+        'recent_songs': <Map<String, dynamic>>[],
+        'last_playlist_id': null,
+      });
+    } on DioException {
+      // A transient sync failure must not interrupt audio playback.
+    }
+  }
+
   void _publishState() {
     final processing = switch (_player.processingState) {
       ProcessingState.idle => AudioProcessingState.idle,
