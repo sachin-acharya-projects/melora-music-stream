@@ -21,6 +21,8 @@ class MeloraAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler
   bool _resumeAfterInterruption = false;
   AudioServiceRepeatMode _repeatMode = AudioServiceRepeatMode.none;
   bool _handlingCompletion = false;
+  List<Song> _recentSongs = [];
+  String? _lastPlaylistId;
 
   Future<void> _configureSession() async {
     final session = await AudioSession.instance;
@@ -46,6 +48,9 @@ class MeloraAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler
   }
   Future<void> _loadAndPlay(MediaItem item) async {
     mediaItem.add(item);
+    _recentSongs.removeWhere((song) => song.id == item.id);
+    _recentSongs.insert(0, Song(id: item.id, title: item.title, uploader: item.artist ?? '', thumbnail: item.artUri?.toString() ?? '', duration: item.duration?.inSeconds ?? 0));
+    if (_recentSongs.length > 50) _recentSongs = _recentSongs.take(50).toList();
     playbackState.add(playbackState.value.copyWith(processingState: AudioProcessingState.loading, playing: false, queueIndex: _queueIndex));
     final response = await _dio.get<Map<String, dynamic>>('/stream/' + Uri.encodeComponent(item.id));
     final url = response.data?['url'] as String?;
@@ -130,6 +135,11 @@ class MeloraAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler
     try {
       final response = await _dio.get<Map<String, dynamic>>('/state/');
       final data = response.data ?? const <String, dynamic>{};
+      _lastPlaylistId = data['last_playlist_id'] as String?;
+      _recentSongs = (data['recent_songs'] as List<dynamic>? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(Song.fromJson)
+          .toList(growable: true);
       final songs = (data['current_queue'] as List<dynamic>? ?? const [])
           .whereType<Map<String, dynamic>>()
           .map(Song.fromJson)
@@ -163,8 +173,11 @@ class MeloraAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler
           'thumbnail': item.artUri?.toString() ?? '',
           'duration': item.duration?.inSeconds ?? 0,
         }).toList(),
-        'recent_songs': <Map<String, dynamic>>[],
-        'last_playlist_id': null,
+        'recent_songs': _recentSongs.map((song) => {
+          'id': song.id, 'title': song.title, 'uploader': song.uploader,
+          'thumbnail': song.thumbnail, 'duration': song.duration,
+        }).toList(),
+        'last_playlist_id': _lastPlaylistId,
       });
     } on DioException {
       // A transient sync failure must not interrupt audio playback.
