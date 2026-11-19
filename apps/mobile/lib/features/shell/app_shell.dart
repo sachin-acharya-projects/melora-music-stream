@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/auth/auth_controller.dart';
 import '../../core/playback/providers.dart';
+import '../search/search_screen.dart';
 
 class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key});
@@ -18,7 +19,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     final handler = ref.watch(audioHandlerProvider);
     final pages = [
       const _HomeTab(),
-      const _TabMessage(title: 'Search', detail: 'Search the Melora catalogue.'),
+      const SearchScreen(),
       const _TabMessage(title: 'Your library', detail: 'Playlists, artists and albums.'),
       _ProfileTab(onSignOut: () => ref.read(authControllerProvider.notifier).signOut()),
     ];
