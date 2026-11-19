@@ -52,14 +52,15 @@ class MeloraAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler
     if (url == null || url.isEmpty) throw StateError('Backend returned no stream URL.');
     await _player.setAudioSource(AudioSource.uri(Uri.parse(url)));
     _loadedId = item.id;
-    await _player.play();
+    unawaited(_player.play());
+    unawaited(_syncState());
   }
   @override
   Future<void> play() async {
     final item = mediaItem.value;
     if (item == null) return;
     if (_loadedId != item.id || _player.processingState == ProcessingState.idle) await _loadAndPlay(item);
-    else await _player.play();
+    else unawaited(_player.play());
   }
   @override
   Future<void> pause() => _player.pause();
