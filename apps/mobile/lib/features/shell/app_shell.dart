@@ -27,7 +27,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   Widget build(BuildContext context) {
     final handler = ref.watch(audioHandlerProvider);
     final pages = [
-      const _HomeTab(),
+      _HomeTab(onSearch: () => setState(() => _index = 1), onLibrary: () => setState(() => _index = 2)),
       const SearchScreen(),
       const _TabMessage(title: 'Your library', detail: 'Playlists, artists and albums.'),
       _ProfileTab(onSignOut: () => ref.read(authControllerProvider.notifier).signOut()),
@@ -69,7 +69,9 @@ class _AppShellState extends ConsumerState<AppShell> {
   }
 }
 class _HomeTab extends StatelessWidget {
-  const _HomeTab();
+  const _HomeTab({required this.onSearch, required this.onLibrary});
+  final VoidCallback onSearch;
+  final VoidCallback onLibrary;
   @override
   Widget build(BuildContext context) => CustomScrollView(slivers: [
     SliverPadding(padding: const EdgeInsets.fromLTRB(22, 24, 22, 100), sliver: SliverList.list(children: [
@@ -81,22 +83,22 @@ class _HomeTab extends StatelessWidget {
       const SizedBox(height: 30),
       Text('Your music', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
       const SizedBox(height: 12),
-      const _HomeAction(icon: Icons.search_rounded, title: 'Find something to play', subtitle: 'Search the Melora catalogue'),
+      _HomeAction(icon: Icons.search_rounded, title: 'Find something to play', subtitle: 'Search the Melora catalogue', onTap: onSearch),
       const SizedBox(height: 10),
-      const _HomeAction(icon: Icons.library_music_outlined, title: 'Your collection', subtitle: 'Browse playlists, artists and albums'),
+      _HomeAction(icon: Icons.library_music_outlined, title: 'Your collection', subtitle: 'Browse playlists, artists and albums', onTap: onLibrary),
     ])),
   ]);
 }
 class _HomeAction extends StatelessWidget {
-  const _HomeAction({required this.icon, required this.title, required this.subtitle});
-  final IconData icon; final String title; final String subtitle;
+  const _HomeAction({required this.icon, required this.title, required this.subtitle, required this.onTap});
+  final IconData icon; final String title; final String subtitle; final VoidCallback onTap;
   @override
   Widget build(BuildContext context) => Material(
     color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: .55),
     borderRadius: BorderRadius.circular(13),
     child: ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
       leading: Icon(icon, color: const Color(0xFFE5484D)), title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-      subtitle: Text(subtitle), trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 15)),
+      subtitle: Text(subtitle), trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 15), onTap: onTap),
   );
 }
 class _TabMessage extends StatelessWidget {
