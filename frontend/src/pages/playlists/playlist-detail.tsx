@@ -51,7 +51,7 @@ import {
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { createPortal } from "react-dom"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import { toast } from "react-toastify"
 
 const ITEMS_PER_PAGE = 10
@@ -70,6 +70,7 @@ const SONG_SORT_OPTIONS: SortSelectOption[] = [
 
 export function PlaylistDetail({ playlistId }: { playlistId: string }) {
     const navigate = useNavigate()
+    const [searchParams, setSearchParams] = useSearchParams()
     const queryClient = useQueryClient()
     const addDownloadQueue = useQueueStore((s) => s.add)
     const addToNowPlaying = usePlayerStore((s) => s.addToQueue)
@@ -181,16 +182,35 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
 
     const [prevSongs, setPrevSongs] = useState(serverSongs)
     const [localSongs, setLocalSongs] = useState<Song[]>(serverSongs)
-    const [currentPage, setCurrentPage] = useState(1)
 
     if (prevSongs !== serverSongs) {
         setPrevSongs(serverSongs)
         setLocalSongs(serverSongs)
-        setCurrentPage(1)
     }
 
     const totalPages = Math.max(1, Math.ceil(localSongs.length / ITEMS_PER_PAGE))
+    const requestedPage = Number.parseInt(searchParams.get("page") ?? "1", 10)
+    const currentPage = Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1
     const safePage = Math.min(currentPage, totalPages)
+
+    useEffect(() => {
+        if (!isPaginated || safePage === 1) {
+            if (searchParams.has("page")) {
+                setSearchParams((params) => {
+                    params.delete("page")
+                    return params
+                }, { replace: true })
+            }
+            return
+        }
+
+        if (currentPage !== safePage) {
+            setSearchParams((params) => {
+                params.set("page", String(safePage))
+                return params
+            }, { replace: true })
+        }
+    }, [currentPage, isPaginated, safePage, searchParams, setSearchParams])
     const paginatedSongs = isPaginated
         ? localSongs.slice((safePage - 1) * ITEMS_PER_PAGE, safePage * ITEMS_PER_PAGE)
         : localSongs
@@ -205,7 +225,11 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
     }
 
     const handlePageChange = (page: number) => {
-        setCurrentPage(page)
+        setSearchParams((params) => {
+            if (page <= 1) params.delete("page")
+            else params.set("page", String(page))
+            return params
+        })
     }
 
     const handlePlaySelected = () => {
