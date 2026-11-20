@@ -2,7 +2,7 @@ from typing import Any
 
 from fastapi import HTTPException
 from sqlalchemy import asc, desc, func, select, update
-from sqlalchemy.orm import Query, Session, contains_eager, selectinload
+from sqlalchemy.orm import Query, Session, selectinload
 
 from app.core.config import resolve_avatar_url
 from app.core.messages import Messages
@@ -45,8 +45,7 @@ class PlaylistService:
 
         query = (
             db.query(PlaylistModel)
-            .outerjoin(PlaylistModel.songs)
-            .options(contains_eager(PlaylistModel.songs))
+            .options(selectinload(PlaylistModel.songs))
             .filter(
                 (PlaylistModel.user_id == user.id)
                 | (PlaylistModel.visibility == PlaylistVisibility.PUBLIC)
@@ -54,9 +53,7 @@ class PlaylistService:
         )
         query = PlaylistService._apply_search_filter(query, search)
 
-        playlists = query.order_by(
-            order_func(sort_col), PlaylistModel.id, playlist_song.c.position
-        ).all()
+        playlists = query.order_by(order_func(sort_col), PlaylistModel.id).all()
 
         return [
             PlaylistService._serialize_summary(playlist, current_user_id=user.id)
