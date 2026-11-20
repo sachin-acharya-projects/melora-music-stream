@@ -8,6 +8,7 @@ from app.schemas.song import (
     PlaylistCreate,
     PlaylistImport,
     PlaylistReorder,
+    PlaylistPreferencesUpdate,
     PlaylistUpdate,
     Song,
 )
@@ -80,6 +81,27 @@ def revoke_share_link(
 ) -> dict[str, str]:
     return PlaylistShareService.revoke_share_link(
         db, playlist_id=playlist_id, user=user
+    )
+
+
+@router.get("/{playlist_id}/preferences")
+def get_playlist_preferences(
+    playlist_id: str, db: SessionDep, user: CurrentUser
+) -> dict[str, Any]:
+    return PlaylistService.get_playlist_preferences(
+        db, playlist_id=playlist_id, user=user
+    )
+
+
+@router.patch("/{playlist_id}/preferences")
+def update_playlist_preferences(
+    playlist_id: str,
+    data: PlaylistPreferencesUpdate,
+    db: SessionDep,
+    user: CurrentUser,
+) -> dict[str, Any]:
+    return PlaylistService.update_playlist_preferences(
+        db, playlist_id=playlist_id, user=user, data=data
     )
 
 
