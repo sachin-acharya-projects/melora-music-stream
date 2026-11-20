@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel
 
 from app.db.models.playlist import CollaboratorRole, PlaylistVisibility
@@ -44,3 +46,10 @@ class PlaybackState(BaseModel):
     current_queue: list[Song] = []
     recent_songs: list[Song] = []
     last_playlist_id: str | None = None
+
+
+class PlaylistPreferencesUpdate(BaseModel):
+    sort_by: Literal["position", "title", "uploader", "duration", "created_at"] | None = None
+    sort_order: Literal["asc", "desc"] | None = None
+    is_paginated: bool | None = None
+    view_mode: Literal["grid", "list"] | None = None
