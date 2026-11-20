@@ -7,6 +7,7 @@ from sqlalchemy.orm import Query, Session, contains_eager, selectinload
 from app.core.config import resolve_avatar_url
 from app.core.messages import Messages
 from app.db.models.associations import playlist_song
+from app.db.models.playlist_preferences import PlaylistPreferencesModel
 from app.db.models.playlist import (
     CollaboratorRole,
     PlaylistCollaboratorModel,
@@ -15,7 +16,7 @@ from app.db.models.playlist import (
 )
 from app.db.models.song import SongModel
 from app.db.models.user import UserModel
-from app.schemas.song import PlaylistUpdate, Song
+from app.schemas.song import PlaylistPreferencesUpdate, PlaylistUpdate, Song
 from app.services.songs import SongService
 
 
@@ -199,6 +200,59 @@ class PlaylistService:
             "total_songs": total_songs,
             "total_duration": total_duration,
             "songs": [SongService.serialize(song) for song in songs],
+        }
+
+    @staticmethod
+    def get_playlist_preferences(
+        db: Session, *, playlist_id: str, user: UserModel
+    ) -> dict[str, Any]:
+        playlist = db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id).first()
+        if playlist is None:
+            raise HTTPException(status_code=404, detail=Messages.PLAYLIST_NOT_FOUND)
+        PlaylistService._ensure_can_view(playlist, user)
+        preferences = (
+            db.query(PlaylistPreferencesModel)
+            .filter_by(user_id=user.id, playlist_id=playlist_id)
+            .first()
+        )
+        return PlaylistService._serialize_preferences(preferences)
+
+    @staticmethod
+    def update_playlist_preferences(
+        db: Session,
+        *,
+        playlist_id: str,
+        user: UserModel,
+        data: PlaylistPreferencesUpdate,
+    ) -> dict[str, Any]:
+        playlist = db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id).first()
+        if playlist is None:
+            raise HTTPException(status_code=404, detail=Messages.PLAYLIST_NOT_FOUND)
+        PlaylistService._ensure_can_view(playlist, user)
+        preferences = (
+            db.query(PlaylistPreferencesModel)
+            .filter_by(user_id=user.id, playlist_id=playlist_id)
+            .first()
+        )
+        if preferences is None:
+            preferences = PlaylistPreferencesModel(user_id=user.id, playlist_id=playlist_id)
+            db.add(preferences)
+        for field, value in data.model_dump(exclude_unset=True).items():
+            if value is not None:
+                setattr(preferences, field, value)
+        db.commit()
+        db.refresh(preferences)
+        return PlaylistService._serialize_preferences(preferences)
+
+    @staticmethod
+    def _serialize_preferences(
+        preferences: PlaylistPreferencesModel | None,
+    ) -> dict[str, Any]:
+        return {
+            "sort_by": preferences.sort_by if preferences else "position",
+            "sort_order": preferences.sort_order if preferences else "asc",
+            "is_paginated": preferences.is_paginated if preferences else True,
+            "view_mode": preferences.view_mode if preferences else "grid",
         }
 
     @staticmethod
