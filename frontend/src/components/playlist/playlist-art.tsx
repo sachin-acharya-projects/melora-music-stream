@@ -16,8 +16,9 @@ export function PlaylistArt({
     iconClassName?: string
 }) {
     const thumbs = (
-        playlist.thumbnails ??
-        (playlist.songs ?? []).map((song) => song.thumbnail).filter(Boolean)
+        (playlist.thumbnails?.length
+            ? playlist.thumbnails
+            : (playlist.songs ?? []).map((song) => song.thumbnail).filter(Boolean))
     ).filter((thumbnail): thumbnail is string => Boolean(thumbnail)).slice(0, 4)
 
     const fallback = <FallbackIcon className={iconClassName ?? "h-10 w-10 text-red-500"} />
