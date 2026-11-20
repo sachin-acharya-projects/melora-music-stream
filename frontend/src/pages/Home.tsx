@@ -365,11 +365,13 @@ export default function Home() {
                     <div className='space-y-10'>
                         <section className='space-y-6'>
                             <div className='mb-6'>
-                                <div className='flex items-center gap-3'>
-                                    <span aria-hidden='true' className='h-7 w-1 rounded-full bg-red-500' />
-                                    <h2 className='text-2xl font-bold tracking-tight text-gray-900 dark:text-white'>Your listening</h2>
+                                <div className='flex items-stretch gap-3'>
+                                    <span aria-hidden='true' className='w-1 shrink-0 rounded-full bg-red-500' />
+                                    <div className='flex flex-col gap-1'>
+                                        <h2 className='text-2xl font-bold tracking-tight text-gray-900 dark:text-white'>Your listening</h2>
+                                        <p className='text-sm text-gray-500 dark:text-gray-400'>Your music, shaped by what you play</p>
+                                    </div>
                                 </div>
-                                <p className='ml-4 mt-1.5 text-sm text-gray-500 dark:text-gray-400'>Your music, shaped by what you play</p>
                             </div>
                         <SongSection
                             title='Recently played'
@@ -415,11 +417,13 @@ export default function Home() {
                         </section>
                         <section className='space-y-6'>
                             <div className='mb-6'>
-                                <div className='flex items-center gap-3'>
-                                    <span aria-hidden='true' className='h-7 w-1 rounded-full bg-red-500' />
-                                    <h2 className='text-2xl font-bold tracking-tight text-gray-900 dark:text-white'>Explore</h2>
+                                <div className='flex items-stretch gap-3'>
+                                    <span aria-hidden='true' className='w-1 shrink-0 rounded-full bg-red-500' />
+                                    <div className='flex flex-col gap-1'>
+                                        <h2 className='text-2xl font-bold tracking-tight text-gray-900 dark:text-white'>Explore</h2>
+                                        <p className='text-sm text-gray-500 dark:text-gray-400'>Find something new to listen to</p>
+                                    </div>
                                 </div>
-                                <p className='ml-4 mt-1.5 text-sm text-gray-500 dark:text-gray-400'>Find something new to listen to</p>
                             </div>
                         <SongSection
                             title='Trending now'
@@ -438,6 +442,7 @@ export default function Home() {
                             title='New releases'
                             subtitle='Fresh albums worth a listen'
                             songs={newReleaseSongs}
+                            viewAllHref='/new-releases'
                             isLoading={discoverLoading}
                             onPlay={(songs, index) =>
                                 playSongs(
