@@ -1,3 +1,4 @@
+import { ImageWithFallback } from "@/components/ui/image-with-fallback/image-with-fallback"
 import { ArrowLeft, Heart, Music2, Play } from "lucide-react"
 import { Link, useParams } from "react-router-dom"
 import { useAlbumDetail, useFavoriteAlbum, useUnfavoriteAlbum } from "@/hooks/useAlbums"
