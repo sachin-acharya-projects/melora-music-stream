@@ -20,8 +20,8 @@ import { useQueueStore } from "@/hooks/useQueue"
 import { useSongSelection } from "@/hooks/useSongSelection"
 import { formatDuration } from "@/lib/utils"
 import { apiService } from "@/services/api.service"
-import { type PlaylistDetail, type Song } from "@/types"
 import { playlistService } from "@/services/playlist.service"
+import { type PlaylistDetail, type Song } from "@/types"
 import { MESSAGES } from "@/utils/messages"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { motion, Reorder } from "framer-motion"
@@ -614,7 +614,10 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
                         onChange={(value) => {
                             setPlaylistSort(value)
                             setCurrentPage(1)
-                            const [sort_by, sort_order] = value.split(":") as ["position" | "title" | "uploader" | "duration" | "created_at", "asc" | "desc"]
+                            const [sort_by, sort_order] = value.split(":") as [
+                                "position" | "title" | "uploader" | "duration" | "created_at",
+                                "asc" | "desc",
+                            ]
                             savePreferences.mutate({ sort_by, sort_order })
                         }}
                         options={SONG_SORT_OPTIONS}
