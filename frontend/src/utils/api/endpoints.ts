@@ -22,6 +22,7 @@ export const ENDPOINTS = {
     PLAYLISTS: {
         BASE: "/playlists/",
         BY_ID: (id: string) => `/playlists/${id}`,
+        PREFERENCES: (id: string) => `/playlists/${id}/preferences`,
         DISCOVER: "/playlists/discover",
         FOLLOWING: "/playlists/following",
         OPTIONS: "/playlists/options",
