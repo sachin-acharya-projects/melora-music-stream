@@ -51,12 +51,20 @@ export const playlistService = {
     },
 
     getPreferences: async (id: string): Promise<PlaylistPreferences> => {
-        const { data } = await http.get<PlaylistPreferences>(ENDPOINTS.PLAYLISTS.PREFERENCES(id))
+        const { data } = await http.get<PlaylistPreferences>(
+            ENDPOINTS.PLAYLISTS.PREFERENCES(id),
+        )
         return data
     },
 
-    updatePreferences: async (id: string, payload: PlaylistPreferencesUpdate): Promise<PlaylistPreferences> => {
-        const { data } = await http.patch<PlaylistPreferences>(ENDPOINTS.PLAYLISTS.PREFERENCES(id), payload)
+    updatePreferences: async (
+        id: string,
+        payload: PlaylistPreferencesUpdate,
+    ): Promise<PlaylistPreferences> => {
+        const { data } = await http.patch<PlaylistPreferences>(
+            ENDPOINTS.PLAYLISTS.PREFERENCES(id),
+            payload,
+        )
         return data
     },
 
