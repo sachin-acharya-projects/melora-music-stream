@@ -18,12 +18,12 @@ import {
 } from "@/hooks/usePlaylists"
 import { useQueueStore } from "@/hooks/useQueue"
 import { useSongSelection } from "@/hooks/useSongSelection"
-import { useThemeStore } from "@/hooks/useTheme"
 import { formatDuration } from "@/lib/utils"
 import { apiService } from "@/services/api.service"
+import { playlistService } from "@/services/playlist.service"
 import { type PlaylistDetail, type Song } from "@/types"
 import { MESSAGES } from "@/utils/messages"
-import { useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { motion, Reorder } from "framer-motion"
 import {
     ChevronLeft,
@@ -71,7 +71,6 @@ const SONG_SORT_OPTIONS: SortSelectOption[] = [
 export function PlaylistDetail({ playlistId }: { playlistId: string }) {
     const navigate = useNavigate()
     const queryClient = useQueryClient()
-    const { viewMode, setViewMode } = useThemeStore()
     const addDownloadQueue = useQueueStore((s) => s.add)
     const addToNowPlaying = usePlayerStore((s) => s.addToQueue)
     const setPlaylist = usePlayerStore((s) => s.setPlaylist)
@@ -101,6 +100,8 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
     const [debouncedSearch, setDebouncedSearch] = useState("")
     const [isPaginated, setIsPaginated] = useState(true)
     const [playlistSort, setPlaylistSort] = useState("position:asc")
+    const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+    const [preferencesLoadedFor, setPreferencesLoadedFor] = useState<string | null>(null)
     const [targetPlaylistId, setTargetPlaylistId] = useState("")
 
     const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false)
@@ -133,6 +134,27 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
     }
     const playlistQuery = usePlaylist(playlistId, detailOptions)
     const playlist = playlistQuery.data
+    const preferencesQuery = useQuery({
+        queryKey: ["playlist-preferences", playlistId],
+        queryFn: () => playlistService.getPreferences(playlistId),
+        enabled: Boolean(playlistId),
+    })
+    const savePreferences = useMutation({
+        mutationFn: (payload: Parameters<typeof playlistService.updatePreferences>[1]) =>
+            playlistService.updatePreferences(playlistId, payload),
+        onSuccess: (preferences) => {
+            queryClient.setQueryData(["playlist-preferences", playlistId], preferences)
+        },
+        onError: () => toast.error("Failed to save playlist preferences"),
+    })
+    useEffect(() => {
+        if (!preferencesQuery.data || preferencesLoadedFor === playlistId) return
+        const preferences = preferencesQuery.data
+        setPlaylistSort(`${preferences.sort_by}:${preferences.sort_order}`)
+        setIsPaginated(preferences.is_paginated)
+        setViewMode(preferences.view_mode)
+        setPreferencesLoadedFor(playlistId)
+    }, [preferencesQuery.data, preferencesLoadedFor, playlistId])
     const isOwner = playlist?.is_owner ?? false
     const canEdit = isOwner || (playlist?.is_editor ?? false)
 
@@ -592,11 +614,20 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
                         onChange={(value) => {
                             setPlaylistSort(value)
                             setCurrentPage(1)
+                            const [sort_by, sort_order] = value.split(":") as [
+                                "position" | "title" | "uploader" | "duration" | "created_at",
+                                "asc" | "desc",
+                            ]
+                            savePreferences.mutate({ sort_by, sort_order })
                         }}
                         options={SONG_SORT_OPTIONS}
                     />
                     <button
-                        onClick={() => setIsPaginated(!isPaginated)}
+                        onClick={() => {
+                            const next = !isPaginated
+                            setIsPaginated(next)
+                            savePreferences.mutate({ is_paginated: next })
+                        }}
                         className={`flex h-11 cursor-pointer items-center gap-2 rounded-xl border px-4 text-sm font-medium shadow-sm transition-all ${
                             !isPaginated
                                 ? "border-red-500 bg-red-500 text-white dark:bg-red-600"
@@ -611,7 +642,13 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
                         <LayoutList className='h-4 w-4' />
                         <span>{isPaginated ? "Paginated" : "Show All"}</span>
                     </button>
-                    <ViewToggle view={viewMode} onChange={setViewMode} />
+                    <ViewToggle
+                        view={viewMode}
+                        onChange={(next) => {
+                            setViewMode(next)
+                            savePreferences.mutate({ view_mode: next })
+                        }}
+                    />
                 </div>
             </div>
 

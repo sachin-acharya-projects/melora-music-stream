@@ -18,6 +18,7 @@ from app.db.models.listening_history import ListeningHistoryModel
 from app.db.models.notification import NotificationModel
 from app.db.models.playback_state import PlaybackStateModel
 from app.db.models.playlist import PlaylistModel
+from app.db.models.playlist_preferences import PlaylistPreferencesModel
 from app.db.models.playlist_share import PlaylistShareModel
 from app.db.models.release import ReleaseModel
 from app.db.models.search_history import SearchHistoryModel
@@ -36,6 +37,7 @@ __all__ = [
     "NotificationModel",
     "PlaybackStateModel",
     "PlaylistModel",
+    "PlaylistPreferencesModel",
     "PlaylistShareModel",
     "ReleaseModel",
     "SearchHistoryModel",

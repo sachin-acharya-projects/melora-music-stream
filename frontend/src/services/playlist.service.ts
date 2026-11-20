@@ -19,6 +19,20 @@ export interface PlaylistSortOptions {
     page_size?: number
 }
 
+export interface PlaylistPreferences {
+    sort_by: "position" | "title" | "uploader" | "duration" | "created_at"
+    sort_order: "asc" | "desc"
+    is_paginated: boolean
+    view_mode: "grid" | "list"
+}
+
+export interface PlaylistPreferencesUpdate {
+    sort_by?: PlaylistPreferences["sort_by"]
+    sort_order?: PlaylistPreferences["sort_order"]
+    is_paginated?: boolean
+    view_mode?: PlaylistPreferences["view_mode"]
+}
+
 export interface PlaylistUpdatePayload {
     name?: string
     description?: string | null
@@ -33,6 +47,24 @@ export interface PlaylistOption {
 export const playlistService = {
     getAll: async (options: PlaylistSortOptions = {}): Promise<Playlist[]> => {
         const { data } = await http.get<Playlist[]>(ENDPOINTS.PLAYLISTS.BASE, { params: options })
+        return data
+    },
+
+    getPreferences: async (id: string): Promise<PlaylistPreferences> => {
+        const { data } = await http.get<PlaylistPreferences>(
+            ENDPOINTS.PLAYLISTS.PREFERENCES(id),
+        )
+        return data
+    },
+
+    updatePreferences: async (
+        id: string,
+        payload: PlaylistPreferencesUpdate,
+    ): Promise<PlaylistPreferences> => {
+        const { data } = await http.patch<PlaylistPreferences>(
+            ENDPOINTS.PLAYLISTS.PREFERENCES(id),
+            payload,
+        )
         return data
     },
 
