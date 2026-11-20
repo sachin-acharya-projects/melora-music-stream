@@ -625,7 +625,7 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
                         value={playlistSearch}
                         onChange={(e) => {
                             setPlaylistSearch(e.target.value)
-                            setCurrentPage(1)
+                            handlePageChange(1)
                         }}
                         placeholder='Search in this playlist...'
                         className='dark:bg-card h-11 w-64 rounded-xl border bg-white pr-4 pl-10 text-sm shadow-sm transition-all focus:border-red-500 focus:outline-none dark:border-white/10 dark:text-white'
@@ -637,7 +637,7 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
                         value={playlistSort}
                         onChange={(value) => {
                             setPlaylistSort(value)
-                            setCurrentPage(1)
+                            handlePageChange(1)
                             const [sort_by, sort_order] = value.split(":") as [
                                 "position" | "title" | "uploader" | "duration" | "created_at",
                                 "asc" | "desc",
