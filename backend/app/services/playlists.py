@@ -199,6 +199,9 @@ class PlaylistService:
             "total": total,
             "total_songs": total_songs,
             "total_duration": total_duration,
+            "thumbnails": [
+                song.thumbnail for song in db_playlist.songs if song.thumbnail
+            ][:4],
             "songs": [SongService.serialize(song) for song in songs],
         }
 
