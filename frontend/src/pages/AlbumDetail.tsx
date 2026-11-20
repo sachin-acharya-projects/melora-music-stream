@@ -1,3 +1,4 @@
+import { ImageWithFallback } from "@/components/ui/image-with-fallback/image-with-fallback"
 import { ArrowLeft, Heart, Music2, Play } from "lucide-react"
 import { Link, useParams } from "react-router-dom"
 import { useAlbumDetail, useFavoriteAlbum, useUnfavoriteAlbum } from "@/hooks/useAlbums"
@@ -60,18 +61,12 @@ export default function AlbumDetail() {
 
             <div className='mb-8 flex flex-col gap-6 md:flex-row'>
                 <div className='w-48 shrink-0'>
-                    {album.thumbnail_url ? (
-                        <img
-                            src={album.thumbnail_url}
-                            alt={album.title}
-                            referrerPolicy='no-referrer'
-                            className='aspect-square w-full rounded-lg object-cover'
-                        />
-                    ) : (
-                        <div className='flex aspect-square w-full items-center justify-center rounded-lg bg-gray-100 dark:bg-white/10'>
-                            <Music2 className='h-12 w-12 text-gray-400' />
-                        </div>
-                    )}
+                    <ImageWithFallback
+                        src={album.thumbnail_url}
+                        alt={album.title}
+                        className='aspect-square w-full rounded-lg'
+                        fallback={<Music2 className='h-12 w-12 text-gray-400' />}
+                    />
                 </div>
                 <div className='flex flex-col justify-end gap-3'>
                     <span className='text-xs uppercase tracking-wide text-gray-400'>Album</span>

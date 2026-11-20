@@ -11,6 +11,7 @@ import {
 import { usePlayerStore } from "@/hooks/usePlayer"
 import { useDragScroll } from "@/hooks/useDragScroll"
 import { useTitle } from "@/hooks/useTitle"
+import { ImageWithFallback } from "@/components/ui/image-with-fallback/image-with-fallback"
 import { cn, formatDuration, slugify } from "@/lib/utils"
 import { type ArtistAlbum, type ArtistSong } from "@/types"
 import { AnimatePresence, motion } from "framer-motion"
@@ -140,20 +141,12 @@ export default function ArtistProfile() {
                             className='dark:bg-card group cursor-pointer rounded-2xl border border-gray-200 bg-white p-3 shadow-sm transition-all hover:-translate-y-1 hover:border-red-300 hover:shadow-lg dark:border-white/10'
                         >
                             <div className='relative aspect-square w-full overflow-hidden rounded-xl'>
-                                {cover ? (
-                                    <img
-                                        src={cover}
-                                        alt={album.name}
-                                        loading='lazy'
-                                        decoding='async'
-                                        referrerPolicy='no-referrer'
-                                        className='h-full w-full object-cover'
-                                    />
-                                ) : (
-                                    <div className='flex h-full w-full items-center justify-center bg-gradient-to-br from-red-400 to-red-600'>
-                                        <Disc3 className='h-10 w-10 text-white' />
-                                    </div>
-                                )}
+                                <ImageWithFallback
+                                    src={cover}
+                                    alt={album.name}
+                                    className='h-full w-full'
+                                    fallback={<Disc3 className='h-10 w-10 text-white' />}
+                                />
                             </div>
                             <h3 className='mt-3 truncate text-sm font-semibold dark:text-white'>
                                 {album.name}
@@ -179,20 +172,16 @@ export default function ArtistProfile() {
 
             <div className='mb-8 flex flex-col items-center gap-6 sm:flex-row sm:items-end'>
                 <div className='shrink-0'>
-                    {artist.thumbnail_url ? (
-                        <img
-                            src={artist.thumbnail_url}
-                            alt={artist.name}
-                            referrerPolicy='no-referrer'
-                            className='h-44 w-44 rounded-full object-cover shadow-lg sm:h-56 sm:w-56'
-                        />
-                    ) : (
-                        <div className='flex h-44 w-44 items-center justify-center rounded-full bg-gradient-to-br from-red-400 to-red-600 shadow-lg sm:h-56 sm:w-56'>
+                    <ImageWithFallback
+                        src={artist.thumbnail_url}
+                        alt={artist.name}
+                        className='h-44 w-44 rounded-full shadow-lg sm:h-56 sm:w-56'
+                        fallback={
                             <span className='text-6xl font-bold text-white'>
                                 {artist.name.charAt(0).toUpperCase()}
                             </span>
-                        </div>
-                    )}
+                        }
+                    />
                 </div>
 
                 <div className='min-w-0 flex-1 text-center sm:text-left'>

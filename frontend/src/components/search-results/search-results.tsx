@@ -1,3 +1,4 @@
+import { ImageWithFallback } from "@/components/ui/image-with-fallback/image-with-fallback"
 import ViewToggle from "@/components/ui/view-toggle/view-toggle"
 import { AddToPlaylistModal } from "@/components/playlist/add-to-playlist-modal"
 import { formatDuration } from "@/lib/utils"
@@ -155,22 +156,12 @@ export function SearchResults({
                         className='group relative block shrink-0 cursor-pointer overflow-hidden rounded-xl'
                         title={`Play ${topResult.name ?? topResult.title ?? ""}`}
                     >
-                        {topResult.thumbnail ? (
-                            <img
-                                src={topResult.thumbnail}
-                                alt={topResult.name ?? topResult.title ?? ""}
-                                loading='lazy'
-                                decoding='async'
-                                referrerPolicy='no-referrer'
-                                className={`h-36 w-36 object-cover ${
-                                    topResult.type === "artist" ? "rounded-full" : ""
-                                }`}
-                            />
-                        ) : (
-                            <span className='dark:bg-card flex h-36 w-36 items-center justify-center rounded-xl border border-gray-200 bg-gray-100 dark:border-white/10'>
-                                <Disc3 className='h-12 w-12 text-gray-400' />
-                            </span>
-                        )}
+                        <ImageWithFallback
+                            src={topResult.thumbnail}
+                            alt={topResult.name ?? topResult.title ?? ""}
+                            className={`h-36 w-36 ${topResult.type === "artist" ? "rounded-full" : "rounded-xl"}`}
+                            fallback={<Disc3 className='h-12 w-12 text-gray-400' />}
+                        />
                         <span className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 max-md:opacity-100'>
                             <span className='flex h-12 w-12 items-center justify-center rounded-full bg-red-600 text-white shadow-lg'>
                                 {playingKey === `top:${topResult.type}:${topResult.id ?? topResult.name ?? ""}` ? (
@@ -303,13 +294,10 @@ export function SearchResults({
                                     } `}
                                 >
                                     <div className='relative aspect-video w-full overflow-hidden'>
-                                        <img
+                                        <ImageWithFallback
                                             src={video.thumbnail}
                                             alt={video.title}
-                                            loading='lazy'
-                                            decoding='async'
-                                            referrerPolicy='no-referrer'
-                                            className='h-full w-full object-cover'
+                                            className='h-full w-full'
                                         />
                                         <div className='absolute inset-0 flex items-center justify-center gap-3 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 max-md:opacity-100'>
                                             <button
@@ -369,14 +357,7 @@ export function SearchResults({
                                     }`}
                                 >
                                     <div className='relative h-14 w-24 shrink-0 overflow-hidden rounded-lg'>
-                                        <img
-                                            src={video.thumbnail}
-                                            alt={video.title}
-                                            loading='lazy'
-                                            decoding='async'
-                                            referrerPolicy='no-referrer'
-                                            className='h-full w-full object-cover'
-                                        />
+                                        <ImageWithFallback src={video.thumbnail} alt={video.title} className='h-full w-full' />
                                         <div className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 max-md:opacity-100'>
                                             <button
                                                 onClick={() => onPlaySongs(songs, index)}
@@ -432,13 +413,11 @@ export function SearchResults({
                             >
                                 <span className='relative block overflow-hidden rounded-full'>
                                     {artist.thumbnail ? (
-                                        <img
+                                        <ImageWithFallback
                                             src={artist.thumbnail}
                                             alt={artist.name}
-                                            loading='lazy'
-                                            decoding='async'
-                                            referrerPolicy='no-referrer'
-                                            className='h-28 w-28 object-cover'
+                                            className='h-28 w-28'
+                                            fallback={<Mic2 className='h-8 w-8 text-gray-400' />}
                                         />
                                     ) : (
                                         <span className='flex h-28 w-28 items-center justify-center bg-gray-100 dark:bg-white/10'>
@@ -484,20 +463,7 @@ export function SearchResults({
                                     title={`Play ${album.title}`}
                                 >
                                     <span className='relative block aspect-square w-full overflow-hidden rounded-lg'>
-                                        {album.thumbnail ? (
-                                            <img
-                                                src={album.thumbnail}
-                                                alt={album.title}
-                                                loading='lazy'
-                                                decoding='async'
-                                                referrerPolicy='no-referrer'
-                                                className='h-full w-full object-cover'
-                                            />
-                                        ) : (
-                                            <span className='flex h-full w-full items-center justify-center bg-gray-100 dark:bg-white/10'>
-                                                <Disc3 className='h-8 w-8 text-gray-400' />
-                                            </span>
-                                        )}
+                                        <ImageWithFallback src={album.thumbnail} alt={album.title} className='h-full w-full' fallback={<Disc3 className='h-8 w-8 text-gray-400' />} />
                                         <span className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 max-md:opacity-100'>
                                             {playingKey === (album.id ?? album.title) ? (
                                                 <Loader2 className='h-6 w-6 animate-spin text-white' />
@@ -555,20 +521,7 @@ export function SearchResults({
                                 title={`Play ${playlist.title}`}
                             >
                                 <span className='relative block aspect-square w-full overflow-hidden rounded-lg'>
-                                    {playlist.thumbnail ? (
-                                        <img
-                                            src={playlist.thumbnail}
-                                            alt={playlist.title}
-                                            loading='lazy'
-                                            decoding='async'
-                                            referrerPolicy='no-referrer'
-                                            className='h-full w-full object-cover'
-                                        />
-                                    ) : (
-                                        <span className='flex h-full w-full items-center justify-center bg-gray-100 dark:bg-white/10'>
-                                            <ListMusic className='h-8 w-8 text-gray-400' />
-                                        </span>
-                                    )}
+                                    <ImageWithFallback src={playlist.thumbnail} alt={playlist.title} className='h-full w-full' fallback={<ListMusic className='h-8 w-8 text-gray-400' />} />
                                     <span className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 max-md:opacity-100'>
                                         {playingKey === (playlist.id ?? playlist.title) ? (
                                             <Loader2 className='h-6 w-6 animate-spin text-white' />

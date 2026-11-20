@@ -1,4 +1,5 @@
 import { PlaylistArt } from "@/components/playlist/playlist-art"
+import { ImageWithFallback } from "@/components/ui/image-with-fallback/image-with-fallback"
 import { CollaboratorsModal } from "@/components/playlist/collaborators-modal"
 import { PlaylistMoreInfoModal } from "@/components/playlist-more-info/playlist-more-info-modal"
 import { SearchAddModal } from "@/components/playlist/search-add-modal"
@@ -681,13 +682,10 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
                                 }`}
                             >
                                 <div className='relative aspect-video w-full overflow-hidden'>
-                                    <img
+                                    <ImageWithFallback
                                         src={song.thumbnail}
                                         alt={song.title}
-                                        loading='lazy'
-                                        decoding='async'
-                                        referrerPolicy='no-referrer'
-                                        className='h-full w-full object-cover'
+                                        className='h-full w-full'
                                     />
                                     <div className='absolute inset-0 flex items-center justify-center gap-3 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 max-md:opacity-100'>
                                         <button
@@ -754,13 +752,10 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
                                 }`}
                             >
                                 <div className='relative h-14 w-24 shrink-0 overflow-hidden rounded-lg'>
-                                    <img
+                                    <ImageWithFallback
                                         src={song.thumbnail}
                                         alt={song.title}
-                                        loading='lazy'
-                                        decoding='async'
-                                        referrerPolicy='no-referrer'
-                                        className='h-full w-full object-cover'
+                                        className='h-full w-full'
                                     />
                                     <div className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 max-md:opacity-100'>
                                         <button

@@ -28,8 +28,8 @@ import { useQueryClient } from "@tanstack/react-query"
 
 import { toast } from "react-toastify"
 
-const RECENT_LIMIT = 10
-const TOP_SONGS_LIMIT = 10
+const RECENT_LIMIT = 50
+const TOP_SONGS_LIMIT = 100
 
 const historySongToSong = (item: HistoryItem): Song | null =>
     item.song
@@ -364,6 +364,10 @@ export default function Home() {
                 {!isSearchLoading && !searchQuery && !isError && (
                     <div className='space-y-2'>
                         <section>
+                            <div className='mb-5 border-b border-gray-200 pb-3 dark:border-white/10'>
+                                <h2 className='text-xl font-semibold dark:text-white'>Your listening</h2>
+                                <p className='mt-1 text-sm text-gray-500 dark:text-gray-400'>Your music, shaped by what you play</p>
+                            </div>
                         <SongSection
                             title='Recently played'
                             subtitle='Jump back into your latest listens'
@@ -407,8 +411,8 @@ export default function Home() {
                         />
                         </section>
                         <section>
-                            <div className='mb-5'>
-                                <h2 className='text-xl font-semibold dark:text-white'>Discover</h2>
+                            <div className='mb-5 border-b border-gray-200 pb-3 dark:border-white/10'>
+                                <h2 className='text-xl font-semibold dark:text-white'>Explore</h2>
                                 <p className='mt-1 text-sm text-gray-500 dark:text-gray-400'>Find something new to listen to</p>
                             </div>
                         <SongSection
