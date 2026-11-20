@@ -211,7 +211,7 @@ export function PlaylistCollection({
 
     return (
         <div className='mx-auto w-full max-w-none px-4 pt-4 pb-40'>
-            <div className='mb-6 flex flex-wrap items-end justify-between gap-4'>
+            <div className='mb-6 flex flex-nowrap items-end justify-between gap-4'>
                 <div className='flex items-center gap-3'>
                     <span aria-hidden='true' className='h-9 w-1 shrink-0 rounded-full bg-red-500' />
                     <div>
@@ -224,9 +224,9 @@ export function PlaylistCollection({
                         </p>
                     </div>
                 </div>
-                <div className='flex flex-wrap items-center justify-end gap-2'>
+                <div className='flex shrink-0 flex-nowrap items-center justify-end gap-2'>
                     {onSearchChange && (
-                        <div className='relative w-full sm:w-auto'>
+                        <div className='relative w-56 shrink-0'>
                             <Search className='absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400' />
                             <input
                                 type='text'
@@ -239,12 +239,12 @@ export function PlaylistCollection({
                                           ? "Search followed playlists..."
                                           : "Search your playlists..."
                                 }
-                                className='dark:bg-card h-11 w-full rounded-xl sm:w-56 border bg-white pr-4 pl-10 text-sm shadow-sm transition-all focus:border-red-500 focus:outline-none dark:border-white/10 dark:text-white'
+                                className='dark:bg-card h-11 w-full rounded-xl border bg-white pr-4 pl-10 text-sm shadow-sm transition-all focus:border-red-500 focus:outline-none dark:border-white/10 dark:text-white'
                             />
                         </div>
                     )}
                     {onTabChange && (
-                        <div className='dark:bg-card flex items-center gap-1 rounded-xl border border-gray-200 bg-white p-1 dark:border-white/10'>
+                        <div className='dark:bg-card flex shrink-0 items-center gap-1 whitespace-nowrap rounded-xl border border-gray-200 bg-white p-1 dark:border-white/10'>
                             {(Object.keys(TAB_LABELS) as PlaylistsTab[]).map((tab) => (
                                 <button
                                     key={tab}
