@@ -29,7 +29,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "react-toastify"
 
 const RECENT_LIMIT = 50
-const TOP_SONGS_LIMIT = 50
+const TOP_SONGS_LIMIT = 100
 
 const historySongToSong = (item: HistoryItem): Song | null =>
     item.song
