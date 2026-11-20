@@ -16,6 +16,7 @@ import {
 import { useMemo, useState } from "react"
 import { toast } from "react-toastify"
 import { MESSAGES } from "@/utils/messages"
+import { ImageWithFallback } from "@/components/ui/image-with-fallback/image-with-fallback"
 
 const ITEMS_PER_PAGE = 20
 
@@ -150,13 +151,10 @@ export default function History() {
                                             className='dark:bg-card group flex cursor-pointer items-center gap-4 rounded-xl border border-gray-100 bg-white p-2 transition-all hover:border-red-200 dark:border-white/10'
                                         >
                                             <div className='relative h-14 w-24 shrink-0 overflow-hidden rounded-lg'>
-                                                <img
+                                                <ImageWithFallback
                                                     src={song.thumbnail}
                                                     alt={song.title}
-                                                    loading='lazy'
-                                                    decoding='async'
-                                                    referrerPolicy='no-referrer'
-                                                    className='h-full w-full object-cover'
+                                                    className='h-full w-full'
                                                 />
                                                 <div className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 max-md:opacity-100'>
                                                     <Play className='h-4 w-4 translate-x-0.5 fill-current text-white' />
