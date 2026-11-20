@@ -11,6 +11,7 @@ from app.db.models import (  # noqa: F401
     AdminSettingsModel,
     PlaybackStateModel,
     PlaylistModel,
+    PlaylistPreferencesModel,
     SongModel,
     UserModel,
 )
