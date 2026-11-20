@@ -7,8 +7,8 @@ from app.schemas.song import (
     CollaboratorCreate,
     PlaylistCreate,
     PlaylistImport,
-    PlaylistReorder,
     PlaylistPreferencesUpdate,
+    PlaylistReorder,
     PlaylistUpdate,
     Song,
 )
