@@ -54,7 +54,7 @@ class PlaylistService:
         query = PlaylistService._apply_search_filter(query, search)
 
         playlists = query.order_by(
-            order_func(sort_col), PlaylistModel.id, SongModel.title
+            order_func(sort_col), PlaylistModel.id, playlist_song.c.position
         ).all()
 
         return [
@@ -726,7 +726,9 @@ class PlaylistService:
             ),
             "song_count": len(songs),
             "total_duration": sum(song.duration or 0 for song in songs),
-            "thumbnails": [song.thumbnail for song in songs[:4] if song.thumbnail],
+            "thumbnails": [
+                song.thumbnail for song in songs if song.thumbnail
+            ][:4],
         }
 
     @staticmethod
@@ -738,5 +740,8 @@ class PlaylistService:
             **PlaylistService._serialize_base(
                 playlist, current_user_id=current_user_id
             ),
+            "thumbnails": [
+                song.thumbnail for song in playlist.songs if song.thumbnail
+            ][:4],
             "songs": [SongService.serialize(song) for song in playlist.songs],
         }
