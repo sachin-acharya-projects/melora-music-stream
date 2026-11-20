@@ -366,7 +366,7 @@ export default function Home() {
                         <section className='space-y-6'>
                             <div className='mb-6'>
                                 <div className='flex items-stretch gap-3'>
-                                    <span aria-hidden='true' className='w-1 shrink-0 rounded-full bg-red-500' />
+                                    <span aria-hidden='true' className='h-9 w-1 shrink-0 self-center rounded-full bg-red-500' />
                                     <div className='flex flex-col gap-1'>
                                         <h2 className='text-2xl font-bold tracking-tight text-gray-900 dark:text-white'>Your listening</h2>
                                         <p className='text-sm text-gray-500 dark:text-gray-400'>Your music, shaped by what you play</p>
