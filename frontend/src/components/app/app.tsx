@@ -24,6 +24,7 @@ import NotificationSettings from "@/pages/NotificationSettings"
 import Recommendations from "@/pages/Recommendations"
 import Stats from "@/pages/Stats"
 import MyAlbums from "@/pages/MyAlbums"
+import NewReleases from "@/pages/NewReleases"
 import AlbumDetail from "@/pages/AlbumDetail"
 import AdminDashboard from "@/pages/admin/AdminDashboard"
 import AdminArtists from "@/pages/admin/AdminArtists"
@@ -195,6 +196,14 @@ function AppContent() {
                         element={
                             <ProtectedRoute>
                                 <MyAlbums />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path='/new-releases'
+                        element={
+                            <ProtectedRoute>
+                                <NewReleases />
                             </ProtectedRoute>
                         }
                     />
