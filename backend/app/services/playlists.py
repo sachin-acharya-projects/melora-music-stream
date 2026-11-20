@@ -213,7 +213,7 @@ class PlaylistService:
             db.query(PlaylistModel)
             .filter(PlaylistModel.id == playlist_id)
             .first()
-        
+        )
         if playlist is None:
             raise HTTPException(status_code=404, detail=Messages.PLAYLIST_NOT_FOUND)
         PlaylistService._ensure_can_view(playlist, user)
@@ -232,7 +232,11 @@ class PlaylistService:
         user: UserModel,
         data: PlaylistPreferencesUpdate,
     ) -> dict[str, Any]:
-        playlist = db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id).first()
+        playlist = (
+            db.query(PlaylistModel)
+            .filter(PlaylistModel.id == playlist_id)
+            .first()
+        )
         if playlist is None:
             raise HTTPException(status_code=404, detail=Messages.PLAYLIST_NOT_FOUND)
         PlaylistService._ensure_can_view(playlist, user)
