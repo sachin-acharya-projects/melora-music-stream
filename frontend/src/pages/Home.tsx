@@ -362,11 +362,14 @@ export default function Home() {
                 )}
 
                 {!isSearchLoading && !searchQuery && !isError && (
-                    <div className='space-y-2'>
-                        <section>
-                            <div className='mb-5 border-b border-gray-200 pb-3 dark:border-white/10'>
-                                <h2 className='text-xl font-semibold dark:text-white'>Your listening</h2>
-                                <p className='mt-1 text-sm text-gray-500 dark:text-gray-400'>Your music, shaped by what you play</p>
+                    <div className='space-y-10'>
+                        <section className='space-y-6'>
+                            <div className='mb-6'>
+                                <div className='flex items-center gap-3'>
+                                    <span aria-hidden='true' className='h-7 w-1 rounded-full bg-red-500' />
+                                    <h2 className='text-2xl font-bold tracking-tight text-gray-900 dark:text-white'>Your listening</h2>
+                                </div>
+                                <p className='ml-4 mt-1.5 text-sm text-gray-500 dark:text-gray-400'>Your music, shaped by what you play</p>
                             </div>
                         <SongSection
                             title='Recently played'
@@ -410,10 +413,13 @@ export default function Home() {
                             }
                         />
                         </section>
-                        <section>
-                            <div className='mb-5 border-b border-gray-200 pb-3 dark:border-white/10'>
-                                <h2 className='text-xl font-semibold dark:text-white'>Explore</h2>
-                                <p className='mt-1 text-sm text-gray-500 dark:text-gray-400'>Find something new to listen to</p>
+                        <section className='space-y-6'>
+                            <div className='mb-6'>
+                                <div className='flex items-center gap-3'>
+                                    <span aria-hidden='true' className='h-7 w-1 rounded-full bg-red-500' />
+                                    <h2 className='text-2xl font-bold tracking-tight text-gray-900 dark:text-white'>Explore</h2>
+                                </div>
+                                <p className='ml-4 mt-1.5 text-sm text-gray-500 dark:text-gray-400'>Find something new to listen to</p>
                             </div>
                         <SongSection
                             title='Trending now'
