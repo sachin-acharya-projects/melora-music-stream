@@ -7,13 +7,13 @@ from sqlalchemy.orm import Query, Session, contains_eager, selectinload
 from app.core.config import resolve_avatar_url
 from app.core.messages import Messages
 from app.db.models.associations import playlist_song
-from app.db.models.playlist_preferences import PlaylistPreferencesModel
 from app.db.models.playlist import (
     CollaboratorRole,
     PlaylistCollaboratorModel,
     PlaylistModel,
     PlaylistVisibility,
 )
+from app.db.models.playlist_preferences import PlaylistPreferencesModel
 from app.db.models.song import SongModel
 from app.db.models.user import UserModel
 from app.schemas.song import PlaylistPreferencesUpdate, PlaylistUpdate, Song
@@ -209,7 +209,11 @@ class PlaylistService:
     def get_playlist_preferences(
         db: Session, *, playlist_id: str, user: UserModel
     ) -> dict[str, Any]:
-        playlist = db.query(PlaylistModel).filter(PlaylistModel.id == playlist_id).first()
+        playlist = (
+            db.query(PlaylistModel)
+            .filter(PlaylistModel.id == playlist_id)
+            .first()
+        
         if playlist is None:
             raise HTTPException(status_code=404, detail=Messages.PLAYLIST_NOT_FOUND)
         PlaylistService._ensure_can_view(playlist, user)
@@ -238,7 +242,9 @@ class PlaylistService:
             .first()
         )
         if preferences is None:
-            preferences = PlaylistPreferencesModel(user_id=user.id, playlist_id=playlist_id)
+            preferences = PlaylistPreferencesModel(
+                user_id=user.id, playlist_id=playlist_id
+            )
             db.add(preferences)
         for field, value in data.model_dump(exclude_unset=True).items():
             if value is not None:
