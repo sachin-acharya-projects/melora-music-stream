@@ -1,3 +1,4 @@
+import { ImageWithFallback } from "@/components/ui/image-with-fallback/image-with-fallback"
 import ViewToggle from "@/components/ui/view-toggle/view-toggle"
 import { AddToPlaylistModal } from "@/components/playlist/add-to-playlist-modal"
 import { formatDuration } from "@/lib/utils"
