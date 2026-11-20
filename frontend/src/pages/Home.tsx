@@ -364,7 +364,7 @@ export default function Home() {
                 {!isSearchLoading && !searchQuery && !isError && (
                     <div className='space-y-2'>
                         <section>
-                            <div className='mb-5 border-b border-gray-200 pb-3 dark:border-white/10'>
+                            <div className='mb-5'>
                                 <h2 className='text-xl font-semibold dark:text-white'>Your listening</h2>
                                 <p className='mt-1 text-sm text-gray-500 dark:text-gray-400'>Your music, shaped by what you play</p>
                             </div>
@@ -411,7 +411,7 @@ export default function Home() {
                         />
                         </section>
                         <section>
-                            <div className='mb-5 border-b border-gray-200 pb-3 dark:border-white/10'>
+                            <div className='mb-5'>
                                 <h2 className='text-xl font-semibold dark:text-white'>Explore</h2>
                                 <p className='mt-1 text-sm text-gray-500 dark:text-gray-400'>Find something new to listen to</p>
                             </div>
