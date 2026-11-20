@@ -10,13 +10,16 @@ export default function MyAlbums() {
 
     return (
         <div className='mx-auto w-full max-w-none px-4 pt-4 pb-40'>
-            <div className='mb-6'>
-                <h1 className='text-3xl font-bold dark:text-white'>
-                    My <span className='text-red-500'>Albums</span>
-                </h1>
-                <p className='mt-1 text-sm text-gray-500 dark:text-gray-400'>
-                    Albums you have saved to your library
-                </p>
+            <div className='mb-6 flex items-center gap-3'>
+                <span aria-hidden='true' className='h-9 w-1 shrink-0 rounded-full bg-red-500' />
+                <div>
+                    <h1 className='text-3xl font-bold tracking-tight dark:text-white'>
+                        My <span className='text-red-500'>Albums</span>
+                    </h1>
+                    <p className='mt-1 text-sm text-gray-500 dark:text-gray-400'>
+                        Albums you have saved to your library
+                    </p>
+                </div>
             </div>
 
             {isLoading ? (

@@ -95,13 +95,16 @@ export default function History() {
     return (
         <div className='mx-auto w-full max-w-none px-4 pt-4 pb-40'>
             <div className='mb-8 flex flex-wrap items-end justify-between gap-4'>
-                <div>
-                    <h1 className='text-3xl font-bold dark:text-white'>
-                        Listening <span className='text-red-500'>History</span>
-                    </h1>
-                    <p className='mt-1 text-sm text-gray-500 dark:text-gray-400'>
-                        Every song you've listened to, in one place
-                    </p>
+                <div className='flex items-center gap-3'>
+                    <span aria-hidden='true' className='h-9 w-1 shrink-0 rounded-full bg-red-500' />
+                    <div>
+                        <h1 className='text-3xl font-bold tracking-tight dark:text-white'>
+                            Listening <span className='text-red-500'>History</span>
+                        </h1>
+                        <p className='mt-1 text-sm text-gray-500 dark:text-gray-400'>
+                            Every song you've listened to, in one place
+                        </p>
+                    </div>
                 </div>
                 <div className='relative'>
                     <input

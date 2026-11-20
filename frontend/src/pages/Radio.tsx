@@ -109,13 +109,16 @@ export default function Radio() {
 
     return (
         <div className='mx-auto w-full max-w-none px-4 pt-4 pb-40'>
-            <div className='mb-8'>
-                <h1 className='text-3xl font-bold dark:text-white'>
-                    Melora <span className='text-red-500'>Radio</span>
-                </h1>
-                <p className='mt-1 text-sm text-gray-500 dark:text-gray-400'>
-                    Pick a mood, a genre (or a few), or a seed from your library to start a station
-                </p>
+            <div className='mb-8 flex items-center gap-3'>
+                <span aria-hidden='true' className='h-9 w-1 shrink-0 rounded-full bg-red-500' />
+                <div>
+                    <h1 className='text-3xl font-bold tracking-tight dark:text-white'>
+                        Melora <span className='text-red-500'>Radio</span>
+                    </h1>
+                    <p className='mt-1 text-sm text-gray-500 dark:text-gray-400'>
+                        Pick a mood, a genre (or a few), or a seed from your library to start a station
+                    </p>
+                </div>
             </div>
 
             {moodsLoading ? (
