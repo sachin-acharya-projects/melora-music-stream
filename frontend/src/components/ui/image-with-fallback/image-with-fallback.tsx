@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils"
 import { Music2 } from "lucide-react"
-import { type ReactNode, useEffect, useState } from "react"
+import { type ReactNode, useState } from "react"
 
 interface ImageWithFallbackProps {
     src?: string | null
@@ -17,13 +17,9 @@ export function ImageWithFallback({
     fallbackClassName,
     fallback,
 }: ImageWithFallbackProps) {
-    const [failed, setFailed] = useState(false)
+    const [failedSrc, setFailedSrc] = useState<string | null>(null)
 
-    useEffect(() => {
-        setFailed(false)
-    }, [src])
-
-    if (!src || failed) {
+    if (!src || failedSrc === src) {
         return (
             <div
                 role='img'
@@ -46,7 +42,8 @@ export function ImageWithFallback({
             loading='lazy'
             decoding='async'
             referrerPolicy='no-referrer'
-            onError={() => setFailed(true)}
+            onError={() => setFailedSrc(src)}
+            onLoad={() => setFailedSrc(null)}
             className={cn("object-cover", className)}
         />
     )
