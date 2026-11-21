@@ -1,7 +1,7 @@
 from typing import Any
 
 from fastapi import HTTPException
-from sqlalchemy import asc, desc, func, select, update
+from sqlalchemy import asc, case, desc, func, select, update
 from sqlalchemy.orm import Query, Session, selectinload
 
 from app.core.config import resolve_avatar_url
@@ -38,19 +38,23 @@ class PlaylistService:
         sort_by: str = "created_at",
         order: str = "desc",
         search: str | None = None,
+        membership: str = "all",
     ) -> list[dict[str, Any]]:
-        """Get the user's playlists plus public playlists from other users."""
+        """Get playlists owned by or shared with the current user."""
         sort_col = getattr(PlaylistModel, sort_by, PlaylistModel.created_at)
         order_func = asc if order == "asc" else desc
 
-        query = (
-            db.query(PlaylistModel)
-            .options(selectinload(PlaylistModel.songs))
-            .filter(
-                (PlaylistModel.user_id == user.id)
-                | (PlaylistModel.visibility == PlaylistVisibility.PUBLIC)
-            )
+        query = db.query(PlaylistModel).options(selectinload(PlaylistModel.songs))
+        owned = PlaylistModel.user_id == user.id
+        collaborating = PlaylistModel.collaborators.any(
+            PlaylistCollaboratorModel.user_id == user.id
         )
+        if membership == "owned":
+            query = query.filter(owned)
+        elif membership == "collaborating":
+            query = query.filter(collaborating)
+        else:
+            query = query.filter(owned | collaborating)
         query = PlaylistService._apply_search_filter(query, search)
 
         playlists = query.order_by(order_func(sort_col), PlaylistModel.id).all()
@@ -79,8 +83,16 @@ class PlaylistService:
         )
         query = PlaylistService._apply_search_filter(query, search)
 
+        followed_priority = case(
+            (PlaylistModel.followers.any(UserModel.id == user.id), 1),
+            else_=0,
+        )
         playlists = (
-            query.order_by(PlaylistModel.follower_count.desc(), PlaylistModel.id)
+            query.order_by(
+                followed_priority.asc(),
+                PlaylistModel.follower_count.desc(),
+                PlaylistModel.id,
+            )
             .limit(limit)
             .all()
         )
