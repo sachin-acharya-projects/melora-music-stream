@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/auth/providers.dart';
+import '../../core/playback/providers.dart';
 
 class _LyricLine {
   const _LyricLine({required this.text, this.time});
