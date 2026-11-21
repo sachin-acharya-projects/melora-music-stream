@@ -123,7 +123,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 class _SectionHeading extends StatelessWidget {
   const _SectionHeading(this.title); final String title;
   @override
-  Widget build(BuildContext context) => Padding(padding: const EdgeInsets.only(bottom: 9), child: Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w750)));
+  Widget build(BuildContext context) => Padding(padding: const EdgeInsets.only(bottom: 9), child: Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)));
 }
 class _SongTile extends StatelessWidget {
   const _SongTile({required this.song, required this.onTap}); final Song song; final VoidCallback onTap;
