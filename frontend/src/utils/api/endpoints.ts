@@ -21,6 +21,7 @@ export const ENDPOINTS = {
     LYRICS: (songId: string) => `/songs/${songId}/lyrics`,
     PLAYLISTS: {
         BASE: "/playlists/",
+        COLLECTION_SORT: "/playlists/collection-sort",
         BY_ID: (id: string) => `/playlists/${id}`,
         PREFERENCES: (id: string) => `/playlists/${id}/preferences`,
         DISCOVER: "/playlists/discover",
