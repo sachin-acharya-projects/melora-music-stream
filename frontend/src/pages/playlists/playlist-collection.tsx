@@ -522,10 +522,10 @@ export function PlaylistCollection({
                                                 )}
                                                 {(playlist.follower_count ?? 0) > 0 && (
                                                     <span
-                                                        className='flex shrink-0 items-center gap-1 text-[10px] font-medium text-gray-400'
+                                                        className='inline-flex shrink-0 items-center gap-1 text-[10px] leading-none font-medium text-gray-400'
                                                         title='Followers'
                                                     >
-                                                        <Heart className='h-3 w-3' />
+                                                        <Heart className='block h-3 w-3 shrink-0' />
                                                         {playlist.follower_count}
                                                     </span>
                                                 )}

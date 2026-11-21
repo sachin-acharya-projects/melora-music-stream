@@ -338,9 +338,17 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
         setIsRenameOpen(false)
     }
 
+    const navigateBackToCollection = () => {
+        const params = new URLSearchParams(searchParams)
+        params.delete("playlist")
+        params.delete("page")
+        const query = params.toString()
+        navigate(query ? `/playlists?${query}` : "/playlists")
+    }
+
     const handleDelete = () => {
         deletePlaylist(playlistId)
-        navigate("/playlists")
+        navigateBackToCollection()
     }
 
     const handleToggleVisibility = () => {
@@ -466,7 +474,7 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
     return (
         <div className='mx-auto w-full max-w-375 px-4 pt-4 pb-40'>
             <button
-                onClick={() => navigate("/playlists")}
+                onClick={navigateBackToCollection}
                 className='mb-6 flex cursor-pointer items-center gap-1 text-sm text-gray-500 transition-colors hover:text-red-500'
             >
                 <ChevronLeft className='h-4 w-4' /> Playlists
@@ -507,8 +515,8 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
                         {totalSongs} {totalSongs === 1 ? "song" : "songs"} ·{" "}
                         {formatDuration(totalDuration)}
                         {(playlist?.follower_count ?? 0) > 0 && (
-                            <span className='ml-2 inline-flex items-center gap-1'>
-                                <Heart className='h-3.5 w-3.5' /> {playlist?.follower_count}{" "}
+                            <span className='ml-2 inline-flex items-center gap-1 align-middle leading-none'>
+                                <Heart className='block h-3.5 w-3.5 shrink-0' /> {playlist?.follower_count}{" "}
                                 {playlist?.follower_count === 1 ? "follower" : "followers"}
                             </span>
                         )}
