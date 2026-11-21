@@ -5,8 +5,8 @@ from fastapi import APIRouter, Query
 from app.api.deps import CurrentUser, OptionalUser, SessionDep
 from app.schemas.song import (
     CollaboratorCreate,
-    PlaylistCreate,
     PlaylistCollectionSortUpdate,
+    PlaylistCreate,
     PlaylistImport,
     PlaylistPreferencesUpdate,
     PlaylistReorder,
@@ -40,7 +40,9 @@ def get_collection_sort(user: CurrentUser) -> dict[str, str]:
 
 
 @router.patch("/collection-sort")
-def update_collection_sort(data: PlaylistCollectionSortUpdate, db: SessionDep, user: CurrentUser) -> dict[str, str]:
+def update_collection_sort(
+    data: PlaylistCollectionSortUpdate, db: SessionDep, user: CurrentUser
+) -> dict[str, str]:
     user.playlist_collection_sort = data.model_dump()
     db.add(user)
     db.commit()
