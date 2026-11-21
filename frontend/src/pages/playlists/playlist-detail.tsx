@@ -516,8 +516,10 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
                         {formatDuration(totalDuration)}
                         {(playlist?.follower_count ?? 0) > 0 && (
                             <span className='ml-2 inline-flex items-center gap-1 align-middle leading-none'>
-                                <Heart className='block h-3.5 w-3.5 shrink-0' /> {playlist?.follower_count}{" "}
-                                {playlist?.follower_count === 1 ? "follower" : "followers"}
+                                <Heart className='block h-3.5 w-3.5 shrink-0' />
+                                <span className='inline-flex items-center leading-none tabular-nums'>
+                                    {playlist?.follower_count} {playlist?.follower_count === 1 ? "follower" : "followers"}
+                                </span>
                             </span>
                         )}
                     </p>
