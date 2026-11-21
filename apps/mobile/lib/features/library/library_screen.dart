@@ -5,6 +5,7 @@ import '../../core/auth/providers.dart';
 import '../../core/playback/providers.dart';
 import '../home/home_screen.dart';
 import 'library_repository.dart';
+import 'playlist_detail_screen.dart';
 
 final libraryRepositoryProvider = Provider<LibraryRepository>((ref) => LibraryRepository(ref.watch(dioProvider)));
 final playlistsProvider = FutureProvider<List<MeloraPlaylist>>((ref) => ref.watch(libraryRepositoryProvider).getPlaylists());
@@ -65,7 +66,7 @@ class _PlaylistTile extends ConsumerWidget {
       title: Text(playlist.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w650)),
       subtitle: Text('${playlist.songCount} songs · ${playlist.visibility ?? 'private'}'),
       trailing: IconButton(onPressed: playlist.songs.isEmpty ? null : () => ref.read(audioHandlerProvider).playSongs(playlist.songs), icon: const Icon(Icons.play_circle_outline_rounded)),
-      onTap: playlist.songs.isEmpty ? null : () => ref.read(audioHandlerProvider).playSongs(playlist.songs),
+      onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => PlaylistDetailScreen(playlistId: playlist.id, name: playlist.name))),
     );
   }
 }
