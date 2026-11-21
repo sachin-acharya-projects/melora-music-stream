@@ -92,11 +92,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         const SizedBox(height: 18),
         if (_loading) const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator())),
         if (_error != null) Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
-        if (result != null && result.songs.isEmpty && result.artists.isEmpty && result.albums.isEmpty && result.playlists.isEmpty)
+        if (result != null && result.songs.isEmpty && result.videos.isEmpty && result.artists.isEmpty && result.albums.isEmpty && result.playlists.isEmpty)
           const Padding(padding: EdgeInsets.symmetric(vertical: 32), child: Center(child: Text('No results found.'))),
         if (result != null && songs.isNotEmpty) ...[
           _SectionHeading('Songs'),
           for (var i = 0; i < songs.length; i++) _SongTile(song: songs[i], onTap: () => ref.read(audioHandlerProvider).playSongs(songs, startIndex: i)),
+        ],
+        if (result != null && result.videos.isNotEmpty) ...[
+          const SizedBox(height: 20), const _SectionHeading('Videos'),
+          for (var i = 0; i < result.videos.length; i++) _SongTile(song: result.videos[i], onTap: () => ref.read(audioHandlerProvider).playSongs(result.videos, startIndex: i)),
         ],
         if (result != null && result.artists.isNotEmpty) ...[
           const SizedBox(height: 20), const _SectionHeading('Artists'),
