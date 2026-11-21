@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/playback/providers.dart';
 import '../../core/playback/audio_handler.dart';
+import 'lyrics_sheet.dart';
 
 class NowPlayingScreen extends ConsumerWidget {
   const NowPlayingScreen({super.key});
@@ -21,7 +22,10 @@ class NowPlayingScreen extends ConsumerWidget {
         leading: IconButton(icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 30), onPressed: () => Navigator.pop(context)),
         title: const Text('NOW PLAYING', style: TextStyle(fontSize: 11, letterSpacing: 1.8, fontWeight: FontWeight.w700)),
         centerTitle: true,
-        actions: [IconButton(onPressed: () => _showQueue(context, handler), icon: const Icon(Icons.queue_music_rounded))],
+        actions: [
+          IconButton(onPressed: () { final id = handler.mediaItem.value?.id; if (id != null) showModalBottomSheet<void>(context: context, isScrollControlled: true, builder: (_) => LyricsSheet(songId: id)); }, icon: const Icon(Icons.lyrics_outlined)),
+          IconButton(onPressed: () => _showQueue(context, handler), icon: const Icon(Icons.queue_music_rounded)),
+        ],
       ),
       body: SafeArea(child: StreamBuilder(
         stream: handler.mediaItem,
