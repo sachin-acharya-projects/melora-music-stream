@@ -6,6 +6,7 @@ from app.api.deps import CurrentUser, OptionalUser, SessionDep
 from app.schemas.song import (
     CollaboratorCreate,
     PlaylistCreate,
+    PlaylistCollectionSortUpdate,
     PlaylistImport,
     PlaylistPreferencesUpdate,
     PlaylistReorder,
@@ -26,10 +27,24 @@ def get_playlists(
     sort_by: Annotated[str, Query(pattern="^(name|created_at)$")] = "created_at",
     order: Annotated[str, Query(pattern="^(asc|desc)$")] = "desc",
     q: Annotated[str | None, Query(max_length=100)] = None,
+    membership: Annotated[str, Query(pattern="^(all|owned|collaborating)$")] = "all",
 ) -> list[dict[str, Any]]:
     return PlaylistService.get_all_playlists(
-        db, user, sort_by=sort_by, order=order, search=q
+        db, user, sort_by=sort_by, order=order, search=q, membership=membership
     )
+
+
+@router.get("/collection-sort")
+def get_collection_sort(user: CurrentUser) -> dict[str, str]:
+    return user.playlist_collection_sort or {"sort_by": "created_at", "order": "desc"}
+
+
+@router.patch("/collection-sort")
+def update_collection_sort(data: PlaylistCollectionSortUpdate, db: SessionDep, user: CurrentUser) -> dict[str, str]:
+    user.playlist_collection_sort = data.model_dump()
+    db.add(user)
+    db.commit()
+    return user.playlist_collection_sort
 
 
 @router.get("/discover")
