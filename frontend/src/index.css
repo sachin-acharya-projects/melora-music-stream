@@ -189,3 +189,15 @@
 .pb-safe-player {
     padding-bottom: calc(env(safe-area-inset-bottom) + 7rem);
 }
+
+
+/* Theme-matched application scrollbars */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(239, 68, 68, 0.55) transparent;
+}
+*::-webkit-scrollbar { width: 9px; height: 9px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: rgba(239, 68, 68, 0.42); border: 2px solid transparent; border-radius: 999px; background-clip: padding-box; }
+*::-webkit-scrollbar-thumb:hover { background: rgba(239, 68, 68, 0.72); border: 2px solid transparent; background-clip: padding-box; }
+.dark * { scrollbar-color: rgba(248, 113, 113, 0.55) transparent; }

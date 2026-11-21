@@ -17,6 +17,7 @@ export interface PlaylistSortOptions {
     q?: string
     page?: number
     page_size?: number
+    membership?: "all" | "owned" | "collaborating"
 }
 
 export interface PlaylistPreferences {
@@ -50,6 +51,14 @@ export const playlistService = {
         return data
     },
 
+    getCollectionSort: async (): Promise<{ sort_by: "name" | "created_at"; order: "asc" | "desc" }> => {
+        const { data } = await http.get(ENDPOINTS.PLAYLISTS.COLLECTION_SORT)
+        return data
+    },
+    updateCollectionSort: async (payload: { sort_by: "name" | "created_at"; order: "asc" | "desc" }) => {
+        const { data } = await http.patch(ENDPOINTS.PLAYLISTS.COLLECTION_SORT, payload)
+        return data
+    },
     getPreferences: async (id: string): Promise<PlaylistPreferences> => {
         const { data } = await http.get<PlaylistPreferences>(
             ENDPOINTS.PLAYLISTS.PREFERENCES(id),
