@@ -39,6 +39,7 @@ class UserModel(BaseModel):
         JSON,
         default=lambda: {"profile_public": True, "listening_history_visible": False},
     )
+    playlist_collection_sort: Mapped[dict[str, str]] = mapped_column(JSON, default=lambda: {"sort_by": "created_at", "order": "desc"})
     notification_settings: Mapped[dict[str, Any]] = mapped_column(
         JSON,
         default=lambda: {
