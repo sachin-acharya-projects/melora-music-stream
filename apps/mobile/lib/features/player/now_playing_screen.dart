@@ -47,10 +47,10 @@ class NowPlayingScreen extends ConsumerWidget {
                 final state = snapshot.data;
                 final total = item.duration ?? Duration.zero;
                 final position = state?.updatePosition ?? Duration.zero;
-                final max = total.inMilliseconds.toDouble().clamp(1, double.infinity);
+                final max = total.inMilliseconds.toDouble().clamp(1.0, double.infinity).toDouble();
                 return Column(children: [
                   Slider(
-                    value: position.inMilliseconds.toDouble().clamp(0, max),
+                    value: position.inMilliseconds.toDouble().clamp(0.0, max).toDouble(),
                     max: max,
                     onChanged: total == Duration.zero ? null : (value) => handler.seek(Duration(milliseconds: value.round())),
                   ),
