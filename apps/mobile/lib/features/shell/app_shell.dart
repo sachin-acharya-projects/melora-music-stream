@@ -6,6 +6,7 @@ import '../../core/playback/providers.dart';
 import '../search/search_screen.dart';
 import '../home/home_screen.dart';
 import '../library/library_screen.dart';
+import '../player/now_playing_screen.dart';
 
 class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key});
@@ -45,7 +46,7 @@ class _AppShellState extends ConsumerState<AppShell> {
             return Positioned(left: 12, right: 12, bottom: 8, child: Material(
               color: Theme.of(context).colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(13),
-              child: Padding(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7), child: Row(children: [
+              child: InkWell(borderRadius: BorderRadius.circular(13), onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const NowPlayingScreen())), child: Padding(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7), child: Row(children: [
                 const Icon(Icons.music_note_rounded, color: Color(0xFFE5484D)),
                 const SizedBox(width: 10),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -57,7 +58,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                   return IconButton(visualDensity: VisualDensity.compact, onPressed: playing ? handler.pause : handler.play, icon: Icon(playing ? Icons.pause_rounded : Icons.play_arrow_rounded));
                 }),
                 IconButton(visualDensity: VisualDensity.compact, onPressed: handler.skipToNext, icon: const Icon(Icons.skip_next_rounded)),
-              ])),
+              ]))),
             ));
           },
         ),
