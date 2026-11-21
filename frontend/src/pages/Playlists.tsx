@@ -49,8 +49,7 @@ export default function Playlists() {
     const discover = useDiscoverPlaylists(50, tab === "discover", debouncedQuery || undefined)
     const following = useFollowingPlaylists(tab === "following", debouncedQuery || undefined)
     const followPlaylist = useFollowPlaylist()
-    const [sortLoaded, setSortLoaded] = useState(false)
-    useEffect(() => { playlistService.getCollectionSort().then((sort) => { setPlaylistSort(sort); setSortLoaded(true) }).catch(() => setSortLoaded(true)) }, [])
+    useEffect(() => { playlistService.getCollectionSort().then((sort) => { setPlaylistSort(sort) }) .catch(() => {}) }, [])
 
     useEffect(() => {
         const timer = setTimeout(() => setDebouncedQuery(query), 250)
