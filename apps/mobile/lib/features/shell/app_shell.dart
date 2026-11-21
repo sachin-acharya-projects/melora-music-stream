@@ -71,48 +71,6 @@ class _AppShellState extends ConsumerState<AppShell> {
     );
   }
 }
-class _HomeTab extends StatelessWidget {
-  const _HomeTab({required this.onSearch, required this.onLibrary});
-  final VoidCallback onSearch;
-  final VoidCallback onLibrary;
-  @override
-  Widget build(BuildContext context) => CustomScrollView(slivers: [
-    SliverPadding(padding: const EdgeInsets.fromLTRB(22, 24, 22, 100), sliver: SliverList.list(children: [
-      Text('MELORA', style: Theme.of(context).textTheme.labelLarge?.copyWith(letterSpacing: 2.2, fontWeight: FontWeight.w800, color: const Color(0xFFE5484D))),
-      const SizedBox(height: 16),
-      Text('Good music.\nNo boundaries.', style: Theme.of(context).textTheme.headlineLarge?.copyWith(fontSize: 34, height: 1.08, fontWeight: FontWeight.w800, letterSpacing: -1.2)),
-      const SizedBox(height: 12),
-      Text('Your listening space, connected to your Melora server.', style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Theme.of(context).hintColor)),
-      const SizedBox(height: 30),
-      Text('Your music', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-      const SizedBox(height: 12),
-      _HomeAction(icon: Icons.search_rounded, title: 'Find something to play', subtitle: 'Search the Melora catalogue', onTap: onSearch),
-      const SizedBox(height: 10),
-      _HomeAction(icon: Icons.library_music_outlined, title: 'Your collection', subtitle: 'Browse playlists, artists and albums', onTap: onLibrary),
-    ])),
-  ]);
-}
-class _HomeAction extends StatelessWidget {
-  const _HomeAction({required this.icon, required this.title, required this.subtitle, required this.onTap});
-  final IconData icon; final String title; final String subtitle; final VoidCallback onTap;
-  @override
-  Widget build(BuildContext context) => Material(
-    color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: .55),
-    borderRadius: BorderRadius.circular(13),
-    child: ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-      leading: Icon(icon, color: const Color(0xFFE5484D)), title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-      subtitle: Text(subtitle), trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 15), onTap: onTap),
-  );
-}
-class _TabMessage extends StatelessWidget {
-  const _TabMessage({required this.title, required this.detail});
-  final String title; final String detail;
-  @override
-  Widget build(BuildContext context) => Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-    Text(title, style: Theme.of(context).textTheme.headlineMedium),
-    const SizedBox(height: 8), Text(detail),
-  ]));
-}
 class _ProfileTab extends StatelessWidget {
   const _ProfileTab({required this.onSignOut});
   final VoidCallback onSignOut;
