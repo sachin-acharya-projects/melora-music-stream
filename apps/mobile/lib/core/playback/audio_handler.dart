@@ -24,7 +24,6 @@ class MeloraAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler
   List<Song> _recentSongs = [];
   String? _lastPlaylistId;
   String? _historyEntryId;
-  DateTime? _historyStartedAt;
 
   Future<void> _configureSession() async {
     final session = await AudioSession.instance;
@@ -122,7 +121,6 @@ class MeloraAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler
         },
       });
       _historyEntryId = response.data?['id'] as String?;
-      _historyStartedAt = DateTime.now();
     } on DioException {
       // Listening history is best-effort and must not block playback.
     }
@@ -133,7 +131,6 @@ class MeloraAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler
     if (entryId == null) return;
     _historyEntryId = null;
     final elapsed = _player.position.inSeconds;
-    _historyStartedAt = null;
     try {
       await _dio.patch<void>('/history/$entryId', data: {'play_duration': elapsed < 0 ? 0 : elapsed});
     } on DioException {
