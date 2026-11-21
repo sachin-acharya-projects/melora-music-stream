@@ -58,6 +58,8 @@ const TAB_LABELS: Record<PlaylistsTab, { title: string; subtitle: string }> = {
 
 interface PlaylistCollectionProps {
     playlists: Playlist[]
+    membership?: "all" | "owned" | "collaborating"
+    onMembershipChange?: (value: "all" | "owned" | "collaborating") => void
     isLoading?: boolean
     sort: PlaylistSortOptions
     onSortChange: (sort: PlaylistSortOptions) => void
@@ -71,6 +73,8 @@ interface PlaylistCollectionProps {
 
 export function PlaylistCollection({
     playlists,
+    membership = "all",
+    onMembershipChange,
     isLoading = false,
     sort,
     onSortChange,
@@ -227,6 +231,9 @@ export function PlaylistCollection({
                     </div>
                 </div>
                 <div className='flex shrink-0 flex-nowrap items-center justify-end gap-2'>
+                    {view === "mine" && onMembershipChange && (
+                        <SortSelect value={membership} onChange={(v) => onMembershipChange(v as "all" | "owned" | "collaborating")} options={[{value:"all",label:"All Playlists"},{value:"owned",label:"Owned by Me"},{value:"collaborating",label:"I am a Collaborator"}]} />
+                    )}
                     {onSearchChange && (
                         <div className='relative w-56 shrink-0'>
                             <Search className='absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400' />
