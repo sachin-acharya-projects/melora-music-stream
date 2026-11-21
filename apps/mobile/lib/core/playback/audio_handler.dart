@@ -23,6 +23,8 @@ class MeloraAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler
   bool _handlingCompletion = false;
   List<Song> _recentSongs = [];
   String? _lastPlaylistId;
+  String? _historyEntryId;
+  DateTime? _historyStartedAt;
 
   Future<void> _configureSession() async {
     final session = await AudioSession.instance;
@@ -47,6 +49,7 @@ class MeloraAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler
     unawaited(_syncState());
   }
   Future<void> _loadAndPlay(MediaItem item) async {
+    await _finishHistory();
     mediaItem.add(item);
     _recentSongs.removeWhere((song) => song.id == item.id);
     _recentSongs.insert(0, Song(id: item.id, title: item.title, uploader: item.artist ?? '', thumbnail: item.artUri?.toString() ?? '', duration: item.duration?.inSeconds ?? 0));
@@ -58,6 +61,7 @@ class MeloraAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler
     await _player.setAudioSource(AudioSource.uri(Uri.parse(url)));
     _loadedId = item.id;
     unawaited(_player.play());
+    unawaited(_recordHistory(item));
     unawaited(_syncState());
   }
   @override
@@ -70,7 +74,7 @@ class MeloraAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler
   @override
   Future<void> pause() => _player.pause();
   @override
-  Future<void> stop() async { await _player.stop(); await super.stop(); }
+  Future<void> stop() async { await _finishHistory(); await _player.stop(); await super.stop(); }
   @override
   Future<void> seek(Duration position) => _player.seek(position);
   @override
@@ -109,6 +113,34 @@ class MeloraAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler
     await _player.setShuffleModeEnabled(mode == AudioServiceShuffleMode.all);
     await super.setShuffleMode(mode);
   }
+  Future<void> _recordHistory(MediaItem item) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>('/history/', data: {
+        'song': {
+          'id': item.id, 'title': item.title, 'uploader': item.artist ?? 'Unknown artist',
+          'thumbnail': item.artUri?.toString() ?? '', 'duration': item.duration?.inSeconds ?? 0,
+        },
+      });
+      _historyEntryId = response.data?['id'] as String?;
+      _historyStartedAt = DateTime.now();
+    } on DioException {
+      // Listening history is best-effort and must not block playback.
+    }
+  }
+
+  Future<void> _finishHistory() async {
+    final entryId = _historyEntryId;
+    if (entryId == null) return;
+    _historyEntryId = null;
+    final elapsed = _historyStartedAt == null ? _player.position.inSeconds : DateTime.now().difference(_historyStartedAt!).inSeconds;
+    _historyStartedAt = null;
+    try {
+      await _dio.patch<void>('/history/$entryId', data: {'play_duration': elapsed < 0 ? 0 : elapsed});
+    } on DioException {
+      // History duration updates are best-effort.
+    }
+  }
+
   Future<void> _handleCompleted() async {
     if (_handlingCompletion) return;
     _handlingCompletion = true;
