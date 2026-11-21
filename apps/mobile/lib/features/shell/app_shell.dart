@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/auth/auth_controller.dart';
 import '../../core/playback/providers.dart';
 import '../search/search_screen.dart';
+import '../home/home_screen.dart';
+import '../library/library_screen.dart';
 
 class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key});
@@ -27,9 +29,9 @@ class _AppShellState extends ConsumerState<AppShell> {
   Widget build(BuildContext context) {
     final handler = ref.watch(audioHandlerProvider);
     final pages = [
-      _HomeTab(onSearch: () => setState(() => _index = 1), onLibrary: () => setState(() => _index = 2)),
+      HomeScreen(onSearch: () => setState(() => _index = 1), onLibrary: () => setState(() => _index = 2)),
       const SearchScreen(),
-      const _TabMessage(title: 'Your library', detail: 'Playlists, artists and albums.'),
+      const LibraryScreen(),
       _ProfileTab(onSignOut: () => ref.read(authControllerProvider.notifier).signOut()),
     ];
     return Scaffold(
