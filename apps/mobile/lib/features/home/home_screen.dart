@@ -78,7 +78,7 @@ class _SongSection extends ConsumerWidget {
   final String title; final List<Song> songs;
   @override
   Widget build(BuildContext context, WidgetRef ref) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w750)),
+    Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
     const SizedBox(height: 12),
     SizedBox(height: 186, child: ListView.separated(
       scrollDirection: Axis.horizontal, itemCount: songs.length, separatorBuilder: (_, __) => const SizedBox(width: 12),
@@ -107,7 +107,7 @@ class _CoverSection extends ConsumerWidget {
   final String title; final List<_CoverEntry> entries;
   @override
   Widget build(BuildContext context, WidgetRef ref) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w750)),
+    Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
     const SizedBox(height: 12),
     SizedBox(height: 190, child: ListView.separated(
       scrollDirection: Axis.horizontal, itemCount: entries.length, separatorBuilder: (_, __) => const SizedBox(width: 12),
