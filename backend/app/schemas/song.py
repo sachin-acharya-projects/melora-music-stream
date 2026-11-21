@@ -55,3 +55,8 @@ class PlaylistPreferencesUpdate(BaseModel):
     sort_order: Literal["asc", "desc"] | None = None
     is_paginated: bool | None = None
     view_mode: Literal["grid", "list"] | None = None
+
+
+class PlaylistCollectionSortUpdate(BaseModel):
+    sort_by: Literal["name", "created_at"]
+    order: Literal["asc", "desc"]
