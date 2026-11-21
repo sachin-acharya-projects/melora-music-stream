@@ -5,8 +5,8 @@ import {
     usePlaylists,
 } from "@/hooks/usePlaylists"
 import { useTitle } from "@/hooks/useTitle"
-import { type PlaylistSortOptions } from "@/services/playlist.service"
 import { Loader2 } from "lucide-react"
+import { type PlaylistSortOptions } from "@/services/playlist.service"
 import { useEffect, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import { PlaylistCollection } from "./playlists/playlist-collection"
@@ -59,16 +59,14 @@ export default function Playlists() {
         discover.data?.find((p) => p.id === activePlaylistId) ??
         following.data?.find((p) => p.id === activePlaylistId)
 
-    if (isLoading || discover.isLoading || following.isLoading) {
-        return (
-            <div className='flex justify-center pt-20'>
-                <Loader2 className='h-12 w-12 animate-spin text-red-600' />
-            </div>
-        )
-    }
+    const isTabLoading = tab === "mine" ? isLoading : tab === "discover" ? discover.isLoading : following.isLoading
 
     if (activePlaylistId && activePlaylist) {
         return <PlaylistDetail key={activePlaylistId} playlistId={activePlaylistId} />
+    }
+
+    if (activePlaylistId && isTabLoading) {
+        return <div className="flex justify-center pt-20"><Loader2 className="h-12 w-12 animate-spin text-red-600" /></div>
     }
 
     const visible =
@@ -83,6 +81,7 @@ export default function Playlists() {
             view={tab}
             onTabChange={setTab}
             playlists={visible}
+            isLoading={isTabLoading}
             sort={playlistSort}
             onSortChange={setPlaylistSort}
             search={query}
