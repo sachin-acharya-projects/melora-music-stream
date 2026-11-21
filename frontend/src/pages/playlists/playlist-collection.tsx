@@ -58,6 +58,7 @@ const TAB_LABELS: Record<PlaylistsTab, { title: string; subtitle: string }> = {
 
 interface PlaylistCollectionProps {
     playlists: Playlist[]
+    isLoading?: boolean
     sort: PlaylistSortOptions
     onSortChange: (sort: PlaylistSortOptions) => void
     view?: PlaylistsTab
@@ -70,6 +71,7 @@ interface PlaylistCollectionProps {
 
 export function PlaylistCollection({
     playlists,
+    isLoading = false,
     sort,
     onSortChange,
     view = "mine",
@@ -292,7 +294,11 @@ export function PlaylistCollection({
                 </div>
             </div>
 
-            {playlists.length === 0 ? (
+            {isLoading ? (
+                <div className='flex min-h-64 items-center justify-center py-16'>
+                    <Loader2 className='h-8 w-8 animate-spin text-red-600' />
+                </div>
+            ) : playlists.length === 0 ? (
                 <div className='flex flex-col items-center gap-6 py-16 text-center'>
                     <span className='flex h-20 w-20 items-center justify-center rounded-full bg-red-100 dark:bg-red-950'>
                         <ListMusic className='h-9 w-9 text-red-500' />
