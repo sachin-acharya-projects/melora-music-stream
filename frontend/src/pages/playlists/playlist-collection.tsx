@@ -353,7 +353,7 @@ export function PlaylistCollection({
                     {playlists.map((playlist) => {
                         const totalDuration = playlist.total_duration ?? 0
                         const songCount = playlist.song_count ?? playlist.songs?.length ?? 0
-                        const isOwned = isOwnerView || playlist.is_owner
+                        const isOwned = playlist.is_owner === true
                         const canFollow = !isOwned && !!onFollow
 
                         return (
