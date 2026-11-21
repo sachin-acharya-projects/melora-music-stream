@@ -132,7 +132,7 @@ class MeloraAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler
     final entryId = _historyEntryId;
     if (entryId == null) return;
     _historyEntryId = null;
-    final elapsed = _historyStartedAt == null ? _player.position.inSeconds : DateTime.now().difference(_historyStartedAt!).inSeconds;
+    final elapsed = _player.position.inSeconds;
     _historyStartedAt = null;
     try {
       await _dio.patch<void>('/history/$entryId', data: {'play_duration': elapsed < 0 ? 0 : elapsed});
