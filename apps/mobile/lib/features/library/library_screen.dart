@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/auth/providers.dart';
 import '../../core/playback/providers.dart';
-import '../home/home_screen.dart';
 import 'library_repository.dart';
 import 'playlist_detail_screen.dart';
 
@@ -63,7 +62,7 @@ class _PlaylistTile extends ConsumerWidget {
       leading: ClipRRect(borderRadius: BorderRadius.circular(8), child: image.isEmpty
         ? Container(width: 54, height: 54, color: Theme.of(context).colorScheme.surfaceContainerHighest, child: const Icon(Icons.queue_music_rounded))
         : CachedNetworkImage(imageUrl: image, width: 54, height: 54, fit: BoxFit.cover, errorWidget: (_, __, ___) => const Icon(Icons.queue_music_rounded))),
-      title: Text(playlist.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w650)),
+      title: Text(playlist.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
       subtitle: Text('${playlist.songCount} songs · ${playlist.visibility ?? 'private'}'),
       trailing: IconButton(onPressed: playlist.songs.isEmpty ? null : () => ref.read(audioHandlerProvider).playSongs(playlist.songs), icon: const Icon(Icons.play_circle_outline_rounded)),
       onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => PlaylistDetailScreen(playlistId: playlist.id, name: playlist.name))),
