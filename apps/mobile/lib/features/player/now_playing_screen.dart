@@ -1,7 +1,9 @@
+import 'package:audio_service/audio_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/playback/providers.dart';
+import '../../core/playback/audio_handler.dart';
 
 class NowPlayingScreen extends ConsumerWidget {
   const NowPlayingScreen({super.key});
@@ -85,7 +87,7 @@ class NowPlayingScreen extends ConsumerWidget {
       )),
     );
   }
-  void _showQueue(BuildContext context, dynamic handler) {
+  void _showQueue(BuildContext context, MeloraAudioHandler handler) {
     showModalBottomSheet<void>(context: context, isScrollControlled: true, builder: (context) => SafeArea(child: SizedBox(
       height: MediaQuery.sizeOf(context).height * .65,
       child: Column(children: [
