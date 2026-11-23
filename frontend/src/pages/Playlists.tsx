@@ -40,7 +40,7 @@ export default function Playlists() {
             { replace: true },
         )
     }
-    useTitle(tab === "mine" ? "My Playlists" : tab === "discover" ? "Discover" : "Following")
+    useTitle(tab === "mine" ? "My Playlists" : tab === "discover" ? "Discover Playlists" : "Followed Playlists")
     const { playlists, isLoading } = usePlaylists({
         ...playlistSort,
         q: debouncedQuery || undefined,
