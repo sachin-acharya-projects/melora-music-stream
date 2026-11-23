@@ -717,9 +717,12 @@ class ArtistService:
 
     @staticmethod
     def _upsert_ytmusic_song(
-        db: Session, track: dict[str, Any], artist_name: str
+        db: Session,
+        track: dict[str, Any],
+        artist_name: str,
+        artist: ArtistModel | None = None,
     ) -> None:
-        """Upsert a YTMusic track (videoId) as a library song for the artist."""
+        """Upsert a YTMusic track and ensure it is linked to the target artist."""
         video_id = track.get("videoId")
         if not video_id:
             return
@@ -735,6 +738,9 @@ class ArtistService:
             ),
         )
         ArtistService.sync_song_artists(db, db_song)
+        if artist is not None and all(existing.id != artist.id for existing in db_song.artists):
+            db_song.artists.append(artist)
+            db.commit()
 
     @staticmethod
     def sync_ytmusic_content(db: Session, artist: ArtistModel, channel_id: str) -> None:
@@ -756,7 +762,7 @@ class ArtistService:
 
         for track in info.get("songs", {}).get("results", []):
             try:
-                ArtistService._upsert_ytmusic_song(db, track, artist.name)
+                ArtistService._upsert_ytmusic_song(db, track, artist.name, artist)
             except Exception:
                 db.rollback()
                 logger.warning(
@@ -809,7 +815,7 @@ class ArtistService:
                 if result is None:
                     continue
                 for track in result["tracks"]:
-                    ArtistService._upsert_ytmusic_song(db, track, artist.name)
+                    ArtistService._upsert_ytmusic_song(db, track, artist.name, artist)
                 albums.append(
                     {
                         "id": result["id"],
@@ -1041,6 +1047,45 @@ class ArtistService:
         return {"albums": albums}
 
     @staticmethod
+    def _resolve_ytmusic_artist_channel(db: Session, artist: ArtistModel) -> str | None:
+        """Resolve a library artist to an exact-name YouTube Music artist channel."""
+        try:
+            ytmusic = YTMusic()
+            results = ytmusic.search(artist.name, filter="artists", limit=10)
+        except Exception:
+            logger.warning(
+                "Failed to search YouTube Music for artist %s",
+                artist.name,
+                exc_info=True,
+            )
+            return None
+
+        normalize = lambda value: re.sub(r"[^a-z0-9]", "", value.casefold())
+        target_name = normalize(artist.name)
+        match = next(
+            (
+                item
+                for item in results
+                if isinstance(item, dict)
+                and normalize(str(item.get("artist") or item.get("title") or "")) == target_name
+                and item.get("browseId")
+            ),
+            None,
+        )
+        if match is None:
+            return None
+
+        channel_id = str(match["browseId"])
+        external_ids = dict(artist.external_ids or {})
+        external_ids["youtube_channel_id"] = channel_id
+        artist.external_ids = external_ids
+        db.commit()
+
+        ArtistService.sync_ytmusic_content(db, artist, channel_id)
+        db.refresh(artist)
+        return channel_id
+
+    @staticmethod
     def get_artist_albums(db: Session, slug: str) -> dict[str, Any]:
         """Return songs grouped into albums.
 
@@ -1052,9 +1097,11 @@ class ArtistService:
         db_artist = db.query(ArtistModel).filter(ArtistModel.slug == slug).first()
         if db_artist is None:
             raise HTTPException(status_code=404, detail=Messages.ARTIST_NOT_FOUND)
+        channel_id = ArtistService._channel_id(db_artist)
+        if not channel_id:
+            channel_id = ArtistService._resolve_ytmusic_artist_channel(db, db_artist)
         if (db_artist.channel_metadata or {}).get("ytmusic_albums") is not None:
             return ArtistService._stored_ytmusic_albums(db_artist)
-        channel_id = ArtistService._channel_id(db_artist)
         if not channel_id:
             return {
                 "albums": [
