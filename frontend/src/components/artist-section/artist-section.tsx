@@ -11,6 +11,7 @@ interface ArtistSectionProps {
     isFollowing?: boolean
     onImport?: (artist: Artist) => void
     importingIds?: ReadonlySet<string>
+    importedIds?: ReadonlySet<string>
     viewAllHref?: string
 }
 
@@ -21,6 +22,7 @@ export function ArtistSection({
     isFollowing,
     onImport,
     importingIds,
+    importedIds,
     viewAllHref,
 }: ArtistSectionProps) {
     const { ref: scrollRef, isDragging, handlers } = useDragScroll<HTMLDivElement>()
@@ -78,6 +80,7 @@ export function ArtistSection({
                             isFollowing={isFollowing}
                             onImport={onImport}
                             isImporting={importingIds?.has(artist.id) ?? false}
+                            isImported={importedIds?.has(artist.id) ?? false}
                         />
                     </div>
                 ))}
