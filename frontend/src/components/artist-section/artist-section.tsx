@@ -1,8 +1,8 @@
 import { type Artist } from "@/types"
-import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Link } from "react-router-dom"
 import { ArtistCard } from "../artist-card/artist-card"
 import { useDragScroll } from "@/hooks/useDragScroll"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 
 interface ArtistSectionProps {
     title: string
@@ -11,6 +11,7 @@ interface ArtistSectionProps {
     isFollowing?: boolean
     onImport?: (artist: Artist) => void
     importingIds?: ReadonlySet<string>
+    importedIds?: ReadonlySet<string>
     viewAllHref?: string
 }
 
@@ -21,6 +22,7 @@ export function ArtistSection({
     isFollowing,
     onImport,
     importingIds,
+    importedIds,
     viewAllHref,
 }: ArtistSectionProps) {
     const { ref: scrollRef, isDragging, handlers } = useDragScroll<HTMLDivElement>()
@@ -35,31 +37,33 @@ export function ArtistSection({
         <section className='mb-10'>
             <div className='mb-4 flex items-center justify-between'>
                 <h2 className='text-lg font-bold dark:text-white'>{title}</h2>
-                <div className='flex items-center gap-4'>
+                <div className='flex items-center gap-2'>
                     {viewAllHref && (
                         <Link
                             to={viewAllHref}
-                            className='flex h-8 cursor-pointer items-center text-sm leading-none font-medium text-red-600 transition-colors hover:text-red-700 dark:text-red-400'
+                            className='mr-2 flex h-8 cursor-pointer items-center text-sm leading-none font-medium text-red-600 transition-colors hover:text-red-700 dark:text-red-400'
                         >
                             View All
                         </Link>
                     )}
-                    <div className='flex items-center gap-2'>
-                        <button
-                            onClick={() => scrollBy(-1)}
-                            className='dark:bg-card flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border bg-white shadow-sm transition-colors hover:border-red-200 dark:border-white/10 dark:text-white'
-                            title='Scroll left'
-                        >
-                            <ChevronLeft className='h-4 w-4' />
-                        </button>
-                        <button
-                            onClick={() => scrollBy(1)}
-                            className='dark:bg-card flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border bg-white shadow-sm transition-colors hover:border-red-200 dark:border-white/10 dark:text-white'
-                            title='Scroll right'
-                        >
-                            <ChevronRight className='h-4 w-4' />
-                        </button>
-                    </div>
+                    <button
+                        type='button'
+                        onClick={() => scrollBy(-1)}
+                        className='dark:bg-card flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border bg-white shadow-sm transition-colors hover:border-red-200 dark:border-white/10 dark:text-white'
+                        title='Scroll left'
+                        aria-label={`Scroll ${title} left`}
+                    >
+                        <ChevronLeft className='h-4 w-4' />
+                    </button>
+                    <button
+                        type='button'
+                        onClick={() => scrollBy(1)}
+                        className='dark:bg-card flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border bg-white shadow-sm transition-colors hover:border-red-200 dark:border-white/10 dark:text-white'
+                        title='Scroll right'
+                        aria-label={`Scroll ${title} right`}
+                    >
+                        <ChevronRight className='h-4 w-4' />
+                    </button>
                 </div>
             </div>
             <div
@@ -78,6 +82,7 @@ export function ArtistSection({
                             isFollowing={isFollowing}
                             onImport={onImport}
                             isImporting={importingIds?.has(artist.id) ?? false}
+                            isImported={importedIds?.has(artist.id) ?? false}
                         />
                     </div>
                 ))}

@@ -1,6 +1,6 @@
 import { type Artist } from "@/types"
 import { formatCount } from "@/lib/utils"
-import { Download, Heart, Loader2, Youtube } from "lucide-react"
+import { Check, Download, Heart, Loader2, Youtube } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 
 interface ArtistCardProps {
@@ -9,6 +9,7 @@ interface ArtistCardProps {
     isFollowing?: boolean
     onImport?: (artist: Artist) => void
     isImporting?: boolean
+    isImported?: boolean
 }
 
 export function ArtistCard({
@@ -17,11 +18,12 @@ export function ArtistCard({
     isFollowing,
     onImport,
     isImporting,
+    isImported,
 }: ArtistCardProps) {
     const navigate = useNavigate()
 
     const openArtist = () => {
-        if (isImporting) return
+        if (isImporting || isImported) return
         if (artist.is_external) {
             onImport?.(artist)
             return
@@ -90,10 +92,12 @@ export function ArtistCard({
                 <span className='mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-red-100 px-3 py-1 text-xs font-medium text-red-600 dark:bg-red-950 dark:text-red-400'>
                     {isImporting ? (
                         <Loader2 className='h-3 w-3 animate-spin' />
+                    ) : isImported ? (
+                        <Check className='h-3 w-3' />
                     ) : (
                         <Download className='h-3 w-3' />
                     )}
-                    {isImporting ? "Importing..." : "Click to import"}
+                    {isImporting ? "Importing..." : isImported ? "In library" : "Click to import"}
                 </span>
             )}
 

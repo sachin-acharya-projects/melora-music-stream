@@ -9,6 +9,7 @@ import ReorderItem from "@/components/ui/reorder-item/reorder-item"
 import SortSelect, { type SortSelectOption } from "@/components/ui/sort-select/sort-select"
 import ViewToggle from "@/components/ui/view-toggle/view-toggle"
 import { usePlayerStore } from "@/hooks/usePlayer"
+import { useTitle } from "@/hooks/useTitle"
 import { usePlaylistMenu } from "@/hooks/usePlaylistMenu"
 import {
     useFollowPlaylist,
@@ -135,6 +136,7 @@ export function PlaylistDetail({ playlistId }: { playlistId: string }) {
     }
     const playlistQuery = usePlaylist(playlistId, detailOptions)
     const playlist = playlistQuery.data
+    useTitle(playlist?.name ?? "Playlist")
     const preferencesQuery = useQuery({
         queryKey: ["playlist-preferences", playlistId],
         queryFn: () => playlistService.getPreferences(playlistId),

@@ -54,19 +54,35 @@ class ArtistService:
         if not name:
             raise HTTPException(status_code=400, detail=Messages.ARTIST_NAME_REQUIRED)
 
+        if youtube_channel_id:
+            db_artist = (
+                db.query(ArtistModel)
+                .filter(
+                    ArtistModel.external_ids["youtube_channel_id"].as_string()
+                    == youtube_channel_id
+                )
+                .first()
+            )
+            if db_artist is not None:
+                return db_artist
+
         db_artist = (
             db.query(ArtistModel)
             .filter(func.lower(ArtistModel.name) == name.lower())
             .first()
         )
         if db_artist is not None:
-            if youtube_channel_id:
-                external = dict(db_artist.external_ids or {})
-                if not external.get("youtube_channel_id"):
-                    external["youtube_channel_id"] = youtube_channel_id
-                    db_artist.external_ids = external
-                    db.commit()
-            return db_artist
+            external = dict(db_artist.external_ids or {})
+            existing_channel_id = external.get("youtube_channel_id")
+            if youtube_channel_id and not existing_channel_id:
+                external["youtube_channel_id"] = youtube_channel_id
+                db_artist.external_ids = external
+                db.commit()
+                return db_artist
+            if not youtube_channel_id or existing_channel_id == youtube_channel_id:
+                return db_artist
+            # The name already belongs to a different channel. Keep the
+            # existing artist identity and create a distinct record below.
 
         slug = ArtistService.slugify(name)
         if db.query(ArtistModel).filter(ArtistModel.slug == slug).first() is not None:
@@ -506,12 +522,16 @@ class ArtistService:
         if cached is not None:
             expiry, items = cached
             if time.monotonic() < expiry:
-                return items[:limit]
+                filtered = ArtistService._exclude_imported_youtube_suggestions(db, items)
+                if len(filtered) != len(items):
+                    _SUGGESTIONS_CACHE[user_id] = (expiry, filtered)
+                return filtered[:limit]
 
         items = ArtistService._discover_related_artists(db, user_id)
         if not items:
             items = ArtistService._genre_based_suggestions(db, user_id)
 
+        items = ArtistService._exclude_imported_youtube_suggestions(db, items)
         ttl = (
             settings.ARTIST_SUGGESTIONS_TTL_SECONDS
             if items
@@ -519,6 +539,42 @@ class ArtistService:
         )
         _SUGGESTIONS_CACHE[user_id] = (time.monotonic() + ttl, items)
         return items[:limit]
+
+    @staticmethod
+    def _exclude_imported_youtube_suggestions(
+        db: Session, items: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        """Remove YouTube recommendations whose channels are already imported."""
+        channel_ids = {
+            str(item["id"])
+            for item in items
+            if item.get("is_external") and item.get("id")
+        }
+        if not channel_ids:
+            return items
+
+        imported_channel_ids = {
+            channel_id
+            for (channel_id,) in db.query(
+                ArtistModel.external_ids["youtube_channel_id"].as_string()
+            )
+            .filter(
+                ArtistModel.external_ids["youtube_channel_id"]
+                .as_string()
+                .in_(channel_ids)
+            )
+            .all()
+            if channel_id
+        }
+        if not imported_channel_ids:
+            return items
+        return [
+            item
+            for item in items
+            if not (
+                item.get("is_external") and item.get("id") in imported_channel_ids
+            )
+        ]
 
     @staticmethod
     def _discover_related_artists(db: Session, user_id: str) -> list[dict[str, Any]]:
