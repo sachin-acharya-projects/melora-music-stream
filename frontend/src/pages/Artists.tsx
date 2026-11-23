@@ -83,7 +83,7 @@ export default function Artists() {
     const [searchParams, setSearchParams] = useSearchParams()
     const [query, setQuery] = useState("")
     const [debouncedQuery, setDebouncedQuery] = useState("")
-    const [importingChannelId, setImportingChannelId] = useState<string | null>(null)
+    const [importingChannelIds, setImportingChannelIds] = useState<Set<string>>(() => new Set())
     const [followingSource, setFollowingSource] = useState<"all" | "youtube" | "platform">("all")
 
     const tabs: ArtistsTab[] = VALID_TABS
@@ -170,35 +170,46 @@ export default function Artists() {
         await followArtist.mutateAsync(artist.id)
     }
 
+    const setArtistImporting = (channelId: string, importing: boolean) => {
+        setImportingChannelIds((current) => {
+            const next = new Set(current)
+            if (importing) next.add(channelId)
+            else next.delete(channelId)
+            return next
+        })
+    }
+
     const handleYouTubeOpen = async (artist: YouTubeArtist) => {
-        setImportingChannelId(artist.channel_id)
+        if (artist.is_in_library || importingChannelIds.has(artist.channel_id)) return
+        setArtistImporting(artist.channel_id, true)
         try {
-            const result = await importYouTube.mutateAsync({
+            await importYouTube.mutateAsync({
                 channel_id: artist.channel_id,
                 name: artist.name,
                 thumbnail: artist.thumbnail || null,
             })
-            navigate(`/artists/${result.slug}`)
+            toast.success(artist.name + " added to your library")
         } catch {
-            toast.error("Failed to import artist")
+            toast.error("Failed to import " + artist.name)
         } finally {
-            setImportingChannelId(null)
+            setArtistImporting(artist.channel_id, false)
         }
     }
 
     const handleSuggestedImport = async (artist: Artist) => {
-        setImportingChannelId(artist.id)
+        if (importingChannelIds.has(artist.id)) return
+        setArtistImporting(artist.id, true)
         try {
-            const result = await importYouTube.mutateAsync({
+            await importYouTube.mutateAsync({
                 channel_id: artist.id,
                 name: artist.name,
                 thumbnail: artist.thumbnail_url,
             })
-            navigate(`/artists/${result.slug}`)
+            toast.success(artist.name + " added to your library")
         } catch {
-            toast.error("Failed to import artist")
+            toast.error("Failed to import " + artist.name)
         } finally {
-            setImportingChannelId(null)
+            setArtistImporting(artist.id, false)
         }
     }
 
@@ -427,7 +438,7 @@ export default function Artists() {
                                     <YouTubeArtistCard
                                         key={artist.channel_id}
                                         artist={artist}
-                                        isImporting={importingChannelId === artist.channel_id}
+                                        isImporting={importingChannelIds.has(artist.channel_id)}
                                         onOpen={handleYouTubeOpen}
                                     />
                                 ))}
@@ -473,11 +484,7 @@ export default function Artists() {
                                                 ? handleSuggestedImport
                                                 : undefined
                                         }
-                                        importingId={
-                                            section.key === "suggested"
-                                                ? importingChannelId
-                                                : undefined
-                                        }
+                                        importingIds={section.key === "suggested" ? importingChannelIds : undefined}
                                         viewAllHref={viewAllHrefFor(section.key)}
                                     />
                                 ))}
