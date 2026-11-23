@@ -90,6 +90,12 @@ export function ArtistCard({
                 </p>
             )}
 
+            {compact && artist.monthly_listeners != null && artist.monthly_listeners > 0 && (
+                <p className='mt-0.5 text-[11px] text-gray-400 dark:text-gray-500'>
+                    {formatCount(artist.monthly_listeners)} monthly listeners
+                </p>
+            )}
+
             {artist.is_external && onImport && (
                 <span className='mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-red-100 px-3 py-1 text-xs font-medium text-red-600 dark:bg-red-950 dark:text-red-400'>
                     {isImporting ? (
