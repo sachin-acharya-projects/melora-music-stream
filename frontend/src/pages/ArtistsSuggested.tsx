@@ -16,7 +16,7 @@ export default function ArtistsSuggested() {
     const artists = data?.pages.flatMap((page) => page.items) ?? []
     const total = data?.pages[0]?.total ?? artists.length
 
-    useTitle("Suggested artists")
+    useTitle("Suggested Artists")
 
     const handleImport = async (artist: Artist) => {
         setImportingId(artist.id)
@@ -35,7 +35,7 @@ export default function ArtistsSuggested() {
     }
 
     return (
-        <div className='mx-auto w-full max-w-375 px-4 pt-4 pb-40'>
+        <div className='mx-auto w-full max-w-none px-4 pt-4 pb-40'>
             <button
                 onClick={() => navigate("/artists")}
                 className='mb-6 flex cursor-pointer items-center gap-1 text-sm text-gray-500 transition-colors hover:text-red-500'
@@ -69,13 +69,14 @@ export default function ArtistsSuggested() {
                 </div>
             ) : (
                 <>
-                    <div className='grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5'>
+                    <div className='grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7'>
                         {artists.map((artist) => (
                             <ArtistCard
                                 key={artist.id}
                                 artist={artist}
                                 onImport={handleImport}
                                 isImporting={importingId === artist.id}
+                                compact
                             />
                         ))}
                     </div>
