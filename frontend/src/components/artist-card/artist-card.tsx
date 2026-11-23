@@ -10,6 +10,7 @@ interface ArtistCardProps {
     onImport?: (artist: Artist) => void
     isImporting?: boolean
     isImported?: boolean
+    compact?: boolean
 }
 
 export function ArtistCard({
@@ -19,6 +20,7 @@ export function ArtistCard({
     onImport,
     isImporting,
     isImported,
+    compact = false,
 }: ArtistCardProps) {
     const navigate = useNavigate()
 
@@ -34,9 +36,9 @@ export function ArtistCard({
     return (
         <div
             onClick={openArtist}
-            className='dark:bg-card group relative cursor-pointer rounded-2xl border border-gray-200 bg-white p-4 text-center shadow-sm transition-all hover:-translate-y-1 hover:border-red-300 hover:shadow-lg dark:border-white/10'
+            className={`dark:bg-card group relative cursor-pointer rounded-2xl border border-gray-200 bg-white text-center shadow-sm transition-all hover:-translate-y-1 hover:border-red-300 hover:shadow-lg dark:border-white/10 ${compact ? "p-3" : "p-4"}`}
         >
-            <div className='relative mx-auto aspect-square w-full overflow-hidden rounded-full'>
+            <div className={`relative mx-auto aspect-square w-full overflow-hidden rounded-full ${compact ? "max-w-36" : ""}`}>
                 {artist.thumbnail_url ? (
                     <img
                         src={artist.thumbnail_url}
@@ -64,7 +66,7 @@ export function ArtistCard({
                 </span>
             )}
 
-            <h3 className='mt-3 truncate text-sm font-semibold capitalize dark:text-white'>
+            <h3 className={`${compact ? "mt-2" : "mt-3"} truncate text-sm font-semibold capitalize dark:text-white`}>
                 {artist.name}
             </h3>
             {artist.reason && (
