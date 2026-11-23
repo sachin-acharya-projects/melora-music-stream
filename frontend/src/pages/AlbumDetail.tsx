@@ -3,12 +3,14 @@ import { ArrowLeft, Heart, Music2, Play } from "lucide-react"
 import { Link, useParams } from "react-router-dom"
 import { useAlbumDetail, useFavoriteAlbum, useUnfavoriteAlbum } from "@/hooks/useAlbums"
 import { usePlayerStore } from "@/hooks/usePlayer"
+import { useTitle } from "@/hooks/useTitle"
 import { toFavoritePayload } from "@/services/album.service"
 import { type SearchAlbumItem } from "@/types"
 
 export default function AlbumDetail() {
     const { browseId } = useParams<{ browseId: string }>()
     const { data, isLoading } = useAlbumDetail(browseId ?? null)
+    useTitle(data?.album.title ?? "Album")
     const setPlaylist = usePlayerStore((s) => s.setPlaylist)
     const favoriteAlbum = useFavoriteAlbum()
     const unfavoriteAlbum = useUnfavoriteAlbum()
