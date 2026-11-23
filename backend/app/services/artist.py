@@ -774,9 +774,41 @@ class ArtistService:
                 )
 
         albums: list[dict[str, Any]] = []
-        album_results = info.get("albums", {}).get("results", [])[
-            : settings.ARTIST_CHANNEL_PLAYLIST_LIMIT
-        ]
+        album_results: list[dict[str, Any]] = []
+        seen_album_ids: set[str] = set()
+
+        def collect_artist_section(section_name: str) -> None:
+            section = info.get(section_name) or {}
+            results = section.get("results") or []
+            params = section.get("params")
+            while True:
+                for item in results:
+                    browse_id = item.get("browseId")
+                    if browse_id and browse_id not in seen_album_ids:
+                        album_results.append(item)
+                        seen_album_ids.add(browse_id)
+                if not params:
+                    break
+                try:
+                    next_info = ytmusic.get_artist(channel_id, params=params)
+                except Exception:
+                    logger.warning(
+                        "Failed to fetch more %s for artist %s",
+                        section_name,
+                        artist.name,
+                        exc_info=True,
+                    )
+                    break
+                next_section = next_info.get(section_name) or {}
+                next_params = next_section.get("params")
+                if not next_params or next_params == params:
+                    break
+                results = next_section.get("results") or []
+                params = next_params
+
+        collect_artist_section("albums")
+        collect_artist_section("singlesEPs")
+
         if album_results:
 
             def fetch_album(album: dict[str, Any]) -> dict[str, Any] | None:
