@@ -738,7 +738,9 @@ class ArtistService:
             ),
         )
         ArtistService.sync_song_artists(db, db_song)
-        if artist is not None and all(existing.id != artist.id for existing in db_song.artists):
+        if artist is not None and all(
+            existing.id != artist.id for existing in db_song.artists
+        ):
             db_song.artists.append(artist)
             db.commit()
 
@@ -1060,7 +1062,9 @@ class ArtistService:
             )
             return None
 
-        normalize = lambda value: re.sub(r"[^a-z0-9]", "", value.casefold())
+        def normalize(value: str) -> str:
+            return re.sub(r"[^a-z0-9]", "", value.casefold())
+
         target_name = normalize(artist.name)
         match = next(
             (
