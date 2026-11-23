@@ -137,7 +137,28 @@ export default function Artists() {
         else navigate("/artists?sort_by=follower_count&order=desc")
     }
 
-    useTitle(tab === "browse" ? "Discover Artists" : tab === "following" ? "Artists You Follow" : "YouTube Artists")
+    const artistPageTitle =
+        tab === "following"
+            ? "Artists You Follow"
+            : tab === "youtube"
+              ? "YouTube Artists"
+              : !hasActiveSort
+                ? "Discover Artists"
+                : sortBy === "monthly_listeners"
+                  ? "Popular Artists"
+                  : sortBy === "plays"
+                    ? "Your Top Artists"
+                    : sortBy === "created_at"
+                      ? "Recently Added Artists"
+                      : sortBy === "name"
+                        ? order === "asc"
+                            ? "Artists A–Z"
+                            : "Artists Z–A"
+                        : order === "asc"
+                          ? "Least Followed Artists"
+                          : "Most Followed Artists"
+
+    useTitle(artistPageTitle)
 
     useEffect(() => {
         const timer = setTimeout(() => setDebouncedQuery(query), 250)
@@ -257,7 +278,7 @@ export default function Artists() {
 
     return (
         <div className='mx-auto w-full max-w-none px-4 pt-4 pb-40'>
-            <div className='mb-6 flex flex-wrap items-end justify-between gap-4'>
+            <div className='mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between'>
                 <div className='flex items-center gap-3'>
                     <span aria-hidden='true' className='h-9 w-1 shrink-0 rounded-full bg-red-500' />
                     <div>
@@ -269,7 +290,7 @@ export default function Artists() {
                         </p>
                     </div>
                 </div>
-                <div className='flex flex-wrap items-center justify-end gap-2'>
+                <div className='flex w-full flex-nowrap items-center justify-end gap-2 lg:w-auto'>
                     <motion.div
                         layout
                         transition={{ layout: { duration: 0.2, ease: "easeOut" } }}
@@ -296,7 +317,7 @@ export default function Artists() {
                     <motion.div
                         layout
                         transition={{ layout: { duration: 0.2, ease: "easeOut" } }}
-                        className='relative w-full sm:w-auto'
+                        className='relative w-56 shrink-0'
                     >
                         <Search className='absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400' />
                         <input
@@ -308,7 +329,7 @@ export default function Artists() {
                                     ? "Search YouTube artists..."
                                     : "Search artists..."
                             }
-                            className='dark:bg-card h-11 w-full rounded-xl sm:w-56 border bg-white pr-4 pl-10 text-sm shadow-sm transition-all focus:border-red-500 focus:outline-none dark:border-white/10 dark:text-white'
+                            className='dark:bg-card h-11 w-full rounded-xl border bg-white pr-4 pl-10 text-sm shadow-sm transition-all focus:border-red-500 focus:outline-none dark:border-white/10 dark:text-white'
                         />
                     </motion.div>
                     <motion.div
@@ -389,13 +410,14 @@ export default function Artists() {
                                         Artists imported from YouTube across the library. Search
                                         above to find and import more.
                                     </p>
-                                    <div className='grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'>
+                                    <div className='grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7'>
                                         {youtubeLibraryArtists.map((artist) => (
                                             <ArtistCard
                                                 key={artist.id}
                                                 artist={artist}
                                                 onFollow={handleFollow}
                                                 isFollowing={followArtist.isPending}
+                                                compact
                                             />
                                         ))}
                                     </div>
@@ -504,13 +526,19 @@ export default function Artists() {
                                 ) : visible.length === 0 ? (
                                     emptyState
                                 ) : (
-                                    <div className='grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'>
+                                    {hasActiveSort && browse.data?.pages[0] && (
+                                        <p className='mb-3 text-sm text-gray-500 dark:text-gray-400'>
+                                            {browse.data.pages[0].total.toLocaleString()} artists
+                                        </p>
+                                    )}
+                                    <div className='grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7'>
                                         {visible.map((artist) => (
                                             <ArtistCard
                                                 key={artist.id}
                                                 artist={artist}
                                                 onFollow={handleFollow}
                                                 isFollowing={followArtist.isPending}
+                                                compact
                                             />
                                         ))}
                                     </div>
