@@ -137,7 +137,7 @@ export default function Artists() {
         else navigate("/artists?sort_by=follower_count&order=desc")
     }
 
-    useTitle(tab === "browse" ? "Artists" : tab === "following" ? "Following" : "YouTube Artists")
+    useTitle(tab === "browse" ? "Discover Artists" : tab === "following" ? "Artists You Follow" : "YouTube Artists")
 
     useEffect(() => {
         const timer = setTimeout(() => setDebouncedQuery(query), 250)
