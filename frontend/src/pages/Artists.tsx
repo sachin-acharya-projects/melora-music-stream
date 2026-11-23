@@ -84,6 +84,7 @@ export default function Artists() {
     const [query, setQuery] = useState("")
     const [debouncedQuery, setDebouncedQuery] = useState("")
     const [importingChannelIds, setImportingChannelIds] = useState<Set<string>>(() => new Set())
+    const [importedChannelIds, setImportedChannelIds] = useState<Set<string>>(() => new Set())
     const [followingSource, setFollowingSource] = useState<"all" | "youtube" | "platform">("all")
 
     const tabs: ArtistsTab[] = VALID_TABS
@@ -205,6 +206,7 @@ export default function Artists() {
                 name: artist.name,
                 thumbnail: artist.thumbnail_url,
             })
+            setImportedChannelIds((current) => new Set(current).add(artist.id))
             toast.success(artist.name + " added to your library")
         } catch {
             toast.error("Failed to import " + artist.name)
@@ -485,6 +487,7 @@ export default function Artists() {
                                                 : undefined
                                         }
                                         importingIds={section.key === "suggested" ? importingChannelIds : undefined}
+                                        importedIds={section.key === "suggested" ? importedChannelIds : undefined}
                                         viewAllHref={viewAllHrefFor(section.key)}
                                     />
                                 ))}
