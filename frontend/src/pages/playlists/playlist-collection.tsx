@@ -526,7 +526,7 @@ export function PlaylistCollection({
                                                         title='Followers'
                                                     >
                                                         <Heart className='block h-3 w-3 shrink-0' />
-                                                        <span className='inline-flex items-center leading-none tabular-nums'>{playlist.follower_count}</span>
+                                                        <span className='relative top-px inline-flex items-center leading-none tabular-nums'>{playlist.follower_count}</span>
                                                     </span>
                                                 )}
                                                 {playlist.is_collaborative && (
