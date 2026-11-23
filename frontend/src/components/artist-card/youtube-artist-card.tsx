@@ -63,7 +63,7 @@ export function YouTubeArtistCard({ artist, isImporting, onOpen }: YouTubeArtist
                 ) : (
                     <Play className='h-3 w-3 fill-current' />
                 )}
-                {isImporting ? "Importing..." : artist.is_in_library ? "In library" : "View artist"}
+                {isImporting ? "Importing..." : artist.is_in_library ? "In library" : "Import artist"}
             </span>
         </div>
     )
