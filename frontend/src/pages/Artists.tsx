@@ -526,22 +526,24 @@ export default function Artists() {
                                 ) : visible.length === 0 ? (
                                     emptyState
                                 ) : (
-                                    {hasActiveSort && browse.data?.pages[0] && (
-                                        <p className='mb-3 text-sm text-gray-500 dark:text-gray-400'>
-                                            {browse.data.pages[0].total.toLocaleString()} artists
-                                        </p>
-                                    )}
-                                    <div className='grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7'>
-                                        {visible.map((artist) => (
-                                            <ArtistCard
-                                                key={artist.id}
-                                                artist={artist}
-                                                onFollow={handleFollow}
-                                                isFollowing={followArtist.isPending}
-                                                compact
-                                            />
-                                        ))}
-                                    </div>
+                                    <>
+                                        {hasActiveSort && browse.data?.pages[0] && (
+                                            <p className='mb-3 text-sm text-gray-500 dark:text-gray-400'>
+                                                {browse.data.pages[0].total.toLocaleString()} artists
+                                            </p>
+                                        )}
+                                        <div className='grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7'>
+                                            {visible.map((artist) => (
+                                                <ArtistCard
+                                                    key={artist.id}
+                                                    artist={artist}
+                                                    onFollow={handleFollow}
+                                                    isFollowing={followArtist.isPending}
+                                                    compact
+                                                />
+                                            ))}
+                                        </div>
+                                    </>
                                 )}
 
                                 {tab === "browse" && !isFiltering && browse.hasNextPage && (
