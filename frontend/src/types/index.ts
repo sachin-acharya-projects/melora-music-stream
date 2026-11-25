@@ -194,6 +194,7 @@ export interface YouTubeArtist {
     subscribers: number | null
     url: string
     is_in_library: boolean
+    artist_slug?: string | null
 }
 
 export interface YouTubeArtistSearchResponse {

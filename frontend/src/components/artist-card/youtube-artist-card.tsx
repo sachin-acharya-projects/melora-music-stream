@@ -12,9 +12,9 @@ export function YouTubeArtistCard({ artist, isImporting, onOpen }: YouTubeArtist
     return (
         <div
             onClick={() => onOpen(artist)}
-            className='dark:bg-card group relative cursor-pointer rounded-2xl border border-gray-200 bg-white p-4 text-center shadow-sm transition-all hover:-translate-y-1 hover:border-red-300 hover:shadow-lg dark:border-white/10'
+            className='dark:bg-card group relative cursor-pointer rounded-xl border border-gray-200 bg-white p-3 text-center shadow-sm transition-all hover:-translate-y-1 hover:border-red-300 hover:shadow-lg dark:border-white/10'
         >
-            <div className='relative mx-auto aspect-square w-full overflow-hidden rounded-full'>
+            <div className='relative mx-auto aspect-square w-full max-w-40 overflow-hidden rounded-full'>
                 {artist.thumbnail ? (
                     <img
                         src={artist.thumbnail}
@@ -40,7 +40,7 @@ export function YouTubeArtistCard({ artist, isImporting, onOpen }: YouTubeArtist
                 </span>
             </div>
 
-            <h3 className='mt-3 truncate text-sm font-semibold capitalize dark:text-white'>
+            <h3 className='mt-2 truncate text-sm font-semibold capitalize dark:text-white'>
                 {artist.name}
             </h3>
             <p className='mt-0.5 text-xs text-gray-500 dark:text-gray-400'>
@@ -50,7 +50,7 @@ export function YouTubeArtistCard({ artist, isImporting, onOpen }: YouTubeArtist
             </p>
 
             <span
-                className={`mt-2.5 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${
+                className={`mt-2 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
                     artist.is_in_library
                         ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400"
                         : "bg-red-100 text-red-600 dark:bg-red-950 dark:text-red-400"

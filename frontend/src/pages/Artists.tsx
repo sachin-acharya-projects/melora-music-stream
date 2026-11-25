@@ -168,10 +168,13 @@ export default function Artists() {
     const isFiltering = query.trim().length > 0
     const showFeatured = tab === "browse" && !isFiltering && !hasActiveSort
 
-    const browse = useArtists({
-        ...sort,
-        search: debouncedQuery || undefined,
-    })
+    const browse = useArtists(
+        {
+            ...sort,
+            search: debouncedQuery || undefined,
+        },
+        tab === "browse",
+    )
     const featured = useFeaturedArtists(showFeatured)
     const following = useFollowingArtists(
         {
@@ -202,15 +205,21 @@ export default function Artists() {
     }
 
     const handleYouTubeOpen = async (artist: YouTubeArtist) => {
-        if (artist.is_in_library || importingChannelIds.has(artist.channel_id)) return
+        if (importingChannelIds.has(artist.channel_id)) return
+        if (artist.is_in_library) {
+            if (artist.artist_slug) navigate(`/artists/${artist.artist_slug}`)
+            return
+        }
+
         setArtistImporting(artist.channel_id, true)
         try {
-            await importYouTube.mutateAsync({
+            const imported = await importYouTube.mutateAsync({
                 channel_id: artist.channel_id,
                 name: artist.name,
                 thumbnail: artist.thumbnail || null,
             })
             toast.success(artist.name + " added to your library")
+            navigate(`/artists/${imported.slug}`)
         } catch {
             toast.error("Failed to import " + artist.name)
         } finally {
@@ -457,7 +466,7 @@ export default function Artists() {
                                 </div>
                             </div>
                         ) : (
-                            <div className='grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'>
+                            <div className='grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7'>
                                 {(youtube.data?.items ?? []).map((artist) => (
                                     <YouTubeArtistCard
                                         key={artist.channel_id}
