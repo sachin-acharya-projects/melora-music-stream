@@ -37,10 +37,13 @@ class YouTubeArtistService:
                     "thumbnail": channel["thumbnail"],
                     "subscribers": channel["subscribers"],
                     "url": channel["url"],
-                    "is_in_library": YouTubeChannelService.find_by_channel_id(
-                        db, channel_id
-                    )
-                    is not None,
+                    "is_in_library": (
+                        (library_artist := YouTubeChannelService.find_by_channel_id(
+                            db, channel_id
+                        ))
+                        is not None
+                    ),
+                    "artist_slug": library_artist.slug if library_artist else None,
                 }
             )
         return {"total": len(items), "items": items}
@@ -106,7 +109,9 @@ class YouTubeArtistService:
                     "Failed to upsert channel song %r", song.get("id"), exc_info=True
                 )
 
-        ArtistService.sync_ytmusic_content(db, db_artist, channel_id)
+        # Resolve the separate YouTube Music artist identity. If there is no
+        # exact music-artist match, retain the channel uploads imported above.
+        ArtistService._ensure_ytmusic_catalogue(db, db_artist)
 
         db.refresh(db_artist)
         return {"slug": db_artist.slug, "id": db_artist.id}

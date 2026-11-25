@@ -32,8 +32,11 @@ class YouTubeChannelService:
         normalized = YouTubeChannelService.normalize_channel_id(channel_id)
         if not normalized:
             return None
-        for artist in db.query(ArtistModel).all():
-            external = artist.external_ids or {}
-            if external.get("youtube_channel_id") == normalized:
-                return artist
-        return None
+        return (
+            db.query(ArtistModel)
+            .filter(
+                ArtistModel.external_ids["youtube_channel_id"].as_string()
+                == normalized
+            )
+            .first()
+        )

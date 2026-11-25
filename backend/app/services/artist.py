@@ -1107,8 +1107,14 @@ class ArtistService:
         db_artist = db.query(ArtistModel).filter(ArtistModel.slug == slug).first()
         if db_artist is None:
             raise HTTPException(status_code=404, detail=Messages.ARTIST_NOT_FOUND)
+        # Resolve and synchronize the music catalogue from Songs as well as Albums.
+        ArtistService._ensure_ytmusic_catalogue(db, db_artist)
+        db.refresh(db_artist)
+        if (db_artist.channel_metadata or {}).get("ytmusic_albums") is not None:
+            return ArtistService._song_dicts(db_artist)
+
         channel_id = ArtistService._channel_id(db_artist)
-        if channel_id and not (db_artist.channel_metadata or {}).get("ytmusic_albums"):
+        if channel_id:
             return ArtistService._merge_channel_and_library_songs(
                 db, db_artist, channel_id
             )
@@ -1138,7 +1144,16 @@ class ArtistService:
 
     @staticmethod
     def _resolve_ytmusic_artist_channel(db: Session, artist: ArtistModel) -> str | None:
-        """Resolve a library artist to an exact-name YouTube Music artist channel."""
+        """Resolve an artist to an exact-name YouTube Music artist browse ID.
+
+        Keep this separate from youtube_channel_id: the two providers expose
+        different identifiers and one must never overwrite the other.
+        """
+        external_ids = dict(artist.external_ids or {})
+        existing_id = external_ids.get("ytmusic_artist_id")
+        if existing_id:
+            return str(existing_id)
+
         try:
             ytmusic = YTMusic()
             results = ytmusic.search(artist.name, filter="artists", limit=10)
@@ -1167,15 +1182,23 @@ class ArtistService:
         if match is None:
             return None
 
-        channel_id = str(match["browseId"])
-        external_ids = dict(artist.external_ids or {})
-        external_ids["youtube_channel_id"] = channel_id
+        ytmusic_artist_id = str(match["browseId"])
+        external_ids["ytmusic_artist_id"] = ytmusic_artist_id
         artist.external_ids = external_ids
         db.commit()
+        return ytmusic_artist_id
 
-        ArtistService.sync_ytmusic_content(db, artist, channel_id)
+    @staticmethod
+    def _ensure_ytmusic_catalogue(db: Session, artist: ArtistModel) -> bool:
+        """Import top tracks and album tracks once, regardless of active UI tab."""
+        if (artist.channel_metadata or {}).get("ytmusic_albums") is not None:
+            return True
+        ytmusic_artist_id = ArtistService._resolve_ytmusic_artist_channel(db, artist)
+        if not ytmusic_artist_id:
+            return False
+        ArtistService.sync_ytmusic_content(db, artist, ytmusic_artist_id)
         db.refresh(artist)
-        return channel_id
+        return (artist.channel_metadata or {}).get("ytmusic_albums") is not None
 
     @staticmethod
     def get_artist_albums(db: Session, slug: str) -> dict[str, Any]:
@@ -1189,11 +1212,12 @@ class ArtistService:
         db_artist = db.query(ArtistModel).filter(ArtistModel.slug == slug).first()
         if db_artist is None:
             raise HTTPException(status_code=404, detail=Messages.ARTIST_NOT_FOUND)
-        channel_id = ArtistService._channel_id(db_artist)
-        if not channel_id:
-            channel_id = ArtistService._resolve_ytmusic_artist_channel(db, db_artist)
+        ArtistService._ensure_ytmusic_catalogue(db, db_artist)
+        db.refresh(db_artist)
         if (db_artist.channel_metadata or {}).get("ytmusic_albums") is not None:
             return ArtistService._stored_ytmusic_albums(db_artist)
+
+        channel_id = ArtistService._channel_id(db_artist)
         if not channel_id:
             return {
                 "albums": [

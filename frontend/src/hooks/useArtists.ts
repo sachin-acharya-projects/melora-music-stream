@@ -17,8 +17,11 @@ export function useArtists(options: ArtistSortOptions = {}, enabled = true) {
             artistService.getAll({ ...options, page: pageParam, page_size: ARTISTS_PAGE_SIZE }),
         initialPageParam: 1,
         getNextPageParam: (lastPage, allPages) => {
-            if (lastPage.items.length < ARTISTS_PAGE_SIZE) return undefined
-            return allPages.length + 1
+            const loadedCount = allPages.reduce(
+                (total, page) => total + page.items.length,
+                0,
+            )
+            return loadedCount < lastPage.total ? allPages.length + 1 : undefined
         },
         placeholderData: (previousData) => previousData,
         enabled,
