@@ -1,6 +1,6 @@
 from app.db.models.admin_settings import AdminSettingsModel
 from app.db.models.album import AlbumModel
-from app.db.models.artist import ArtistModel
+from app.db.models.artist import ArtistModel\nfrom app.db.models.artist_identity import ArtistIdentityModel
 from app.db.models.associations import (
     album_favorites,
     playlist_follows,
@@ -29,7 +29,7 @@ from app.db.models.user_stats import UserStatsModel
 __all__ = [
     "AdminSettingsModel",
     "AlbumModel",
-    "ArtistModel",
+    "ArtistModel",\n    "ArtistIdentityModel",
     "BugReportModel",
     "BugReportSeverity",
     "BugReportStatus",
