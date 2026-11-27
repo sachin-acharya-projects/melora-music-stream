@@ -23,9 +23,29 @@ class RecordingEnrichmentQueue:
 
     @staticmethod
     def enqueue_candidates(db: Session, *, limit: int = 100) -> int:
+        # Exclude songs that already have a queue row before applying the
+        # batch limit. Otherwise a page of recent completed/deferred jobs can
+        # starve older songs indefinitely.
+        verified_recording = (
+            db.query(RecordingIdentityModel.id)
+            .filter(
+                RecordingIdentityModel.recording_id == SongModel.recording_id,
+                RecordingIdentityModel.provider == "musicbrainz",
+                RecordingIdentityModel.identity_type == "recording_id",
+            )
+            .exists()
+        )
         songs = (
             db.query(SongModel)
-            .filter(SongModel.artists.any())
+            .outerjoin(
+                RecordingEnrichmentJobModel,
+                RecordingEnrichmentJobModel.song_id == SongModel.id,
+            )
+            .filter(
+                SongModel.artists.any(),
+                RecordingEnrichmentJobModel.id.is_(None),
+                ~verified_recording,
+            )
             .order_by(SongModel.updated_at.desc())
             .limit(limit)
             .all()
@@ -33,24 +53,6 @@ class RecordingEnrichmentQueue:
         queued = 0
         now = datetime.now(UTC).replace(tzinfo=None)
         for song in songs:
-            verified = (
-                db.query(RecordingIdentityModel.id)
-                .filter(
-                    RecordingIdentityModel.recording_id == song.recording_id,
-                    RecordingIdentityModel.provider == "musicbrainz",
-                    RecordingIdentityModel.identity_type == "recording_id",
-                )
-                .first()
-            )
-            if verified:
-                continue
-            existing = (
-                db.query(RecordingEnrichmentJobModel.id)
-                .filter(RecordingEnrichmentJobModel.song_id == song.id)
-                .first()
-            )
-            if existing:
-                continue
             try:
                 # Concurrent app instances can enqueue the same song.
                 # A savepoint keeps the batch transaction usable on conflict.

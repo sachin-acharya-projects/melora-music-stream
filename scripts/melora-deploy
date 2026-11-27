@@ -108,31 +108,60 @@ log "Recreating Melora stack..."
 docker compose -f docker-compose.prod.yml --env-file "$ENV_FILE" up -d --remove-orphans
 
 # --- 6. Health checks (container-internal) ---
-# The stack publishes no host ports: the app is only reachable through the
-# caddy reverse proxy on proxy_net (MELORA_DOMAIN). So instead of curling
-# localhost:PORT, exec into the container and hit its nginx (port 80), which
-# proxies /api/v1 to the backend on localhost:8000.
-log "Health-checking the API (container-internal)..."
+# Match the Compose healthcheck's 120s start period and allow up to 180s for
+# migrations, API startup, and the first successful probe.
+health_diagnostics() {
+    log "Container state:"
+    docker inspect --format '{{json .State}}' melora-fullstack >&2 || true
+    log "Recent application logs:"
+    docker logs --tail 120 melora-fullstack >&2 || true
+    log "Compose service status:"
+    docker compose -f docker-compose.prod.yml --env-file "$ENV_FILE" ps >&2 || true
+}
+
+log "Waiting for the API through Nginx (up to 180 seconds)..."
 API_OK=0
-for _ in $(seq 1 30); do
+for _ in $(seq 1 90); do
     if docker exec melora-fullstack curl -sf -o /dev/null http://localhost/api/v1/openapi.json; then
         API_OK=1
         break
     fi
     sleep 2
 done
-[ "$API_OK" = 1 ] || die "API did not become healthy inside melora-fullstack"
+if [ "$API_OK" != 1 ]; then
+    health_diagnostics
+    die "API did not become healthy inside melora-fullstack"
+fi
 
-log "Health-checking the SPA (container-internal)..."
+log "Waiting for the SPA (up to 30 seconds)..."
 SPA_OK=0
-for _ in $(seq 1 10); do
+for _ in $(seq 1 15); do
     if docker exec melora-fullstack curl -sf -o /dev/null http://localhost/; then
         SPA_OK=1
         break
     fi
     sleep 2
 done
-[ "$SPA_OK" = 1 ] || die "SPA did not become healthy inside melora-fullstack"
+if [ "$SPA_OK" != 1 ]; then
+    health_diagnostics
+    die "SPA did not become healthy inside melora-fullstack"
+fi
+
+log "Waiting for Docker's health status..."
+HEALTHY=0
+for _ in $(seq 1 30); do
+    HEALTH_STATUS="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}missing{{end}}' melora-fullstack 2>/dev/null || true)"
+    if [ "$HEALTH_STATUS" = "healthy" ]; then
+        HEALTHY=1
+        break
+    fi
+    sleep 2
+done
+if [ "$HEALTHY" != 1 ]; then
+    log "Docker health status: ${HEALTH_STATUS:-unknown}"
+    health_diagnostics
+    die "melora-fullstack did not reach Docker healthy state"
+fi
 
 # --- 6.5 Promote the root admin (if ROOT_ADMIN_EMAIL is set) ---
 # The startup bootstrap also promotes this email whenever the container
