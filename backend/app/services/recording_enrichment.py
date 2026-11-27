@@ -25,7 +25,7 @@ class RecordingEnrichmentQueue:
     def enqueue_candidates(db: Session, *, limit: int = 100) -> int:
         songs = (
             db.query(SongModel)
-            .filter(SongModel.recording_id.is_not(None), SongModel.artists.any())
+            .filter(SongModel.artists.any())
             .order_by(SongModel.updated_at.desc())
             .limit(limit)
             .all()
