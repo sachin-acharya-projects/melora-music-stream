@@ -5,7 +5,8 @@ from __future__ import annotations
 import logging
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import and_, or_, update
+from sqlalchemy import update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -50,15 +51,22 @@ class RecordingEnrichmentQueue:
             )
             if existing:
                 continue
-            db.add(
-                RecordingEnrichmentJobModel(
-                    song_id=song.id,
-                    status="pending",
-                    attempts=0,
-                    available_at=now,
-                )
-            )
-            queued += 1
+            try:
+                # Concurrent app instances can enqueue the same song.
+                # A savepoint keeps the batch transaction usable on conflict.
+                with db.begin_nested():
+                    db.add(
+                        RecordingEnrichmentJobModel(
+                            song_id=song.id,
+                            status="pending",
+                            attempts=0,
+                            available_at=now,
+                        )
+                    )
+                    db.flush()
+                queued += 1
+            except IntegrityError:
+                continue
         if queued:
             db.commit()
         return queued
@@ -66,6 +74,17 @@ class RecordingEnrichmentQueue:
     @staticmethod
     def process_one(db: Session) -> bool:
         now = datetime.now(UTC).replace(tzinfo=None)
+        # Recover leases abandoned by a crashed process/container.
+        stale_before = now - timedelta(minutes=15)
+        db.execute(
+            update(RecordingEnrichmentJobModel)
+            .where(
+                RecordingEnrichmentJobModel.status == "processing",
+                RecordingEnrichmentJobModel.locked_at < stale_before,
+            )
+            .values(status="pending", locked_at=None, available_at=now)
+        )
+        db.commit()
         job = (
             db.query(RecordingEnrichmentJobModel)
             .filter(
