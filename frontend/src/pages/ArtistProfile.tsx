@@ -216,7 +216,7 @@ export default function ArtistProfile() {
                     )}
 
                     {artist.bio && (
-                        <p className='mt-3 max-w-xl text-sm text-gray-500 dark:text-gray-400'>
+                        <p className='mt-3 line-clamp-2 max-w-xl text-sm text-gray-500 dark:text-gray-400'>
                             {artist.bio}
                         </p>
                     )}
