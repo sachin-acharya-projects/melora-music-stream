@@ -7,15 +7,14 @@ multiple playable sources after a confident metadata match.
 
 from __future__ import annotations
 
-from typing import Any
 import logging
 import re
 import threading
 import time
 import unicodedata
+from typing import Any
 
 import httpx
-
 from sqlalchemy.orm import Session
 
 from app.db.models.recording import RecordingModel
@@ -72,7 +71,7 @@ class RecordingService:
         recording = RecordingModel(
             title=song.title,
             duration=song.duration,
-            metadata={"identity_status": "provisional"},
+            recording_metadata={"identity_status": "provisional"},
         )
         db.add(recording)
         db.flush()
@@ -173,7 +172,7 @@ class RecordingService:
             credits = item.get("artist-credit") or []
             credit_names = {
                 _normalize_music_text(
-                    str(credit.get("name") or credit.get("artist", {}).get("name") or "")
+                    str(credit.get("name") or (credit.get("artist") or {}).get("name") or "")
                 )
                 for credit in credits
                 if isinstance(credit, dict)
