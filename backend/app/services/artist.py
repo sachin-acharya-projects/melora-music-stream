@@ -16,6 +16,7 @@ from app.core.config import settings
 from app.core.messages import Messages
 from app.db.base import SessionLocal
 from app.db.models.artist import ArtistModel
+from app.db.models.artist_identity import ArtistIdentityModel
 from app.db.models.associations import song_artist, user_artist_follows
 from app.db.models.listening_history import ListeningHistoryModel
 from app.db.models.song import SongModel
@@ -238,6 +239,9 @@ class ArtistService:
             "is_following": current_user_id is not None
             and any(f.id == current_user_id for f in artist.followers),
             "is_enriched": artist.enriched_at is not None,
+            "entity_type": artist.entity_type or "unknown",
+            "identity_status": artist.identity_status or "unverified",
+            "identity_confidence": artist.identity_confidence,
             "is_from_youtube": bool(
                 (artist.external_ids or {}).get("youtube_channel_id")
             ),
@@ -1367,10 +1371,39 @@ class ArtistService:
 
         for key, value in fields.items():
             if key == "external_ids":
-                db_artist.external_ids = {
-                    **dict(db_artist.external_ids or {}),
-                    **value,
-                }
+                current_ids = dict(db_artist.external_ids or {})
+                for legacy_key, external_id in value.items():
+                    if not external_id:
+                        continue
+                    provider = legacy_key.removesuffix("_id")
+                    existing_identity = (
+                        db.query(ArtistIdentityModel)
+                        .filter(
+                            ArtistIdentityModel.provider == provider,
+                            ArtistIdentityModel.external_id == str(external_id),
+                        )
+                        .first()
+                    )
+                    if existing_identity is not None and existing_identity.artist_id != db_artist.id:
+                        logger.warning(
+                            "Skipping conflicting %s identity %s for artist %s",
+                            provider, external_id, db_artist.id,
+                        )
+                        continue
+                    if existing_identity is None:
+                        db.add(ArtistIdentityModel(
+                            artist_id=db_artist.id,
+                            provider=provider,
+                            external_id=str(external_id),
+                            is_primary=True,
+                        ))
+                    current_ids[legacy_key] = str(external_id)
+                db_artist.external_ids = current_ids
+            elif key == "identity":
+                db_artist.entity_type = value.get("entity_type", "unknown")
+                db_artist.identity_status = value.get("status", "unverified")
+                db_artist.identity_confidence = value.get("confidence")
+                db_artist.identity_source = value.get("source")
             else:
                 setattr(db_artist, key, value)
         db_artist.enriched_at = datetime.now(UTC)

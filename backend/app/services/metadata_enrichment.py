@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+import re
+import unicodedata
 from typing import Any
 
 import httpx
@@ -60,14 +62,47 @@ class ArtistEnricher:
     @staticmethod
     def enrich(name: str) -> dict[str, Any] | None:
         """Look up an artist and return fields to merge into the ArtistModel."""
-        results = ArtistEnricher.search(name, limit=1)
+        results = ArtistEnricher.search(name, limit=10)
         if not results:
             return None
-        best = results[0]
-        fields: dict[str, Any] = {"external_ids": {"musicbrainz_id": best.get("id")}}
+
+        def normalize(value: str) -> str:
+            decomposed = unicodedata.normalize("NFKD", value).casefold()
+            plain = "".join(ch for ch in decomposed if not unicodedata.combining(ch))
+            return re.sub(r"[^a-z0-9]+", "", plain)
+
+        requested_name = normalize(name)
+        exact_matches = [
+            item for item in results
+            if normalize(str(item.get("name") or "")) == requested_name
+            and int(item.get("score") or 0) >= 95
+            and item.get("id")
+        ]
+        if len(exact_matches) != 1:
+            logger.info(
+                "MusicBrainz identity unresolved for %r (%d exact candidates)",
+                name, len(exact_matches),
+            )
+            return None
+
+        best = exact_matches[0]
+        mbid = str(best["id"])
+        entity_type = {
+            "Person": "person", "Group": "group", "Orchestra": "orchestra",
+            "Choir": "choir", "Character": "character", "Other": "other",
+        }.get(str(best.get("type") or ""), "unknown")
+        fields: dict[str, Any] = {
+            "external_ids": {"musicbrainz_id": mbid},
+            "identity": {
+                "entity_type": entity_type,
+                "status": "verified",
+                "confidence": min(1.0, int(best.get("score") or 0) / 100),
+                "source": "musicbrainz",
+            },
+        }
         if best.get("disambiguation"):
             fields["bio"] = best["disambiguation"]
-        genres = ArtistEnricher.artist_genres(best["id"])
+        genres = ArtistEnricher.artist_genres(mbid)
         if genres:
             fields["genres"] = genres
         return fields

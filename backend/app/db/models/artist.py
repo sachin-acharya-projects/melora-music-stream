@@ -3,13 +3,14 @@ from __future__ import annotations
 from datetime import datetime  # noqa: TC003 - runtime-evaluated by SQLAlchemy
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import JSON, Boolean, Integer, String
+from sqlalchemy import Boolean, Float, Integer, JSON, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import BaseModel
 from app.db.models.associations import song_artist, user_artist_follows
 
 if TYPE_CHECKING:
+    from app.db.models.artist_identity import ArtistIdentityModel
     from app.db.models.release import ReleaseModel
     from app.db.models.song import SongModel
     from app.db.models.user import UserModel
@@ -36,6 +37,10 @@ class ArtistModel(BaseModel):
     is_featured: Mapped[bool] = mapped_column(Boolean, default=False)
     is_published: Mapped[bool] = mapped_column(Boolean, default=True)
     enriched_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    entity_type: Mapped[str] = mapped_column(String, default="unknown", index=True)
+    identity_status: Mapped[str] = mapped_column(String, default="unverified", index=True)
+    identity_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+    identity_source: Mapped[str | None] = mapped_column(String, nullable=True)
 
     songs: Mapped[list[SongModel]] = relationship(
         "SongModel",
@@ -47,6 +52,13 @@ class ArtistModel(BaseModel):
         "UserModel",
         secondary=user_artist_follows,
         back_populates="followed_artists",
+        lazy="selectin",
+    )
+
+    identities: Mapped[list[ArtistIdentityModel]] = relationship(
+        "ArtistIdentityModel",
+        back_populates="artist",
+        cascade="all, delete-orphan",
         lazy="selectin",
     )
 
