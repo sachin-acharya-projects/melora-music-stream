@@ -290,19 +290,70 @@ class RecordingService:
             {"fmt": "json", "inc": "isrcs+artists"},
         )
 
-        recording = RecordingService.ensure_recording_for_song(db, song)
-        try:
-            RecordingService.add_identity(
-                db,
-                recording=recording,
-                provider="musicbrainz",
-                identity_type="recording_id",
-                external_id=str(candidate["id"]),
-                provider_metadata={"score": candidate.get("score")},
+        musicbrainz_recording_id = str(candidate["id"])
+        verified_identity = (
+            db.query(RecordingIdentityModel)
+            .filter(
+                RecordingIdentityModel.provider == "musicbrainz",
+                RecordingIdentityModel.identity_type == "recording_id",
+                RecordingIdentityModel.external_id == musicbrainz_recording_id,
             )
-        except RecordingIdentityConflict:
-            logger.warning("MusicBrainz recording ID already belongs to another recording")
-            return None
+            .one_or_none()
+        )
+
+        current_recording = song.recording
+        if current_recording is not None:
+            conflicting_identity = (
+                db.query(RecordingIdentityModel)
+                .filter(
+                    RecordingIdentityModel.recording_id == current_recording.id,
+                    RecordingIdentityModel.provider == "musicbrainz",
+                    RecordingIdentityModel.identity_type == "recording_id",
+                    RecordingIdentityModel.external_id != musicbrainz_recording_id,
+                )
+                .first()
+            )
+            if conflicting_identity is not None:
+                logger.warning(
+                    "Song %s already belongs to a different verified MusicBrainz recording",
+                    song.id,
+                )
+                return None
+
+        # Multiple playable sources (for example, an official video and an
+        # audio upload) may resolve to the same recording. Reuse that verified
+        # canonical row instead of leaving duplicate provisional recordings.
+        if verified_identity is not None:
+            recording = db.get(RecordingModel, verified_identity.recording_id)
+            if recording is None:
+                logger.error(
+                    "MusicBrainz identity %s points to missing recording %s",
+                    musicbrainz_recording_id,
+                    verified_identity.recording_id,
+                )
+                return None
+            if current_recording is None or current_recording.id != recording.id:
+                song.recording = recording
+                db.flush()
+        else:
+            recording = RecordingService.ensure_recording_for_song(db, song)
+            try:
+                RecordingService.add_identity(
+                    db,
+                    recording=recording,
+                    provider="musicbrainz",
+                    identity_type="recording_id",
+                    external_id=musicbrainz_recording_id,
+                    provider_metadata={"score": candidate.get("score")},
+                )
+            except RecordingIdentityConflict:
+                # A concurrent worker may have inserted the identity after
+                # the lookup. Roll back rather than reassigning identities.
+                db.rollback()
+                logger.warning(
+                    "MusicBrainz recording ID was concurrently assigned elsewhere"
+                )
+                return None
 
         # Reconcile release tracks using the persisted provider ID, never title.
         db.query(ReleaseTrackModel).filter(
