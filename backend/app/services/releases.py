@@ -1,10 +1,9 @@
 """Followed-artist release detection and notification.
 
 The refresh step is the only thing that talks to YouTube Music: it pulls each
-followed artist's albums/singles through the cached ``YTMusicService`` and
-upserts them into ``ReleaseModel``. Everything else (the feed endpoint, the
-"is this new" flag, the notification creation) is a pure DB read, so page
-loads never touch the network.
+followed artist's albums/singles through the cached YTMusicService and upserts
+them into ReleaseModel. Provider IDs are mirrored into ReleaseIdentityModel;
+legacy columns remain populated for existing consumers during migration.
 """
 
 from __future__ import annotations
@@ -17,6 +16,7 @@ from app.core.config import settings
 from app.db.models.artist import ArtistModel
 from app.db.models.notification import NotificationModel
 from app.db.models.release import ReleaseModel
+from app.db.models.release_identity import ReleaseIdentityModel
 from app.services.notifications import notification_service
 from app.services.ytmusic import ytmusic_service
 
@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 def _parse_iso_date(value: str | None) -> datetime | None:
-    """Parse a ``YYYY-MM-DD`` string into a UTC datetime, or ``None``."""
+    """Parse a YYYY-MM-DD string into a UTC datetime, or None."""
     if not value:
         return None
     try:
@@ -47,12 +47,38 @@ class ReleaseService:
     """Store and serve releases from followed artists."""
 
     @staticmethod
-    def refresh_followed_artists(db: Session) -> int:
-        """Re-sync releases for every artist followed by at least one user.
+    def _sync_identity(
+        db: Session,
+        *,
+        release: ReleaseModel,
+        identity_type: str,
+        external_id: str | None,
+    ) -> None:
+        if not external_id:
+            return
+        existing = (
+            db.query(ReleaseIdentityModel)
+            .filter(
+                ReleaseIdentityModel.release_id == release.id,
+                ReleaseIdentityModel.provider == "youtube_music",
+                ReleaseIdentityModel.identity_type == identity_type,
+                ReleaseIdentityModel.external_id == str(external_id),
+            )
+            .first()
+        )
+        if existing is None:
+            db.add(
+                ReleaseIdentityModel(
+                    release_id=release.id,
+                    provider="youtube_music",
+                    identity_type=identity_type,
+                    external_id=str(external_id),
+                )
+            )
 
-        Returns the number of release rows upserted. Each artist's YTMusic
-        payload is cached, so repeated runs stay cheap.
-        """
+    @staticmethod
+    def refresh_followed_artists(db: Session) -> int:
+        """Re-sync releases for every artist followed by at least one user."""
         artists = (
             db.query(ArtistModel)
             .filter(ArtistModel.followers.any())
@@ -95,18 +121,19 @@ class ReleaseService:
             release_date = _parse_iso_date(raw.get("release_date"))
             stored = existing.get((browse_id, artist.id))
             if stored is None:
-                db.add(
-                    ReleaseModel(
-                        artist_id=artist.id,
-                        release_type=raw.get("release_type") or "album",
-                        title=raw.get("title") or "Untitled",
-                        cover_image_url=raw.get("cover_image_url"),
-                        release_date=release_date,
-                        year=raw.get("year"),
-                        browse_id=browse_id,
-                        audio_playlist_id=raw.get("audio_playlist_id"),
-                    )
+                stored = ReleaseModel(
+                    artist_id=artist.id,
+                    release_type=raw.get("release_type") or "album",
+                    title=raw.get("title") or "Untitled",
+                    cover_image_url=raw.get("cover_image_url"),
+                    release_date=release_date,
+                    year=raw.get("year"),
+                    browse_id=browse_id,
+                    audio_playlist_id=raw.get("audio_playlist_id"),
                 )
+                db.add(stored)
+                db.flush()
+                existing[(browse_id, artist.id)] = stored
             else:
                 stored.title = raw.get("title") or stored.title
                 stored.cover_image_url = raw.get("cover_image_url") or stored.cover_image_url
@@ -116,6 +143,16 @@ class ReleaseService:
                 stored.audio_playlist_id = (
                     raw.get("audio_playlist_id") or stored.audio_playlist_id
                 )
+
+            ReleaseService._sync_identity(
+                db, release=stored, identity_type="browse_id", external_id=browse_id
+            )
+            ReleaseService._sync_identity(
+                db,
+                release=stored,
+                identity_type="audio_playlist_id",
+                external_id=raw.get("audio_playlist_id"),
+            )
             count += 1
         db.commit()
         return count
@@ -129,17 +166,11 @@ class ReleaseService:
         offset: int = 0,
         artist_id: str | None = None,
     ) -> dict[str, Any]:
-        """Releases from artists the user follows, newest first.
-
-        Each item carries ``is_new`` = a release within the recency window
-        that has not yet produced an in-app notification for this user.
-        """
+        """Releases from artists the user follows, newest first."""
         artist_ids = [a.id for a in user.followed_artists]
         if not artist_ids:
             return {"total": 0, "items": []}
 
-        # SQLite round-trips datetimes as naive, so compare against a naive
-        # cutoff (UTC) the same way stats.py does.
         cutoff = datetime.now(UTC).replace(tzinfo=None) - timedelta(
             days=settings.RELEASES_RECENCY_DAYS
         )
@@ -207,11 +238,7 @@ class ReleaseService:
 
     @staticmethod
     def notify_new_releases(db: Session, *, user: UserModel) -> int:
-        """Create in-app notifications for unseen recent releases.
-
-        Called from the background job after a refresh. Returns the number of
-        notifications dispatched.
-        """
+        """Create in-app notifications for unseen recent releases."""
         releases = ReleaseService.get_followed_releases(
             db, user=user, limit=settings.RELEASES_PAGE_SIZE_MAX
         )
