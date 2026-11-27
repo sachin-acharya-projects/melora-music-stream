@@ -15,7 +15,8 @@ from ytmusicapi import YTMusic
 from app.core.config import settings
 from app.core.messages import Messages
 from app.db.base import SessionLocal
-from app.db.models.artist import ArtistModel\nfrom app.db.models.artist_identity import ArtistIdentityModel
+from app.db.models.artist import ArtistModel
+from app.db.models.artist_identity import ArtistIdentityModel
 from app.db.models.associations import song_artist, user_artist_follows
 from app.db.models.listening_history import ListeningHistoryModel
 from app.db.models.song import SongModel
@@ -238,6 +239,9 @@ class ArtistService:
             "is_following": current_user_id is not None
             and any(f.id == current_user_id for f in artist.followers),
             "is_enriched": artist.enriched_at is not None,
+            "entity_type": artist.entity_type or "unknown",
+            "identity_status": artist.identity_status or "unverified",
+            "identity_confidence": artist.identity_confidence,
             "is_from_youtube": bool(
                 (artist.external_ids or {}).get("youtube_channel_id")
             ),
