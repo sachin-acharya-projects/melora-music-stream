@@ -140,6 +140,21 @@ class RecordingService:
         Requires linked artist credits; uploader/channel names are not treated
         as artist credits. This method never merges existing recordings.
         """
+        # A stored MusicBrainz identity is the durable cache; avoid repeating
+        # upstream requests on subsequent worker cycles.
+        if song.recording is not None:
+            existing_mb = (
+                db.query(RecordingIdentityModel)
+                .filter(
+                    RecordingIdentityModel.recording_id == song.recording.id,
+                    RecordingIdentityModel.provider == "musicbrainz",
+                    RecordingIdentityModel.identity_type == "recording_id",
+                )
+                .first()
+            )
+            if existing_mb is not None:
+                return song.recording
+
         artist_names = [artist.name for artist in song.artists if artist.name]
         if not song.title or not artist_names:
             return None
