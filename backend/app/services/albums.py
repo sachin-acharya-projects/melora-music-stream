@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.models.album import AlbumModel
+from app.db.models.release import ReleaseModel
 from app.services.ytmusic import ytmusic_service
 
 
@@ -44,6 +45,21 @@ class AlbumService:
                 album.audio_playlist_id = payload["audio_playlist_id"]
         if not album.title:
             album.title = "Untitled"
+
+        # Link the saved album to an existing canonical release only when the
+        # provider browse ID identifies exactly one release. Never guess from
+        # a title or artist display name, and never create duplicate releases.
+        if album.release_id is None:
+            release_query = db.query(ReleaseModel).filter(
+                ReleaseModel.browse_id == browse_id
+            )
+            if album.artist_id:
+                release_query = release_query.filter(
+                    ReleaseModel.artist_id == album.artist_id
+                )
+            matches = release_query.limit(2).all()
+            if len(matches) == 1:
+                album.release_id = matches[0].id
 
         # Flush so the generated id is available for the favorites link.
         db.flush()
