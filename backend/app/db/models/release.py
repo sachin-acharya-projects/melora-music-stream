@@ -10,15 +10,15 @@ from app.db.base import BaseModel
 
 if TYPE_CHECKING:
     from app.db.models.artist import ArtistModel
+    from app.db.models.release_identity import ReleaseIdentityModel
 
 
 class ReleaseModel(BaseModel):
-    """A release (album or single) from a followed artist, discovered via
-    YouTube Music.
+    """A release (album or single) tracked by Melora.
 
-    Tracked so the app can (a) serve a per-user "new releases from artists you
-    follow" feed straight from the DB and (b) diff against what each user has
-    already been notified about.
+    Provider-specific identifiers live in ReleaseIdentityModel. The legacy
+    browse_id and audio_playlist_id columns remain during the compatibility
+    period so existing API consumers and notifications continue to work.
     """
 
     artist_id: Mapped[str] = mapped_column(
@@ -35,6 +35,12 @@ class ReleaseModel(BaseModel):
     artist: Mapped[ArtistModel] = relationship(
         "ArtistModel",
         back_populates="releases",
+        lazy="selectin",
+    )
+    identities: Mapped[list[ReleaseIdentityModel]] = relationship(
+        "ReleaseIdentityModel",
+        back_populates="release",
+        cascade="all, delete-orphan",
         lazy="selectin",
     )
 
