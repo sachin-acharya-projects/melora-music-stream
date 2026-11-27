@@ -1,6 +1,6 @@
 import { type ArtistMoreInfo } from "@/types"
 import { BadgeCheck, ExternalLink, Globe, X } from "lucide-react"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 
 interface ArtistMoreInfoModalProps {
     artistName: string
@@ -18,6 +18,8 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 export function ArtistMoreInfoModal({ artistName, info, onClose }: ArtistMoreInfoModalProps) {
+    const [descriptionExpanded, setDescriptionExpanded] = useState(false)
+
     useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
             if (event.key === "Escape") onClose()
@@ -41,7 +43,7 @@ export function ArtistMoreInfoModal({ artistName, info, onClose }: ArtistMoreInf
             onClick={onClose}
         >
             <div
-                className='max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-2xl border bg-white p-6 shadow-2xl dark:border-white/10 dark:bg-black'
+                className='max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-2xl border bg-white p-6 shadow-2xl dark:border-white/10 dark:bg-black sm:p-7'
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className='mb-4 flex items-center justify-between'>
@@ -62,9 +64,35 @@ export function ArtistMoreInfoModal({ artistName, info, onClose }: ArtistMoreInf
                 </div>
 
                 {info.description && (
-                    <p className='text-sm whitespace-pre-line text-gray-600 dark:text-gray-300'>
-                        {info.description}
-                    </p>
+                    <section className='mt-2'>
+                        <h4 className='mb-2 text-sm font-semibold text-gray-800 dark:text-gray-100'>
+                            About {artistName}
+                        </h4>
+                        <p
+                            className='text-sm leading-6 whitespace-pre-line text-gray-600 dark:text-gray-300'
+                            style={
+                                descriptionExpanded
+                                    ? undefined
+                                    : {
+                                          display: "-webkit-box",
+                                          WebkitBoxOrient: "vertical",
+                                          WebkitLineClamp: 3,
+                                          overflow: "hidden",
+                                      }
+                            }
+                        >
+                            {info.description}
+                        </p>
+                        {info.description.length > 220 && (
+                            <button
+                                type='button'
+                                onClick={() => setDescriptionExpanded((expanded) => !expanded)}
+                                className='mt-2 cursor-pointer text-sm font-semibold text-red-600 transition-colors hover:text-red-700 dark:text-red-400'
+                            >
+                                {descriptionExpanded ? "Show less" : "Show more"}
+                            </button>
+                        )}
+                    </section>
                 )}
 
                 {stats.length > 0 && (
