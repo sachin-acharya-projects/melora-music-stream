@@ -12,6 +12,8 @@ if TYPE_CHECKING:
 
 
 class ArtistIdentityModel(BaseModel):
+    __tablename__ = "artist_identities"
+
     """A provider-specific identity attached to a Melora canonical artist.
 
     ArtistModel.id remains Melora's stable internal identifier. Provider IDs
