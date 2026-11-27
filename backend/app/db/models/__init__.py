@@ -24,6 +24,7 @@ from app.db.models.playlist_share import PlaylistShareModel
 from app.db.models.release import ReleaseModel
 from app.db.models.recording import RecordingModel
 from app.db.models.recording_identity import RecordingIdentityModel
+from app.db.models.recording_enrichment_job import RecordingEnrichmentJobModel
 from app.db.models.release_identity import ReleaseIdentityModel
 from app.db.models.search_history import SearchHistoryModel
 from app.db.models.song import SongModel
@@ -47,6 +48,7 @@ __all__ = [
     "ReleaseModel",
     "RecordingModel",
     "RecordingIdentityModel",
+    "RecordingEnrichmentJobModel",
     "ReleaseIdentityModel",
     "SearchHistoryModel",
     "SongModel",
