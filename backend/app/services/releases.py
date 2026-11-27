@@ -171,13 +171,10 @@ class ReleaseService:
         release/release-group IDs are attached as identities; track rows are
         replaced only after a valid, non-empty provider tracklist is retrieved.
         """
-        import re
-
         from app.db.models.recording_identity import RecordingIdentityModel
         from app.db.models.release_track import ReleaseTrackModel
         from app.db.models.song import SongModel
         from app.services.recordings import (
-            MUSICBRAINZ_HEADERS,
             _musicbrainz_get,
             _normalize_music_text,
         )
@@ -207,14 +204,10 @@ class ReleaseService:
             for name in artist_names
         ]
         query = 'release:"' + escaped_title + '" AND ' + " AND ".join(artist_clauses)
-        try:
-            search = _musicbrainz_get(
-                "https://musicbrainz.org/ws/2/release",
-                {"query": query, "fmt": "json", "limit": "10"},
-            )
-        except Exception:
-            logger.warning("MusicBrainz release search failed for %s", release.id, exc_info=True)
-            return 0
+        search = _musicbrainz_get(
+            "https://musicbrainz.org/ws/2/release",
+            {"query": query, "fmt": "json", "limit": "10"},
+        )
 
         expected_title = _normalize_music_text(release.title)
         expected_artists = {_normalize_music_text(name) for name in artist_names}
@@ -247,14 +240,10 @@ class ReleaseService:
             return 0
 
         candidate = matches[0]
-        try:
-            detail = _musicbrainz_get(
-                f"https://musicbrainz.org/ws/2/release/{candidate['id']}",
-                {"fmt": "json", "inc": "recordings+artist-credits+release-groups"},
-            )
-        except Exception:
-            logger.warning("MusicBrainz release detail failed for %s", candidate["id"], exc_info=True)
-            return 0
+        detail = _musicbrainz_get(
+            f"https://musicbrainz.org/ws/2/release/{candidate['id']}",
+            {"fmt": "json", "inc": "recordings+artist-credits+release-groups"},
+        )
 
         media = detail.get("media") or []
         track_specs = []
