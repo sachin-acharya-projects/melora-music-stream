@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from sqlalchemy import ForeignKey, Integer, String, UniqueConstraint
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import BaseModel
+
+if TYPE_CHECKING:
+    from app.db.models.release import ReleaseModel
 
 
 class AlbumModel(BaseModel):
@@ -25,5 +30,15 @@ class AlbumModel(BaseModel):
     )
     thumbnail_url: Mapped[str | None] = mapped_column(String, nullable=True)
     year: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    release_id: Mapped[str | None] = mapped_column(
+        String,
+        ForeignKey("releases.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    release: Mapped[ReleaseModel | None] = relationship(
+        "ReleaseModel", back_populates="favorite_albums", lazy="selectin"
+    )
 
     __table_args__ = (UniqueConstraint("browse_id", name="uq_albums_browse_id"),)
