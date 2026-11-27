@@ -28,6 +28,7 @@ from app.db.models.recording import RecordingModel
 from app.db.models.recording_identity import RecordingIdentityModel
 from app.db.models.recording_enrichment_job import RecordingEnrichmentJobModel
 from app.db.models.release_identity import ReleaseIdentityModel
+from app.db.models.release_enrichment_job import ReleaseEnrichmentJobModel
 from app.db.models.search_history import SearchHistoryModel
 from app.db.models.song import SongModel
 from app.db.models.user import UserModel, UserRole
@@ -53,6 +54,7 @@ __all__ = [
     "RecordingIdentityModel",
     "RecordingEnrichmentJobModel",
     "ReleaseIdentityModel",
+    "ReleaseEnrichmentJobModel",
     "SearchHistoryModel",
     "SongModel",
     "UserModel",
