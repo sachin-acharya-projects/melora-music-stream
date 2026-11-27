@@ -44,7 +44,10 @@ class ReleaseModel(BaseModel):
         "AlbumModel", back_populates="release", lazy="selectin"
     )
     credited_artists: Mapped[list[ArtistModel]] = relationship(
-        "ArtistModel", secondary=release_artist, lazy="selectin"
+        "ArtistModel",
+        secondary=release_artist,
+        back_populates="credited_releases",
+        lazy="selectin",
     )
     tracks: Mapped[list[ReleaseTrackModel]] = relationship(
         "ReleaseTrackModel", back_populates="release", cascade="all, delete-orphan",

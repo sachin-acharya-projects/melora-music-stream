@@ -23,8 +23,15 @@ class ReleaseEnrichmentQueue:
 
     @staticmethod
     def enqueue_candidates(db: Session, *, limit: int = 100) -> int:
+        # Exclude releases that already have a job in SQL, rather than
+        # repeatedly scanning the newest N releases and starving older rows.
         releases = (
             db.query(ReleaseModel)
+            .outerjoin(
+                ReleaseEnrichmentJobModel,
+                ReleaseEnrichmentJobModel.release_id == ReleaseModel.id,
+            )
+            .filter(ReleaseEnrichmentJobModel.id.is_(None))
             .order_by(ReleaseModel.updated_at.desc())
             .limit(limit)
             .all()
@@ -39,13 +46,6 @@ class ReleaseEnrichmentQueue:
                 and identity.identity_type == "release_id"
                 for identity in release.identities
             ):
-                continue
-            existing = (
-                db.query(ReleaseEnrichmentJobModel.id)
-                .filter(ReleaseEnrichmentJobModel.release_id == release.id)
-                .first()
-            )
-            if existing:
                 continue
             try:
                 with db.begin_nested():
