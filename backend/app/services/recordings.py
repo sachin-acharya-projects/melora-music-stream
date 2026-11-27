@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 
 from app.db.models.recording import RecordingModel
 from app.db.models.recording_identity import RecordingIdentityModel
+from app.db.models.release_track import ReleaseTrackModel
 from app.db.models.song import SongModel
 
 logger = logging.getLogger(__name__)
@@ -302,6 +303,17 @@ class RecordingService:
         except RecordingIdentityConflict:
             logger.warning("MusicBrainz recording ID already belongs to another recording")
             return None
+
+        # Reconcile release tracks using the persisted provider ID, never title.
+        db.query(ReleaseTrackModel).filter(
+            ReleaseTrackModel.musicbrainz_recording_id == str(candidate["id"])
+        ).update(
+            {
+                ReleaseTrackModel.recording_id: recording.id,
+                ReleaseTrackModel.source_song_id: song.id,
+            },
+            synchronize_session=False,
+        )
 
         for isrc in detail.get("isrcs", []):
             code = str(isrc).strip().upper()

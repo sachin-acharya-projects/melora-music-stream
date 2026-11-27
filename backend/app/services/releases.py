@@ -189,7 +189,9 @@ class ReleaseService:
             )
             .first()
         )
-        if cached is not None and release.tracks:
+        if cached is not None and release.tracks and all(
+            track.musicbrainz_recording_id for track in release.tracks
+        ):
             return len(release.tracks)
 
         artist_names = [artist.name for artist in release.credited_artists]
@@ -323,6 +325,7 @@ class ReleaseService:
                     disc_number=spec["disc_number"],
                     duration=spec["duration"],
                     musicbrainz_track_id=spec["track_id"],
+                    musicbrainz_recording_id=spec["recording_mbid"],
                 )
             )
 

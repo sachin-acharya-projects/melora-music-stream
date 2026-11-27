@@ -67,6 +67,14 @@ services:
     depends_on:
       redis:
         condition: service_started
+    healthcheck:
+      # Check through Nginx so this verifies both the frontend proxy and API.
+      # curl is installed in the final full-stack image.
+      test: ["CMD-SHELL", "curl -fsS http://localhost/api/v1/openapi.json >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
     volumes:
       - melora_data:/app/data
     # ----------------------------------------------------------------------

@@ -35,6 +35,7 @@ class ReleaseTrackModel(BaseModel):
     disc_number: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     duration: Mapped[int | None] = mapped_column(Integer, nullable=True)
     musicbrainz_track_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    musicbrainz_recording_id: Mapped[str | None] = mapped_column(String, nullable=True)
 
     release: Mapped[ReleaseModel] = relationship("ReleaseModel", back_populates="tracks")
     recording: Mapped[RecordingModel | None] = relationship(
@@ -49,4 +50,5 @@ class ReleaseTrackModel(BaseModel):
         ),
         Index("ix_release_tracks_recording_id", "recording_id"),
         Index("ix_release_tracks_source_song_id", "source_song_id"),
+        Index("ix_release_tracks_musicbrainz_recording_id", "musicbrainz_recording_id"),
     )
