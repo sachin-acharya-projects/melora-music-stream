@@ -157,6 +157,232 @@ class ReleaseService:
         db.commit()
         return count
 
+
+    @staticmethod
+    def enrich_release_from_musicbrainz(
+        db: Session,
+        release: ReleaseModel,
+        *,
+        minimum_score: int = 95,
+    ) -> int:
+        """Resolve a release conservatively and synchronize its complete tracklist.
+
+        The existing Melora release row remains the catalogue object. MusicBrainz
+        release/release-group IDs are attached as identities; track rows are
+        replaced only after a valid, non-empty provider tracklist is retrieved.
+        """
+        import re
+
+        from app.db.models.recording_identity import RecordingIdentityModel
+        from app.db.models.release_track import ReleaseTrackModel
+        from app.db.models.song import SongModel
+        from app.services.recordings import (
+            MUSICBRAINZ_HEADERS,
+            _musicbrainz_get,
+            _normalize_music_text,
+        )
+
+        # Do not repeat upstream calls once this release has been resolved.
+        cached = (
+            db.query(ReleaseIdentityModel)
+            .filter(
+                ReleaseIdentityModel.release_id == release.id,
+                ReleaseIdentityModel.provider == "musicbrainz",
+                ReleaseIdentityModel.identity_type == "release_id",
+            )
+            .first()
+        )
+        if cached is not None and release.tracks:
+            return len(release.tracks)
+
+        artist_names = [artist.name for artist in release.credited_artists]
+        if not artist_names and release.artist is not None:
+            artist_names = [release.artist.name]
+        if not release.title or not artist_names:
+            return 0
+
+        escaped_title = release.title.replace('"', '\\"')
+        artist_clauses = [
+            'artist:"' + name.replace('"', '\\"') + '"'
+            for name in artist_names
+        ]
+        query = 'release:"' + escaped_title + '" AND ' + " AND ".join(artist_clauses)
+        try:
+            search = _musicbrainz_get(
+                "https://musicbrainz.org/ws/2/release",
+                {"query": query, "fmt": "json", "limit": "10"},
+            )
+        except Exception:
+            logger.warning("MusicBrainz release search failed for %s", release.id, exc_info=True)
+            return 0
+
+        expected_title = _normalize_music_text(release.title)
+        expected_artists = {_normalize_music_text(name) for name in artist_names}
+        matches = []
+        for item in search.get("releases", []):
+            if not isinstance(item, dict) or not item.get("id"):
+                continue
+            if int(item.get("score") or 0) < minimum_score:
+                continue
+            if _normalize_music_text(str(item.get("title") or "")) != expected_title:
+                continue
+            credits = item.get("artist-credit") or []
+            credit_names = {
+                _normalize_music_text(
+                    str(credit.get("name") or (credit.get("artist") or {}).get("name") or "")
+                )
+                for credit in credits
+                if isinstance(credit, dict)
+            }
+            if not expected_artists.issubset(credit_names):
+                continue
+            matches.append(item)
+
+        if len(matches) != 1:
+            logger.info(
+                "MusicBrainz release unresolved for %s (%d strict matches)",
+                release.id,
+                len(matches),
+            )
+            return 0
+
+        candidate = matches[0]
+        try:
+            detail = _musicbrainz_get(
+                f"https://musicbrainz.org/ws/2/release/{candidate['id']}",
+                {"fmt": "json", "inc": "recordings+artist-credits+release-groups"},
+            )
+        except Exception:
+            logger.warning("MusicBrainz release detail failed for %s", candidate["id"], exc_info=True)
+            return 0
+
+        media = detail.get("media") or []
+        track_specs = []
+        for disc_number, medium in enumerate(media, start=1):
+            for position, track in enumerate(medium.get("tracks") or [], start=1):
+                recording_data = track.get("recording") or {}
+                title = str(track.get("title") or recording_data.get("title") or "").strip()
+                if not title:
+                    continue
+                track_specs.append(
+                    {
+                        "title": title,
+                        "position": int(track.get("position") or position),
+                        "disc_number": int(medium.get("position") or disc_number),
+                        "duration": (
+                            round(int(track["length"]) / 1000)
+                            if track.get("length")
+                            else (
+                                round(int(recording_data["length"]) / 1000)
+                                if recording_data.get("length")
+                                else None
+                            )
+                        ),
+                        "track_id": track.get("id"),
+                        "recording_mbid": recording_data.get("id"),
+                    }
+                )
+
+        # Never erase a known tracklist because a provider response was partial.
+        if not track_specs:
+            return 0
+
+        recording_ids = {
+            item["recording_mbid"]
+            for item in track_specs
+            if item["recording_mbid"]
+        }
+        identity_rows = (
+            db.query(RecordingIdentityModel)
+            .filter(
+                RecordingIdentityModel.provider == "musicbrainz",
+                RecordingIdentityModel.identity_type == "recording_id",
+                RecordingIdentityModel.external_id.in_(recording_ids),
+            )
+            .all()
+            if recording_ids
+            else []
+        )
+        recording_by_mbid = {row.external_id: row.recording_id for row in identity_rows}
+
+        # Link only to existing canonical recordings and playable songs.
+        canonical_ids = set(recording_by_mbid.values())
+        song_by_recording = {}
+        if canonical_ids:
+            songs = (
+                db.query(SongModel)
+                .filter(SongModel.recording_id.in_(canonical_ids))
+                .all()
+            )
+            for song in songs:
+                song_by_recording.setdefault(song.recording_id, song.id)
+
+        # Replace the release's track rows atomically after the complete
+        # provider response has been parsed and validated.
+        db.query(ReleaseTrackModel).filter(
+            ReleaseTrackModel.release_id == release.id
+        ).delete(synchronize_session=False)
+        for spec in track_specs:
+            canonical_id = recording_by_mbid.get(spec["recording_mbid"])
+            db.add(
+                ReleaseTrackModel(
+                    release_id=release.id,
+                    recording_id=canonical_id,
+                    source_song_id=song_by_recording.get(canonical_id),
+                    title=spec["title"],
+                    position=spec["position"],
+                    disc_number=spec["disc_number"],
+                    duration=spec["duration"],
+                    musicbrainz_track_id=spec["track_id"],
+                )
+            )
+
+        ReleaseService._sync_musicbrainz_identity(
+            db, release=release, identity_type="release_id",
+            external_id=str(candidate["id"]),
+        )
+        release_group = detail.get("release-group") or {}
+        if release_group.get("id"):
+            ReleaseService._sync_musicbrainz_identity(
+                db, release=release, identity_type="release_group_id",
+                external_id=str(release_group["id"]),
+            )
+        db.commit()
+        return len(track_specs)
+
+    @staticmethod
+    def _sync_musicbrainz_identity(
+        db: Session,
+        *,
+        release: ReleaseModel,
+        identity_type: str,
+        external_id: str,
+    ) -> None:
+        existing = (
+            db.query(ReleaseIdentityModel)
+            .filter(
+                ReleaseIdentityModel.provider == "musicbrainz",
+                ReleaseIdentityModel.identity_type == identity_type,
+                ReleaseIdentityModel.external_id == external_id,
+            )
+            .first()
+        )
+        if existing is not None:
+            if existing.release_id != release.id:
+                logger.warning(
+                    "MusicBrainz %s %s is already assigned to another Melora release",
+                    identity_type, external_id,
+                )
+            return
+        db.add(
+            ReleaseIdentityModel(
+                release_id=release.id,
+                provider="musicbrainz",
+                identity_type=identity_type,
+                external_id=external_id,
+            )
+        )
+
     @staticmethod
     def get_followed_releases(
         db: Session,
