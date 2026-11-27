@@ -11,6 +11,7 @@ from app.db.base import BaseModel
 if TYPE_CHECKING:
     from app.db.models.artist import ArtistModel
     from app.db.models.release_identity import ReleaseIdentityModel
+    from app.db.models.album import AlbumModel
 
 
 class ReleaseModel(BaseModel):
@@ -36,6 +37,9 @@ class ReleaseModel(BaseModel):
         "ArtistModel",
         back_populates="releases",
         lazy="selectin",
+    )
+    favorite_albums: Mapped[list[AlbumModel]] = relationship(
+        "AlbumModel", back_populates="release", lazy="selectin"
     )
     identities: Mapped[list[ReleaseIdentityModel]] = relationship(
         "ReleaseIdentityModel",
