@@ -7,7 +7,7 @@ from sqlalchemy import Boolean, Float, Integer, JSON, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import BaseModel
-from app.db.models.associations import song_artist, user_artist_follows
+from app.db.models.associations import release_artist, song_artist, user_artist_follows
 
 if TYPE_CHECKING:
     from app.db.models.artist_identity import ArtistIdentityModel
@@ -60,6 +60,11 @@ class ArtistModel(BaseModel):
         back_populates="artist",
         cascade="all, delete-orphan",
         lazy="selectin",
+    )
+
+    credited_releases: Mapped[list[ReleaseModel]] = relationship(
+        "ReleaseModel", secondary=release_artist, back_populates="credited_artists",
+        lazy="selectin"
     )
 
     releases: Mapped[list[ReleaseModel]] = relationship(
