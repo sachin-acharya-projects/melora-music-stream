@@ -24,7 +24,7 @@ class RecordingModel(BaseModel):
     title: Mapped[str | None] = mapped_column(String, nullable=True)
     duration: Mapped[int | None] = mapped_column(Integer, nullable=True)
     first_release_date: Mapped[date | None] = mapped_column(Date, nullable=True)
-    metadata: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    recording_metadata: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSON, nullable=True)
 
     songs: Mapped[list[SongModel]] = relationship(
         "SongModel", back_populates="recording", lazy="selectin"
