@@ -17,6 +17,7 @@ from app.db.base import SessionLocal, engine
 from app.db.models.user import UserModel
 from app.services.releases import ReleaseService
 from app.services.recording_enrichment import recording_enrichment_queue
+from app.services.release_enrichment import release_enrichment_queue
 from app.services.roles import ensure_admin_role
 
 setup_logging()
@@ -38,6 +39,23 @@ async def _recording_enrichment_loop() -> None:
         except Exception:
             logger.warning("Recording enrichment worker failed", exc_info=True)
         await asyncio.sleep(settings.RECORDING_ENRICHMENT_REFRESH_SECONDS)
+
+
+async def _release_enrichment_loop() -> None:
+    """Enrich known releases and tracklists independently of user navigation."""
+    logger = getLogger(__name__)
+    while True:
+        try:
+            with SessionLocal() as db:
+                release_enrichment_queue.enqueue_candidates(
+                    db, limit=settings.RELEASE_ENRICHMENT_BATCH_SIZE
+                )
+                # Release enrichment performs a search and a detail request;
+                # the shared MusicBrainz client enforces the provider rate limit.
+                release_enrichment_queue.process_one(db)
+        except Exception:
+            logger.warning("Release enrichment worker failed", exc_info=True)
+        await asyncio.sleep(settings.RELEASE_ENRICHMENT_REFRESH_SECONDS)
 
 
 async def _refresh_releases_loop() -> None:
@@ -118,15 +136,19 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
 
     refresh_task = asyncio.create_task(_refresh_releases_loop())
     recording_task = asyncio.create_task(_recording_enrichment_loop())
+    release_enrichment_task = asyncio.create_task(_release_enrichment_loop())
     try:
         yield
     finally:
         refresh_task.cancel()
         recording_task.cancel()
+        release_enrichment_task.cancel()
         with suppress(asyncio.CancelledError):
             await refresh_task
         with suppress(asyncio.CancelledError):
             await recording_task
+        with suppress(asyncio.CancelledError):
+            await release_enrichment_task
 
 
 app = FastAPI(
