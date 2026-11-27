@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Table
+from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, Table
 
 from app.db.base import Base
 
@@ -149,3 +149,6 @@ release_artist = Table(
     Column("position", Integer, nullable=False, server_default="0"),
     Column("role", String, nullable=False, server_default="primary"),
 )
+
+
+Index("ix_release_artist_artist_id", release_artist.c.artist_id)
