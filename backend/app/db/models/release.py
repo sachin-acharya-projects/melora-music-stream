@@ -7,11 +7,13 @@ from sqlalchemy import DateTime, ForeignKey, Index, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import BaseModel
+from app.db.models.associations import release_artist
 
 if TYPE_CHECKING:
     from app.db.models.artist import ArtistModel
     from app.db.models.release_identity import ReleaseIdentityModel
     from app.db.models.album import AlbumModel
+    from app.db.models.release_track import ReleaseTrackModel
 
 
 class ReleaseModel(BaseModel):
@@ -40,6 +42,13 @@ class ReleaseModel(BaseModel):
     )
     favorite_albums: Mapped[list[AlbumModel]] = relationship(
         "AlbumModel", back_populates="release", lazy="selectin"
+    )
+    credited_artists: Mapped[list[ArtistModel]] = relationship(
+        "ArtistModel", secondary=release_artist, lazy="selectin"
+    )
+    tracks: Mapped[list[ReleaseTrackModel]] = relationship(
+        "ReleaseTrackModel", back_populates="release", cascade="all, delete-orphan",
+        order_by="(ReleaseTrackModel.disc_number, ReleaseTrackModel.position)", lazy="selectin"
     )
     identities: Mapped[list[ReleaseIdentityModel]] = relationship(
         "ReleaseIdentityModel",

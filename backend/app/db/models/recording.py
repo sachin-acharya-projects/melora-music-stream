@@ -11,6 +11,7 @@ from app.db.base import BaseModel
 if TYPE_CHECKING:
     from app.db.models.recording_identity import RecordingIdentityModel
     from app.db.models.song import SongModel
+    from app.db.models.release_track import ReleaseTrackModel
 
 
 class RecordingModel(BaseModel):
@@ -28,6 +29,9 @@ class RecordingModel(BaseModel):
 
     songs: Mapped[list[SongModel]] = relationship(
         "SongModel", back_populates="recording", lazy="selectin"
+    )
+    release_tracks: Mapped[list[ReleaseTrackModel]] = relationship(
+        "ReleaseTrackModel", back_populates="recording", lazy="selectin"
     )
     identities: Mapped[list[RecordingIdentityModel]] = relationship(
         "RecordingIdentityModel",

@@ -137,3 +137,15 @@ album_favorites = Table(
         default=lambda: datetime.now(UTC),
     ),
 )
+
+
+# Canonical release artist credits. The legacy releases.artist_id remains the
+# primary artist for compatibility; this table stores all credited artists.
+release_artist = Table(
+    "release_artist",
+    Base.metadata,
+    Column("release_id", String, ForeignKey("releases.id", ondelete="CASCADE"), primary_key=True),
+    Column("artist_id", String, ForeignKey("artists.id", ondelete="CASCADE"), primary_key=True),
+    Column("position", Integer, nullable=False, server_default="0"),
+    Column("role", String, nullable=False, server_default="primary"),
+)

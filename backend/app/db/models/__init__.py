@@ -4,6 +4,7 @@ from app.db.models.artist import ArtistModel
 from app.db.models.artist_identity import ArtistIdentityModel
 from app.db.models.associations import (
     album_favorites,
+    release_artist,
     playlist_follows,
     playlist_song,
     song_artist,
@@ -22,6 +23,7 @@ from app.db.models.playlist import PlaylistModel
 from app.db.models.playlist_preferences import PlaylistPreferencesModel
 from app.db.models.playlist_share import PlaylistShareModel
 from app.db.models.release import ReleaseModel
+from app.db.models.release_track import ReleaseTrackModel
 from app.db.models.recording import RecordingModel
 from app.db.models.recording_identity import RecordingIdentityModel
 from app.db.models.recording_enrichment_job import RecordingEnrichmentJobModel
@@ -46,6 +48,7 @@ __all__ = [
     "PlaylistPreferencesModel",
     "PlaylistShareModel",
     "ReleaseModel",
+    "ReleaseTrackModel",
     "RecordingModel",
     "RecordingIdentityModel",
     "RecordingEnrichmentJobModel",
@@ -56,6 +59,7 @@ __all__ = [
     "UserRole",
     "UserStatsModel",
     "album_favorites",
+    "release_artist",
     "playlist_follows",
     "playlist_song",
     "song_artist",
